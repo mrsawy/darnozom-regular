@@ -21,7 +21,39 @@ App runs at http://localhost:5173
 | `pnpm preview` | Preview production build |
 | `pnpm typecheck` | TypeScript check only |
 
+## Production CI/CD
+
+Pushing to the `production` branch builds the site and deploys it to the server via GitHub Actions.
+
+**Live URL:** http://13.140.148.197/
+
+### GitHub Secrets (required)
+
+Repo → **Settings → Secrets and variables → Actions** — add:
+
+| Secret | Value |
+|--------|--------|
+| `DEPLOY_HOST` | `13.140.148.197` |
+| `DEPLOY_USER` | `root` |
+| `DEPLOY_SSH_KEY` | Full contents of the deploy **private** key (see below) |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Your Clerk publishable key (`pk_…`) |
+
+### Deploy key
+
+A key pair was generated for CI (`github-actions-darnozom-deploy`). The **public** key is already on the server. Put the **private** key into `DEPLOY_SSH_KEY` (entire PEM, including `BEGIN`/`END` lines).
+
+Never commit private keys or server passwords to git.
+
+### Deploy flow
+
+1. Merge/push to `production`
+2. Action builds with `pnpm build`
+3. Uploads `dist/` → `/var/www/darnozom`
+4. Reloads nginx
+
+You can also run the workflow manually: **Actions → Deploy Production → Run workflow**.
+
 ## Notes
 
-- API calls go to `/api/*`. In dev, Vite proxies them to `VITE_API_PROXY_TARGET` (default `http://localhost:3000`).
+- API calls go to `/api/*`. In production, enable the `/api` proxy block in `deploy/nginx.conf` when the backend is ready.
 - Set `VITE_CLERK_PUBLISHABLE_KEY` for sign-in / admin. Without it, public pages still work.

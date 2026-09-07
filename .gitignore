@@ -27,3 +27,7 @@ dist-ssr
 
 # TypeScript
 *.tsbuildinfo
+
+# Local deploy keys (never commit)
+.deploy-keys/
+
