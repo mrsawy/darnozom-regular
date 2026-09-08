@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -51,7 +51,18 @@ jobs:
           overwrite: true
           rm: true
 
-      - name: Reload nginx
+      - name: Upload deploy configs
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          source: "deploy/nginx.conf,deploy/nginx.bootstrap.conf,deploy/setup-ssl.sh"
+          target: /opt/darnozom
+          overwrite: true
+
+      - name: Configure SSL + reload nginx
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -59,8 +70,16 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           script: |
+            set -euo pipefail
             chown -R www-data:www-data /var/www/darnozom || true
-            nginx -t
-            systemctl reload nginx
+            chmod +x /opt/darnozom/deploy/setup-ssl.sh
+            DEPLOY_DOMAIN="${{ secrets.DEPLOY_DOMAIN }}"
+            DEPLOY_SSL_EMAIL="${{ secrets.DEPLOY_SSL_EMAIL }}"
+            export DEPLOY_DOMAIN="${DEPLOY_DOMAIN:-darnozom.com}"
+            export DEPLOY_SSL_EMAIL="${DEPLOY_SSL_EMAIL:-info@darnozom.com}"
+            /opt/darnozom/deploy/setup-ssl.sh \
+              /opt/darnozom/deploy/nginx.conf \
+              /opt/darnozom/deploy/nginx.bootstrap.conf
             echo "Deployed $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             ls -la /var/www/darnozom | head -20
+            curl -sI https://darnozom.com | head -5 || true
