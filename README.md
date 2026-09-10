@@ -150,7 +150,7 @@ Repo → **Settings → Secrets and variables → Actions**.
 | `GOOGLE_CALENDAR_*` | Consultation calendar sync disabled |
 | `RESEND_API_KEY` | Transactional email disabled |
 | `PRIVATE_OBJECT_DIR`, `PUBLIC_OBJECT_SEARCH_PATHS` | Object storage uploads disabled |
-| `BOOKS_ADMIN_SECRET` | Book import endpoint disabled |
+| `BOOKS_ADMIN_SECRET` | `/store/apps` write endpoints return 503 (see Security note below) |
 | `PUBLIC_SITE_URL` | Used in generated links/emails |
 
 Every optional secret is genuinely optional: the API boots and serves all
@@ -169,6 +169,33 @@ Never commit private keys or server passwords.
   `api.darnozom.com` doesn't resolve yet, the deploy logs a warning, skips that
   server block, and leaves the main site untouched — re-deploy once DNS is live.
 - HTTP redirects to HTTPS; certs auto-renew via `certbot.timer`.
+
+## Security notes
+
+Most admin write endpoints (books, academy, events, jobs, shipping rates) are
+guarded by Clerk's `requireAdmin`, which fails closed — with Clerk unconfigured
+they answer 401 rather than opening up.
+
+`/store/apps` is the exception: it sits above the Clerk auth gate and is guarded
+only by an `x-admin-secret` header compared against `BOOKS_ADMIN_SECRET`. That
+check now fails closed too — with no secret configured the write endpoints
+return 503. Set `BOOKS_ADMIN_SECRET` to a strong random value if you need them.
+
+### Open issues inherited from the original project
+
+These are pre-existing and **not** fixed here, because fixing them changes
+application behaviour and, in the first case, the database schema:
+
+- **Conversations have no ownership model.** The `conversations` table has no
+  owner column, and `/conversations*` filters only by conversation id. Any
+  signed-in user can therefore list, read, and delete *any* user's conversations
+  and messages. Fixing this needs an owner column, a backfill, and per-user
+  filtering.
+- **Consultation bookings trust client-supplied identity.** `POST` on bookings
+  takes `userId` from the request body rather than the session, and
+  `/account/me/bookings` matches on Clerk email addresses without checking that
+  they are verified — so bookings can be attached to, or read from, another
+  account.
 
 ## Known limitations
 

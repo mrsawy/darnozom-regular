@@ -3,14 +3,33 @@ import { db } from "@workspace/db";
 import { storeApps } from "@workspace/db";
 import { eq, and, ilike, or, desc } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
+import { timingSafeEqual } from "node:crypto";
 
 const router = Router();
-const ADMIN_SECRET = process.env.BOOKS_ADMIN_SECRET || "darnozom2024";
+
+// These write endpoints sit above the Clerk auth gate in routes/index.ts, so
+// this header is the only thing protecting them. It therefore fails CLOSED:
+// with no BOOKS_ADMIN_SECRET configured the endpoints reject everything.
+// (It previously fell back to a hardcoded literal, which left them writable by
+// anyone who had seen this file whenever the env var was unset.)
+const ADMIN_SECRET = process.env.BOOKS_ADMIN_SECRET ?? "";
 
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  const token = req.headers["x-admin-secret"] as string | undefined;
-  if (token === ADMIN_SECRET) return next();
-  return res.status(403).json({ error: "Forbidden" });
+  if (!ADMIN_SECRET) {
+    req.log?.warn("BOOKS_ADMIN_SECRET is not set — store app write endpoints are disabled.");
+    return res.status(503).json({ error: "Admin endpoints are not configured" });
+  }
+  const token = req.headers["x-admin-secret"];
+  if (typeof token !== "string" || token.length === 0) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const provided = Buffer.from(token);
+  const expected = Buffer.from(ADMIN_SECRET);
+  // Compare in constant time; length must match first since timingSafeEqual throws otherwise.
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  return next();
 }
 
 router.get("/store/apps", async (req, res) => {
