@@ -186,11 +186,15 @@ return 503. Set `BOOKS_ADMIN_SECRET` to a strong random value if you need them.
 These are pre-existing and **not** fixed here, because fixing them changes
 application behaviour and, in the first case, the database schema:
 
-- **Conversations have no ownership model.** The `conversations` table has no
-  owner column, and `/conversations*` filters only by conversation id. Any
-  signed-in user can therefore list, read, and delete *any* user's conversations
-  and messages. Fixing this needs an owner column, a backfill, and per-user
-  filtering.
+- **Conversations have no ownership model, so the router is not mounted.** The
+  `conversations` table has no owner column and `/conversations*` filtered only
+  by conversation id, which let any signed-in user list, read, and delete *any*
+  user's conversations, messages, and attachments. The router is therefore
+  commented out in `routes/index.ts`. Nothing deployed here used it: the web
+  client never calls it, and the mobile app uses the separate
+  `/api/mobile/chat/conversations` router. Only the (undeployed)
+  `darnozom-agent` artifact did. To re-enable, add an owner column, backfill it,
+  and filter every query by the signed-in user.
 - **Consultation bookings trust client-supplied identity.** `POST` on bookings
   takes `userId` from the request body rather than the session, and
   `/account/me/bookings` matches on Clerk email addresses without checking that

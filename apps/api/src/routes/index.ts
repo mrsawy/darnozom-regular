@@ -3,7 +3,8 @@ import { requireAuth, loadUserRole } from "../middlewares/authMiddleware";
 import healthRouter from "./health";
 import storageRouter from "./storage";
 import documentsRouter from "./documents/index";
-import conversationsRouter from "./conversations/index";
+// NOT MOUNTED — see the router.use block below.
+// import conversationsRouter from "./conversations/index";
 import contentRouter from "./content/index";
 import clientsRouter from "./clients/index";
 import reportsRouter from "./reports/index";
@@ -61,7 +62,19 @@ router.use(clientsRouter);
 router.use(reportsRouter);
 router.use(storageRouter);
 router.use(documentsRouter);
-router.use(conversationsRouter);
+// conversationsRouter (and the attachments router it mounts) is deliberately
+// NOT mounted. The `conversations` table has no owner column and these routes
+// filter only by conversation id, so any signed-in user could list, read, and
+// delete every other user's conversations, messages, and attachments.
+//
+// Nothing in this deployment calls /api/conversations: the web client never
+// does, and the mobile app uses /api/mobile/chat/conversations, which is the
+// separate mobileChatRouter above. Only the darnozom-agent artifact — not
+// deployed here — uses these routes.
+//
+// To re-enable: add an owner column to `conversations`, backfill it, filter
+// every query by the signed-in user, then restore the import and this line.
+// router.use(conversationsRouter);
 router.use(contentRouter);
 router.use(orchestratorRouter);
 router.use(assessmentsRouter);
