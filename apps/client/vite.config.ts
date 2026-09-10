@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // Forward API calls to the dar-website backend when running locally
       "/api": {
-        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:3000",
+        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:8080",
         changeOrigin: true,
       },
     },
