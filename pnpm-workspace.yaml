@@ -1,0 +1,24 @@
+# pnpm workspace for the darnozom monorepo.
+#
+# NOTE: unlike the upstream Replit workspace this was extracted from, we do NOT
+# strip non-linux-x64 native binaries (esbuild / rollup / lightningcss /
+# @tailwindcss/oxide). Developers build on Windows and macOS as well as the
+# linux-x64 CI runner, so every platform's optional binaries must stay
+# installable.
+
+packages:
+  - apps/*
+  - packages/*
+
+catalog:
+  '@types/node': ^22.13.10
+  drizzle-orm: ^0.45.1
+  zod: ^3.25.76
+
+onlyBuiltDependencies:
+  - esbuild
+
+overrides:
+  # drizzle-kit bundles an older, vulnerable esbuild internally; pin it forward.
+  '@esbuild-kit/esm-loader': 'npm:tsx@^4.21.0'
+  esbuild: '0.27.3'

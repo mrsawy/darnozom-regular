@@ -1,0 +1,422 @@
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import express from "express";
+import request from "supertest";
+import {
+  db,
+  orders,
+  orderItems,
+  books,
+  shippingRates,
+  type NewBook,
+} from "@workspace/db";
+import { eq, inArray, like } from "drizzle-orm";
+
+// ---------------------------------------------------------------------------
+// Money-sensitive integration tests for order *creation* (POST /store/orders).
+// These verify the checkout amount actually charged matches the order total:
+//   - prices are resolved server-side (a client-supplied price is ignored),
+//   - the EGP total is converted to USD and recorded on the order,
+//   - mixed-currency carts are rejected,
+//   - digital books cannot be paid cash-on-delivery,
+//   - shipping is added only when a paper item is present.
+//
+// Like the capture tests, these hit the REAL database (rows are seeded and
+// cleaned up) but stub the external boundaries: PayPal (network), the
+// EGP→USD conversion, and Clerk (user email lookup).
+// ---------------------------------------------------------------------------
+
+const TEST_USER_PREFIX = "test-create-";
+const OWNER = `${TEST_USER_PREFIX}owner`;
+const TEST_CITY = "TestCreateCity";
+const SHIPPING_PRICE = 50;
+
+// Per-test-controllable mocks for the money boundaries.
+const { createMock, convertMock } = vi.hoisted(() => ({
+  createMock: vi.fn(),
+  convertMock: vi.fn(),
+}));
+
+vi.mock("../../lib/paypal", () => ({
+  createPayPalOrder: createMock,
+  capturePayPalOrder: vi.fn(),
+}));
+
+vi.mock("../../lib/currency", () => ({
+  convertEgpToUsd: convertMock,
+}));
+
+// Stub auth: trust an `x-test-user` header instead of Clerk. Absent → 401.
+vi.mock("../../middlewares/authMiddleware", () => ({
+  requireAuth: (
+    req: express.Request & { clerkUserId?: string },
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const uid = req.header("x-test-user");
+    if (!uid) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    req.clerkUserId = uid;
+    next();
+  },
+}));
+
+// Stub admin middleware (admin routes are not exercised here).
+vi.mock("../../middlewares/adminAuth", () => ({
+  requireAdmin: (_req: express.Request, res: express.Response) =>
+    res.status(403).json({ error: "Forbidden" }),
+}));
+
+// Stub Clerk so the route can resolve the buyer's email without a real tenant.
+vi.mock("@clerk/express", () => ({
+  clerkClient: {
+    users: {
+      getUser: vi.fn(async () => ({
+        emailAddresses: [{ emailAddress: "buyer@example.com" }],
+      })),
+    },
+  },
+}));
+
+// Stub object storage so importing the router doesn't require real GCS.
+vi.mock("../../lib/objectStorage", () => ({
+  ObjectStorageService: class {
+    getPrivateObjectDir() {
+      return "test-bucket/private";
+    }
+  },
+  objectStorageClient: {
+    bucket: () => ({ file: () => ({}) }),
+  },
+}));
+
+// Import the router only AFTER the mocks are registered.
+const { default: ordersRouter } = await import("./index");
+
+function makeApp() {
+  const app = express();
+  app.use(express.json());
+  const noopLog = { info() {}, warn() {}, error() {}, debug() {} };
+  app.use((req, _res, next) => {
+    (req as unknown as { log: unknown }).log = noopLog;
+    next();
+  });
+  app.use(ordersRouter);
+  return app;
+}
+
+const app = makeApp();
+
+// Track seeded book ids so we can clean them up (books use serial ids).
+const seededBookIds: number[] = [];
+
+async function seedBook(overrides: Partial<NewBook> = {}): Promise<number> {
+  const [row] = await db
+    .insert(books)
+    .values({
+      title: "Test Create Book",
+      category: "management",
+      status: "available",
+      currency: "EGP",
+      paperAvailable: true,
+      paperPrice: "150.00",
+      digitalAvailable: true,
+      digitalPrice: "100.00",
+      digitalFileUrl: "internal://book-pdfs/test-object-id",
+      ...overrides,
+    })
+    .returning();
+  seededBookIds.push(row.id);
+  return row.id;
+}
+
+async function getOrder(id: number) {
+  const [row] = await db.select().from(orders).where(eq(orders.id, id));
+  return row;
+}
+
+async function getItems(orderId: number) {
+  return db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+}
+
+async function cleanup() {
+  await db.delete(orders).where(like(orders.userId, `${TEST_USER_PREFIX}%`));
+  if (seededBookIds.length) {
+    await db.delete(books).where(inArray(books.id, seededBookIds));
+    seededBookIds.length = 0;
+  }
+  await db.delete(shippingRates).where(eq(shippingRates.city, TEST_CITY));
+}
+
+beforeAll(async () => {
+  await cleanup();
+  await db
+    .insert(shippingRates)
+    .values({
+      city: TEST_CITY,
+      price: String(SHIPPING_PRICE),
+      currency: "EGP",
+      isDefault: false,
+    });
+});
+
+beforeEach(() => {
+  // Default happy-path stubs; individual tests may override.
+  convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+  createMock.mockResolvedValue({
+    id: "PP-TEST-ORDER",
+    approveUrl: "https://paypal.example/approve",
+  });
+});
+
+afterEach(async () => {
+  await db.delete(orders).where(like(orders.userId, `${TEST_USER_PREFIX}%`));
+  createMock.mockReset();
+  convertMock.mockReset();
+});
+
+afterAll(async () => {
+  await cleanup();
+});
+
+describe("POST /store/orders — price resolution", () => {
+  it("ignores any client-supplied price and totals from the DB price", async () => {
+    const bookId = await seedBook({ digitalPrice: "100.00" });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          {
+            productType: "book",
+            productId: bookId,
+            quantity: 2,
+            format: "digital",
+            // Malicious client price — must be ignored server-side.
+            unitPrice: "0.01",
+            price: "0.01",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const order = await getOrder(res.body.id);
+    // 100.00 (DB digital price) * 2 = 200.00; no shipping for a digital item.
+    expect(order.totalAmount).toBe("200.00");
+    expect(order.shippingTotal).toBe("0.00");
+
+    const items = await getItems(order.id);
+    expect(items).toHaveLength(1);
+    expect(items[0].unitPrice).toBe("100.00");
+
+    // The authoritative EGP grand total is what gets converted.
+    expect(convertMock).toHaveBeenCalledWith(200);
+  });
+});
+
+describe("POST /store/orders — EGP→USD conversion recorded", () => {
+  it("stores the converted USD amount and exchange rate on the order", async () => {
+    const bookId = await seedBook({ digitalPrice: "100.00" });
+    convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "digital" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const order = await getOrder(res.body.id);
+    expect(order.currency).toBe("EGP");
+    expect(order.totalAmount).toBe("100.00");
+    expect(order.usdAmount).toBe("3.25");
+    expect(order.exchangeRate).toBe("0.0325");
+    expect(order.paypalOrderId).toBe("PP-TEST-ORDER");
+    expect(order.paymentStatus).toBe("pending");
+
+    // PayPal must be created with the exact converted USD figure — the amount
+    // actually charged — not any EGP or client value.
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(createMock.mock.calls[0][0]).toMatchObject({ usdAmount: "3.25" });
+  });
+
+  it("fails the order (503) and never calls PayPal when conversion fails", async () => {
+    const bookId = await seedBook({ digitalPrice: "100.00" });
+    convertMock.mockRejectedValue(new Error("rate unavailable"));
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "digital" },
+        ],
+      });
+
+    expect(res.status).toBe(503);
+    expect(createMock).not.toHaveBeenCalled();
+    expect(res.body.id).toBeUndefined();
+
+    // The dangling order should be marked failed, not left pending.
+    const [row] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, OWNER));
+    expect(row.paymentStatus).toBe("failed");
+    expect(row.usdAmount).toBeNull();
+  });
+});
+
+describe("POST /store/orders — mixed-currency rejection", () => {
+  it("rejects a cart mixing EGP and USD items", async () => {
+    const egpBook = await seedBook({ digitalPrice: "100.00", currency: "EGP" });
+    const usdBook = await seedBook({ digitalPrice: "10.00", currency: "USD" });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: egpBook, quantity: 1, format: "digital" },
+          { productType: "book", productId: usdBook, quantity: 1, format: "digital" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/mixed currency/i);
+    expect(createMock).not.toHaveBeenCalled();
+    // No order should have been persisted for a rejected cart.
+    const rows = await db.select().from(orders).where(eq(orders.userId, OWNER));
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("POST /store/orders — digital + cash-on-delivery rejection", () => {
+  it("rejects a digital book paid by cash on delivery", async () => {
+    const bookId = await seedBook({ digitalPrice: "100.00" });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "digital" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/cash on delivery/i);
+    const rows = await db.select().from(orders).where(eq(orders.userId, OWNER));
+    expect(rows).toHaveLength(0);
+  });
+});
+
+describe("POST /store/orders — shipping only for paper items", () => {
+  it("adds shipping when a paper item is present", async () => {
+    const bookId = await seedBook({ paperPrice: "150.00" });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const order = await getOrder(res.body.id);
+    // 150.00 item + 50.00 shipping = 200.00.
+    expect(order.shippingTotal).toBe("50.00");
+    expect(order.totalAmount).toBe("200.00");
+    expect(order.shippingCity).toBe(TEST_CITY);
+    // The shipping-inclusive EGP total is what gets converted / charged.
+    expect(convertMock).toHaveBeenCalledWith(200);
+  });
+
+  it("does not add shipping for a digital-only order even if a city is sent", async () => {
+    const bookId = await seedBook({ digitalPrice: "100.00" });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        city: TEST_CITY,
+        address: "123 Test St",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "digital" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const order = await getOrder(res.body.id);
+    expect(order.shippingTotal).toBe("0.00");
+    expect(order.totalAmount).toBe("100.00");
+    expect(order.shippingCity).toBeNull();
+    expect(convertMock).toHaveBeenCalledWith(100);
+  });
+
+  it("rejects a paper order when the city has no shipping rate", async () => {
+    const bookId = await seedBook({ paperPrice: "150.00" });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: "NoRateCity",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/shipping is not available/i);
+    expect(createMock).not.toHaveBeenCalled();
+  });
+});

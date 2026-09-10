@@ -33,21 +33,58 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Build client
         env:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
-        run: pnpm build
+        run: pnpm run build:client
 
-      - name: Upload dist to server
+      - name: Build API
+        run: pnpm run build:api
+
+      - name: Stage API bundle
+        # The esbuild bundle deliberately externalises a few packages that can't
+        # be bundled (see apps/api/build.mjs). package.runtime.json lists the
+        # ones actually imported at runtime; the server npm-installs just those.
+        run: cp apps/api/package.runtime.json apps/api/dist/package.json
+
+      - name: Upload client dist
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          source: "dist/"
+          source: "apps/client/dist/"
           target: /var/www/darnozom
-          strip_components: 1
+          strip_components: 3
+          overwrite: true
+          rm: true
+
+      - name: Upload API bundle
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          source: "apps/api/dist/"
+          target: /opt/darnozom/api
+          strip_components: 2
+          overwrite: true
+
+      - name: Upload DB schema for drizzle-kit push
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          source: "packages/db/src/"
+          target: /opt/darnozom/db-schema
+          strip_components: 2
           overwrite: true
           rm: true
 
@@ -58,11 +95,57 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          source: "deploy/nginx.conf,deploy/nginx.bootstrap.conf,deploy/setup-ssl.sh"
+          source: "deploy/"
           target: /opt/darnozom
           overwrite: true
 
-      - name: Configure SSL + reload nginx
+      - name: Run deploy script
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          # Secrets are passed through envs: so they never appear in the script
+          # body (and therefore never in the Actions log).
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DEPLOY_DOMAIN: ${{ secrets.DEPLOY_DOMAIN }}
+          DEPLOY_API_DOMAIN: ${{ secrets.API_DOMAIN }}
+          DEPLOY_SSL_EMAIL: ${{ secrets.DEPLOY_SSL_EMAIL }}
+          PUBLIC_SITE_URL: ${{ secrets.PUBLIC_SITE_URL }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          ADMIN_EMAILS: ${{ secrets.ADMIN_EMAILS }}
+          ADMIN_CLERK_USER_IDS: ${{ secrets.ADMIN_CLERK_USER_IDS }}
+          BOOKS_ADMIN_SECRET: ${{ secrets.BOOKS_ADMIN_SECRET }}
+          AI_INTEGRATIONS_OPENAI_API_KEY: ${{ secrets.AI_INTEGRATIONS_OPENAI_API_KEY }}
+          AI_INTEGRATIONS_OPENAI_BASE_URL: ${{ secrets.AI_INTEGRATIONS_OPENAI_BASE_URL }}
+          PAYMOB_API_KEY: ${{ secrets.PAYMOB_API_KEY }}
+          PAYMOB_HMAC_SECRET: ${{ secrets.PAYMOB_HMAC_SECRET }}
+          PAYMOB_IFRAME_ID: ${{ secrets.PAYMOB_IFRAME_ID }}
+          PAYMOB_INTEGRATION_ID: ${{ secrets.PAYMOB_INTEGRATION_ID }}
+          PAYMOB_WALLET_INTEGRATION_ID: ${{ secrets.PAYMOB_WALLET_INTEGRATION_ID }}
+          PAYPAL_CLIENT_ID: ${{ secrets.PAYPAL_CLIENT_ID }}
+          PAYPAL_CLIENT_SECRET: ${{ secrets.PAYPAL_CLIENT_SECRET }}
+          PAYPAL_ENVIRONMENT: ${{ secrets.PAYPAL_ENVIRONMENT }}
+          GOOGLE_CALENDAR_CLIENT_ID: ${{ secrets.GOOGLE_CALENDAR_CLIENT_ID }}
+          GOOGLE_CALENDAR_CLIENT_SECRET: ${{ secrets.GOOGLE_CALENDAR_CLIENT_SECRET }}
+          GOOGLE_CALENDAR_REFRESH_TOKEN: ${{ secrets.GOOGLE_CALENDAR_REFRESH_TOKEN }}
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          PRIVATE_OBJECT_DIR: ${{ secrets.PRIVATE_OBJECT_DIR }}
+          PUBLIC_OBJECT_SEARCH_PATHS: ${{ secrets.PUBLIC_OBJECT_SEARCH_PATHS }}
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          envs: POSTGRES_PASSWORD,DEPLOY_DOMAIN,DEPLOY_API_DOMAIN,DEPLOY_SSL_EMAIL,PUBLIC_SITE_URL,CLERK_SECRET_KEY,CLERK_PUBLISHABLE_KEY,ADMIN_EMAILS,ADMIN_CLERK_USER_IDS,BOOKS_ADMIN_SECRET,AI_INTEGRATIONS_OPENAI_API_KEY,AI_INTEGRATIONS_OPENAI_BASE_URL,PAYMOB_API_KEY,PAYMOB_HMAC_SECRET,PAYMOB_IFRAME_ID,PAYMOB_INTEGRATION_ID,PAYMOB_WALLET_INTEGRATION_ID,PAYPAL_CLIENT_ID,PAYPAL_CLIENT_SECRET,PAYPAL_ENVIRONMENT,GOOGLE_CALENDAR_CLIENT_ID,GOOGLE_CALENDAR_CLIENT_SECRET,GOOGLE_CALENDAR_REFRESH_TOKEN,GOOGLE_CALENDAR_ID,RESEND_API_KEY,PRIVATE_OBJECT_DIR,PUBLIC_OBJECT_SEARCH_PATHS
+          script: |
+            set -euo pipefail
+            export DEPLOY_DOMAIN="${DEPLOY_DOMAIN:-darnozom.com}"
+            export DEPLOY_API_DOMAIN="${DEPLOY_API_DOMAIN:-api.darnozom.com}"
+            export DEPLOY_SSL_EMAIL="${DEPLOY_SSL_EMAIL:-info@darnozom.com}"
+            chmod +x /opt/darnozom/deploy/deploy.sh
+            bash /opt/darnozom/deploy/deploy.sh
+
+      - name: Smoke test
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -70,16 +153,13 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
           script: |
-            set -euo pipefail
-            chown -R www-data:www-data /var/www/darnozom || true
-            chmod +x /opt/darnozom/deploy/setup-ssl.sh
-            DEPLOY_DOMAIN="${{ secrets.DEPLOY_DOMAIN }}"
-            DEPLOY_SSL_EMAIL="${{ secrets.DEPLOY_SSL_EMAIL }}"
-            export DEPLOY_DOMAIN="${DEPLOY_DOMAIN:-darnozom.com}"
-            export DEPLOY_SSL_EMAIL="${DEPLOY_SSL_EMAIL:-info@darnozom.com}"
-            /opt/darnozom/deploy/setup-ssl.sh \
-              /opt/darnozom/deploy/nginx.conf \
-              /opt/darnozom/deploy/nginx.bootstrap.conf
-            echo "Deployed $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            ls -la /var/www/darnozom | head -20
-            curl -sI https://darnozom.com | head -5 || true
+            set -uo pipefail
+            echo "--- container ---"
+            docker ps --filter name=darnozom-db --format '{{.Names}} {{.Status}}'
+            echo "--- api service ---"
+            systemctl is-active darnozom-api
+            echo "--- site ---"
+            curl -sI https://darnozom.com | head -1
+            curl -s https://darnozom.com/api/healthz
+            echo
+            curl -s https://api.darnozom.com/api/healthz || echo "(api subdomain not live yet)"

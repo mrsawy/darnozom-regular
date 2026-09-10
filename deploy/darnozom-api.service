@@ -1,0 +1,24 @@
+[Unit]
+Description=Darnozom API server
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/darnozom/api
+EnvironmentFile=/etc/darnozom-api.env
+ExecStart=/usr/bin/env node --enable-source-maps /opt/darnozom/api/dist/index.mjs
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=darnozom-api
+
+# Basic hardening. The API only ever writes to /tmp (pdf/audio scratch files).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
