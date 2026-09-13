@@ -56,6 +56,39 @@ ensure_docker() {
 ensure_docker
 
 # ---------------------------------------------------------------------------
+# 0b. Node.js (API runtime + drizzle-kit)
+# ---------------------------------------------------------------------------
+ensure_node() {
+  if command -v node >/dev/null 2>&1; then
+    major=$(node -v | sed 's/^v//' | cut -d. -f1)
+    if [ "${major:-0}" -ge 20 ] && command -v npm >/dev/null 2>&1; then
+      log "Node already installed ($(node -v); npm $(npm -v))"
+      return 0
+    fi
+  fi
+
+  log "Installing Node.js 22 via NodeSource"
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -y
+  apt-get install -y ca-certificates curl gnupg
+  mkdir -p /etc/apt/keyrings
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
+    | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_22.x nodistro main" \
+    > /etc/apt/sources.list.d/nodesource.list
+  apt-get update -y
+  apt-get install -y nodejs
+
+  if ! command -v node >/dev/null 2>&1; then
+    echo "Node install finished but 'node' is still unavailable." >&2
+    exit 1
+  fi
+  log "Node ready ($(node -v); npm $(npm -v))"
+}
+
+ensure_node
+
+# ---------------------------------------------------------------------------
 # 1. Postgres container
 # ---------------------------------------------------------------------------
 mkdir -p "$DB_DIR" "$API_DIR" "$DBTOOLS_DIR"
