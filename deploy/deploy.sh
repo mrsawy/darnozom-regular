@@ -226,7 +226,9 @@ DB_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5432/$POSTGRES_
 log "Pushing Drizzle schema"
 # stdin is closed deliberately: drizzle-kit prompts before destructive changes,
 # and in CI that must fail loudly rather than hang or silently truncate data.
-(cd "$DBTOOLS_DIR" && DATABASE_URL="$DB_URL" \
+# NODE_PATH is required so schema files under ../db-schema can resolve
+# drizzle-orm from dbtools/node_modules (they are not a package of their own).
+(cd "$DBTOOLS_DIR" && DATABASE_URL="$DB_URL" NODE_PATH="$DBTOOLS_DIR/node_modules" \
   ./node_modules/.bin/drizzle-kit push --config ./drizzle.config.ts < /dev/null)
 
 # ---------------------------------------------------------------------------
