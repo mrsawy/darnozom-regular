@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Redirect } from "wouter";
-import { useUser, useAuth } from "@clerk/react";
+import { useSession } from "@/lib/auth-client";
 import { Loader2, Video, ExternalLink, Calendar, ArrowRight, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SiteNav from "@/components/site-nav";
@@ -41,17 +41,15 @@ function statusClass(s: Booking["status"]) {
 }
 
 export default function AccountConsultationsPage() {
-  const { isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
+  const { data: session, isPending } = useSession();
+  const isSignedIn = !!session?.user;
   const [items, setItems] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function load() {
     setLoading(true);
     try {
-      const token = await getToken();
       const r = await fetch("/api/account/me/bookings", {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
         credentials: "include",
       });
       if (r.ok) {
@@ -64,16 +62,14 @@ export default function AccountConsultationsPage() {
 
   async function cancel(b: Booking) {
     if (!confirm("إلغاء هذه الاستشارة؟")) return;
-    const token = await getToken();
     const r = await fetch(`/api/account/me/bookings/${b.id}/cancel`, {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
       credentials: "include",
     });
     if (r.ok) load();
   }
 
-  if (!isLoaded) {
+  if (isPending) {
     return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin" /></div>;
   }
   if (!isSignedIn) return <Redirect to="/sign-in" />;

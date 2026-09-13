@@ -23,17 +23,17 @@ import { eq, inArray, like } from "drizzle-orm";
 //   - requires auth.
 //
 // Like the other order tests, these hit the REAL database (rows are seeded
-// and cleaned up) but stub the external boundaries (Clerk, object storage).
+// and cleaned up) but stub the external boundaries (auth, object storage).
 // ---------------------------------------------------------------------------
 
 const TEST_USER_PREFIX = "test-ckprofile-";
 const OWNER = `${TEST_USER_PREFIX}owner`;
 const TEST_CITY = "TestProfileCity";
 
-// Stub auth: trust an `x-test-user` header instead of Clerk. Absent → 401.
+// Stub auth: trust an `x-test-user` header instead of a session. Absent → 401.
 vi.mock("../../middlewares/authMiddleware", () => ({
   requireAuth: (
-    req: express.Request & { clerkUserId?: string },
+    req: express.Request & { userId?: string; userEmail?: string },
     res: express.Response,
     next: express.NextFunction,
   ) => {
@@ -42,7 +42,8 @@ vi.mock("../../middlewares/authMiddleware", () => ({
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    req.clerkUserId = uid;
+    req.userId = uid;
+    req.userEmail = "buyer@example.com";
     next();
   },
 }));
@@ -51,17 +52,6 @@ vi.mock("../../middlewares/authMiddleware", () => ({
 vi.mock("../../middlewares/adminAuth", () => ({
   requireAdmin: (_req: express.Request, res: express.Response) =>
     res.status(403).json({ error: "Forbidden" }),
-}));
-
-// Stub Clerk so routes can resolve the buyer's email without a real tenant.
-vi.mock("@clerk/express", () => ({
-  clerkClient: {
-    users: {
-      getUser: vi.fn(async () => ({
-        emailAddresses: [{ emailAddress: "buyer@example.com" }],
-      })),
-    },
-  },
 }));
 
 // Stub object storage so importing the router doesn't require real GCS.

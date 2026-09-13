@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
-import { useUser } from "@clerk/react";
+import { useSession } from "@/lib/auth-client";
 import { Loader2, Calendar, Clock, CheckCircle2, Video, ArrowRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +40,9 @@ function timeFmt(iso: string): string {
 }
 
 export default function BookConsultationPage() {
-  const { user, isSignedIn } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const isSignedIn = !!user;
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Slot | null>(null);
@@ -53,8 +55,8 @@ export default function BookConsultationPage() {
     if (isSignedIn && user) {
       setForm(f => ({
         ...f,
-        clientName: f.clientName || user.fullName || user.firstName || "",
-        clientEmail: f.clientEmail || user.primaryEmailAddress?.emailAddress || "",
+        clientName: f.clientName || user.name || "",
+        clientEmail: f.clientEmail || user.email || "",
       }));
     }
   }, [isSignedIn, user]);

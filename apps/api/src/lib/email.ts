@@ -24,7 +24,7 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-interface EmailPayload {
+export interface EmailPayload {
   to: string;
   subject: string;
   html: string;
@@ -32,7 +32,7 @@ interface EmailPayload {
   attachments?: { filename: string; content: string; contentType: string }[];
 }
 
-async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean; error?: string }> {
+export async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean; error?: string }> {
   if (!RESEND_API_KEY) {
     console.warn("[email] RESEND_API_KEY not set — skipping email send");
     return { ok: false, error: "Email service not configured" };

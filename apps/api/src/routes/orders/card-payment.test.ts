@@ -10,7 +10,7 @@ import { eq, inArray, like } from "drizzle-orm";
 // create order (paymentMethod "card") → Paymob order id + hosted iframe URL →
 // webhook / confirm poll flips the order to paid. These hit the REAL database
 // (rows are seeded and cleaned up) but stub the external boundaries: Paymob
-// (network), PayPal (still used by the redirect flow) and Clerk.
+// (network), PayPal (still used by the redirect flow) and auth.
 // ---------------------------------------------------------------------------
 
 const TEST_USER_PREFIX = "test-card-";
@@ -68,10 +68,10 @@ vi.mock("../../lib/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: paidNotificationsMock,
 }));
 
-// Stub auth: trust an `x-test-user` header instead of Clerk. Absent → 401.
+// Stub auth: trust an `x-test-user` header instead of a session. Absent → 401.
 vi.mock("../../middlewares/authMiddleware", () => ({
   requireAuth: (
-    req: express.Request & { clerkUserId?: string },
+    req: express.Request & { userId?: string; userEmail?: string },
     res: express.Response,
     next: express.NextFunction,
   ) => {
@@ -80,7 +80,8 @@ vi.mock("../../middlewares/authMiddleware", () => ({
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    req.clerkUserId = uid;
+    req.userId = uid;
+    req.userEmail = "buyer@example.com";
     next();
   },
 }));
@@ -89,17 +90,6 @@ vi.mock("../../middlewares/authMiddleware", () => ({
 vi.mock("../../middlewares/adminAuth", () => ({
   requireAdmin: (_req: express.Request, res: express.Response) =>
     res.status(403).json({ error: "Forbidden" }),
-}));
-
-// Stub Clerk so the route can resolve the buyer's email without a real tenant.
-vi.mock("@clerk/express", () => ({
-  clerkClient: {
-    users: {
-      getUser: vi.fn(async () => ({
-        emailAddresses: [{ emailAddress: "buyer@example.com" }],
-      })),
-    },
-  },
 }));
 
 // Stub object storage so importing the router doesn't require real GCS.

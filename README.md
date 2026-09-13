@@ -36,8 +36,33 @@ cp apps/client/.env.example apps/client/.env   # client: VITE_* settings
 
 pnpm dev:db                   # start Postgres 16 in Docker
 pnpm db:push                  # create/sync the schema
+pnpm db:seed:users            # create the dev sign-in accounts
 pnpm dev:api                  # API on http://localhost:8080
 pnpm dev:client               # SPA on http://localhost:5173
+```
+
+### Auth
+
+Auth is self-hosted — no external provider and no publishable key, so the
+client needs no auth configuration at all. Set `BETTER_AUTH_SECRET` in the root
+`.env` (any random string locally; `openssl rand -base64 32` for real use).
+
+`pnpm db:seed:users` creates one account per role, all pre-verified, sharing the
+password `darnozom-dev-1234`:
+
+| Email | Role |
+|-------|------|
+| `superadmin@darnozom.test` | `super_admin` |
+| `admin@darnozom.test` | `admin` |
+| `consultant@darnozom.test` | `consultant` |
+| `client@darnozom.test` | `client` |
+
+Sign-ups outside the seed require email verification, which needs
+`RESEND_API_KEY`. Without it the send is skipped and logged — mark the account
+verified by hand to sign in:
+
+```bash
+docker exec -i darnozom-db psql -U darnozom -d darnozom \n  -c "UPDATE users SET email_verified = true WHERE email='you@example.com';"
 ```
 
 Vite proxies `/api` to `VITE_API_PROXY_TARGET`, so point that at the API port.
@@ -56,6 +81,7 @@ free (5433, 5434…) and match it in `DATABASE_URL`.
 | `pnpm build:client` / `pnpm build:api` | Build one app |
 | `pnpm typecheck` | Typecheck the whole workspace |
 | `pnpm db:push` | `drizzle-kit push` against `DATABASE_URL` |
+| `pnpm db:seed:users` | Create the four dev accounts below (refuses to run with `NODE_ENV=production`) |
 | `pnpm test` | Run all package tests |
 
 ### Tests
@@ -80,19 +106,25 @@ Schema changes are applied with `drizzle-kit push` (diff the live DB against
 — those are historical artifacts of the original Replit project and are not
 replayed by this pipeline.
 
+**Destructive changes need a hand-written migration.** `deploy.sh` runs push
+with stdin closed so it fails loudly rather than silently dropping data, which
+means drops and column removals are refused. Put those in a numbered file in
+`deploy/db/` (e.g. `001_own_auth.sql`); `deploy.sh` applies each one once before
+the push, tracked by a marker in `/opt/darnozom/db/`. Write every statement
+`IF EXISTS`-guarded so a re-run is harmless.
+
 ### One-time data restore
 
 `dar-website/backup.sql` (real store/orders data) is **not committed** — it
-contains customer PII. To carry it over, copy it to the server once, before the
-first deploy:
+contains customer PII. Copy it to the server once, before the first deploy:
 
 ```bash
 scp backup.sql root@13.140.148.197:/opt/darnozom/db/backup.sql
 ```
 
-On the next deploy `deploy.sh` restores it and writes `/opt/darnozom/db/.seeded`;
-every later deploy skips the step. The restore also handles two quirks of that
-dump automatically:
+This has already been done for the current VPS. On the next deploy `deploy.sh`
+restores it and writes `/opt/darnozom/db/.seeded`; every later deploy skips
+the step. The restore also handles two quirks of that dump automatically:
 
 - it references Neon roles (`neondb_owner`, `neon_superuser`, `cloud_admin`)
   that don't exist on stock Postgres — they're created as no-login roles first;
@@ -112,14 +144,16 @@ Pushing to the `production` branch runs `.github/workflows/deploy-production.yml
 3. Upload `apps/api/dist` (+ `package.runtime.json` as `dist/package.json`) → `/opt/darnozom/api`
 4. Upload `packages/db/src` → `/opt/darnozom/db-schema` and `deploy/` → `/opt/darnozom/deploy`
 5. Run `deploy.sh` over SSH, which does:
-   Postgres container up → wait for `pg_isready` → one-time restore →
-   `drizzle-kit push` → install API externals → write `/etc/darnozom-api.env` →
-   `systemctl restart darnozom-api` → **gate on `/api/healthz` returning 200** →
-   issue/renew certificates → reload nginx
+   **install Docker if missing** → Postgres container up → wait for `pg_isready` →
+   one-time restore → `drizzle-kit push` → install API externals → write
+   `/etc/darnozom-api.env` → `systemctl restart darnozom-api` → **gate on
+   `/api/healthz` returning 200** → issue/renew certificates → reload nginx
 6. Smoke-test both domains
 
 The deploy fails loudly if Postgres never becomes ready or the API doesn't pass
-its health check.
+its health check. Docker itself is no longer a manual pre-req: `deploy.sh`
+detects a missing `docker` / `docker compose` and installs them via
+get.docker.com before continuing.
 
 ### GitHub Secrets
 
@@ -133,7 +167,7 @@ Repo → **Settings → Secrets and variables → Actions**.
 | `DEPLOY_USER` | `root` |
 | `DEPLOY_SSH_KEY` | Full deploy **private** key (entire PEM) |
 | `POSTGRES_PASSWORD` | Password for the `darnozom` database role |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (`pk_…`) — used by both the client build and the API |
+| `BETTER_AUTH_SECRET` | Signing key for session cookies. Generate with `openssl rand -base64 32`. The API **refuses to boot** in production without it |
 
 **Optional**
 
@@ -142,8 +176,8 @@ Repo → **Settings → Secrets and variables → Actions**.
 | `DEPLOY_DOMAIN` | `darnozom.com` |
 | `API_DOMAIN` | `api.darnozom.com` |
 | `DEPLOY_SSL_EMAIL` | `info@darnozom.com` |
-| `CLERK_SECRET_KEY` | Auth disabled; protected routes answer 401 |
-| `ADMIN_EMAILS`, `ADMIN_CLERK_USER_IDS` | No bootstrap admins seeded |
+| `ADMIN_EMAILS` | No bootstrap admins granted; nobody can reach `/admin` on a fresh database |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google sign-in disabled and the button hidden; email+password and email codes still work |
 | `AI_INTEGRATIONS_OPENAI_API_KEY` / `_BASE_URL` | AI routes fail on call; server still boots |
 | `PAYMOB_*` | Card + wallet checkout disabled |
 | `PAYPAL_CLIENT_ID` / `_SECRET` / `PAYPAL_ENVIRONMENT` | PayPal checkout disabled |
@@ -172,11 +206,26 @@ Never commit private keys or server passwords.
 
 ## Security notes
 
-Most admin write endpoints (books, academy, events, jobs, shipping rates) are
-guarded by Clerk's `requireAdmin`, which fails closed — with Clerk unconfigured
-they answer 401 rather than opening up.
+Auth is self-hosted (Better Auth) against this project's own Postgres — there is
+no external identity provider. Sessions are httpOnly, `SameSite=Lax` cookies
+backed by the `sessions` table, so a session can be revoked server-side.
+Passwords are argon2 hashes in `accounts`.
 
-`/store/apps` is the exception: it sits above the Clerk auth gate and is guarded
+Authorization is the single `users.role` column (`client` / `consultant` /
+`admin` / `super_admin`). `role`, `client_id` and `tenant_id` are declared
+`input: false`, so a crafted sign-up body cannot set them — Better Auth rejects
+the request outright with `FIELD_NOT_ALLOWED`.
+
+`ADMIN_EMAILS` is **bootstrap only**: listed addresses are granted `admin` when
+they sign up, and on boot if they already have an account. It never demotes —
+removing an address does not revoke anything, so a typo cannot lock every admin
+out. Revoke from the admin panel instead.
+
+Most admin write endpoints (books, academy, events, jobs, shipping rates) are
+guarded by `requireAdmin`, which fails closed — no session or a non-admin role
+answers 401/403 rather than opening up.
+
+`/store/apps` is the exception: it sits above the auth gate and is guarded
 only by an `x-admin-secret` header compared against `BOOKS_ADMIN_SECRET`. That
 check now fails closed too — with no secret configured the write endpoints
 return 503. Set `BOOKS_ADMIN_SECRET` to a strong random value if you need them.
@@ -197,9 +246,10 @@ application behaviour and, in the first case, the database schema:
   and filter every query by the signed-in user.
 - **Consultation bookings trust client-supplied identity.** `POST` on bookings
   takes `userId` from the request body rather than the session, and
-  `/account/me/bookings` matches on Clerk email addresses without checking that
-  they are verified — so bookings can be attached to, or read from, another
-  account.
+  `/account/me/bookings` matches on the session's email address — so a booking
+  made with someone else's address can be attached to, or read from, the wrong
+  account. (The migration off Clerk narrowed this: an account now has exactly
+  one address, and it is verified before a session is ever issued.)
 
 ## Known limitations
 

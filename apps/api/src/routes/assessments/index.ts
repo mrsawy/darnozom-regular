@@ -455,21 +455,18 @@ ${quantOut}
       })
       .where(eq(assessments.id, assessment.id));
 
-    const clerkId = (req as AuthRequest).clerkUserId;
-    if (clerkId) {
+    const consultantEmail = (req as AuthRequest).userEmail;
+    if (consultantEmail) {
       try {
-        const [consultant] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-        if (consultant?.email) {
-          const companyName = answers.general.company;
-          void sendReportReadyNotification({
-            consultantEmail: consultant.email,
-            reportId: assessment.id,
-            reportTitle: `${serviceLabel} Assessment — ${companyName}`,
-            clientName: linkedClient?.name ?? companyName,
-            reportType: serviceLabel,
-            isAssessment: true,
-          });
-        }
+        const companyName = answers.general.company;
+        void sendReportReadyNotification({
+          consultantEmail,
+          reportId: assessment.id,
+          reportTitle: `${serviceLabel} Assessment — ${companyName}`,
+          clientName: linkedClient?.name ?? companyName,
+          reportType: serviceLabel,
+          isAssessment: true,
+        });
       } catch (notifyErr) {
         console.error("Assessment notification error:", notifyErr);
       }

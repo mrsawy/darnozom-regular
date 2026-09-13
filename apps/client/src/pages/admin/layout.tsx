@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Link, useLocation, Redirect } from "wouter";
-import { useUser, useClerk } from "@clerk/react";
+import { signOut, useSession } from "@/lib/auth-client";
 import {
   LayoutDashboard, BookOpen, GraduationCap, School, CalendarDays,
   Users, LogOut, Loader2, Menu, X, ShieldAlert, ShieldCheck,
@@ -53,21 +53,24 @@ function VerifyingScreen({ onRetry }: { onRetry?: () => void }) {
 
 export function AdminGate({ children }: { children: ReactNode }) {
   const { status, loading, refetch } = useAdminStatus();
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const isSignedIn = !!user;
+  const isLoaded = !isPending;
   const [location] = useLocation();
 
-  // Wait until both Clerk and the admin check have resolved.
+  // Wait until both the session and the admin check have resolved.
   if (!isLoaded || loading) {
     return <VerifyingScreen />;
   }
 
-  // Only treat the user as signed out when Clerk itself says so. This avoids
-  // a redirect loop: /sign-in forwards an already-signed-in user to /account.
+  // Only treat the user as signed out when the session itself says so. This
+  // avoids a redirect loop: /sign-in forwards a signed-in user to /account.
   if (!isSignedIn) {
     return <Redirect to="/sign-in" />;
   }
 
-  // Clerk says signed in, but the server hasn't confirmed the session yet
+  // The client has a session but /api/admin/me hasn't confirmed it yet
   // (transient/unresolved). Keep showing the verifying state and auto-retry
   // instead of bouncing to sign-in.
   if (!status?.signedIn) {
@@ -75,17 +78,14 @@ export function AdminGate({ children }: { children: ReactNode }) {
   }
 
   if (!status.isAdmin) {
-    const displayEmail =
-      status.email ||
-      user?.primaryEmailAddress?.emailAddress ||
-      user?.emailAddresses?.[0]?.emailAddress;
+    const displayEmail = status.email || user?.email;
     return (
       <div className="min-h-[100dvh] flex items-center justify-center dark bg-[#0F3D2E] px-4" dir="rtl">
         <div className="bg-background border border-red-400/30 max-w-md w-full p-8 text-center">
           <ShieldAlert className="w-10 h-10 text-red-500 mx-auto mb-4" />
           <h1 className="text-xl font-black text-primary mb-2">ليس لديك صلاحية الوصول إلى لوحة الإدارة</h1>
           <p className="text-sm text-muted-foreground mb-3">
-            أنت مسجّل دخول حالياً، لكن هذا البريد ليس ضمن قائمة المشرفين. لو كان من المفترض أن تكون مديراً، اطلب من مدير حالي إضافة بريدك من صفحة "المشرفون"، أو تأكّد من ضبط متغير <span className="font-mono">ADMIN_EMAILS</span> في الخادم.
+            أنت مسجّل دخول حالياً، لكن حسابك لا يحمل صلاحية الإشراف. لو كان من المفترض أن تكون مديراً، اطلب من مدير حالي منح حسابك الصلاحية من صفحة "المشرفون"، أو تأكّد من ضبط متغير <span className="font-mono">ADMIN_EMAILS</span> في الخادم.
           </p>
           {displayEmail && (
             <p className="text-xs text-muted-foreground mb-4 font-mono break-all bg-muted/40 px-2 py-1.5 inline-block">
@@ -112,10 +112,17 @@ export function AdminGate({ children }: { children: ReactNode }) {
 }
 
 function SignOutButton({ label }: { label?: string } = {}) {
-  const { signOut } = useClerk();
   return (
     <Button
-      onClick={() => signOut({ redirectUrl: `${basePath}/sign-in` })}
+      onClick={() =>
+        void signOut({
+          fetchOptions: {
+            onSuccess: () => {
+              window.location.href = `${basePath}/sign-in`;
+            },
+          },
+        })
+      }
       variant="outline"
       className="rounded-none gap-2"
       data-testid="admin-gate-signout"
@@ -126,10 +133,11 @@ function SignOutButton({ label }: { label?: string } = {}) {
 }
 
 function AdminShell({ children, currentPath }: { children: ReactNode; currentPath: string }) {
-  const { user } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [mobileOpen, setMobileOpen] = useState(false);
-  const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress;
-  const name = user?.firstName || user?.fullName || email?.split("@")[0] || "مشرف";
+  const email = user?.email;
+  const name = user?.name || email?.split("@")[0] || "مشرف";
 
   return (
     <div className="min-h-[100dvh] bg-muted/20 text-foreground" dir="rtl">

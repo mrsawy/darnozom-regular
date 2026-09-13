@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { Redirect, Link } from "wouter";
-import { useUser, useClerk } from "@clerk/react";
+import { useSession } from "@/lib/auth-client";
+import { ProfileDialog } from "@/components/profile-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2,
@@ -9,7 +10,7 @@ import {
   FileText,
   UserCircle2,
   Calendar,
-  ExternalLink,
+  Pencil,
   Package,
   ChevronDown,
   ChevronUp,
@@ -665,8 +666,11 @@ export default function AccountPage() {
   const { language } = useLanguage();
   const t = COPY[language];
   const isAr = language === "ar";
-  const { isLoaded, isSignedIn, user } = useUser();
-  const { openUserProfile } = useClerk();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const isLoaded = !isPending;
+  const isSignedIn = !!user;
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const academyQuery = useQuery<{
     email: string | null;
@@ -736,9 +740,9 @@ export default function AccountPage() {
     return t.rfp;
   };
 
-  const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
+  const email = user?.email || "";
   const name = useMemo(() => {
-    return user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(" ") || email.split("@")[0] || "";
+    return user?.name || email.split("@")[0] || "";
   }, [user, email]);
 
   if (!isLoaded) {
@@ -774,8 +778,8 @@ export default function AccountPage() {
           {/* Profile */}
           <SectionCard icon={UserCircle2} heading={t.profileHeading}>
             <div className="flex items-center gap-4 flex-wrap">
-              {user?.imageUrl ? (
-                <img src={user.imageUrl} alt="" className="w-16 h-16 rounded-full object-cover border border-border" />
+              {user?.image ? (
+                <img src={user.image} alt="" className="w-16 h-16 rounded-full object-cover border border-border" />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-secondary text-primary flex items-center justify-center">
                   <UserCircle2 className="w-8 h-8" />
@@ -788,11 +792,11 @@ export default function AccountPage() {
                 <div className="text-sm text-primary font-mono break-all">{email || "—"}</div>
               </div>
               <button
-                onClick={() => openUserProfile()}
+                onClick={() => setProfileOpen(true)}
                 className="px-4 py-2 bg-secondary text-primary text-sm font-bold hover:bg-secondary/90 inline-flex items-center gap-2"
                 data-testid="btn-edit-profile"
               >
-                <ExternalLink className="w-4 h-4" />
+                <Pencil className="w-4 h-4" />
                 {t.editProfile}
               </button>
             </div>
@@ -948,24 +952,28 @@ export default function AccountPage() {
         </div>
       </main>
       <SiteFooter />
+      <ProfileDialog
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        language={language}
+        currentName={name}
+        email={email}
+      />
     </div>
   );
 }
 
 function AdminShortcutCard({ isAr }: { isAr: boolean }) {
   const { status, loading, refetch } = useAdminStatus();
-  const { user } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [refreshing, setRefreshing] = useState(false);
 
   if (loading) return null;
   if (!status?.signedIn) return null;
 
   if (!status.isAdmin) {
-    const email =
-      status.email ||
-      user?.primaryEmailAddress?.emailAddress ||
-      user?.emailAddresses?.[0]?.emailAddress ||
-      "";
+    const email = status.email || user?.email || "";
     // Heuristic: only nudge users whose email looks like a darnozom team
     // address. Regular customers should not see an "admin" notice on their
     // account page at all.

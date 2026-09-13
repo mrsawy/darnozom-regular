@@ -13,6 +13,15 @@ packages:
 catalog:
   '@types/node': ^22.13.10
   drizzle-orm: ^0.45.1
+  # Not used directly by our code. drizzle-orm declares kysely as an OPTIONAL
+  # peer, so an importer that happens to have kysely in scope resolves a
+  # different drizzle-orm instance than one that does not. better-auth bundles a
+  # kysely-based adapter, which put apps/api on one side of that split and
+  # packages/db on the other — and two drizzle-orm copies means every column and
+  # SQL type stops unifying ("separate declarations of a private property
+  # 'shouldInlineParams'"). Declaring it in both importers collapses them back
+  # to a single instance. Remove only if drizzle-orm drops the optional peer.
+  kysely: ^0.29.5
   zod: ^3.25.76
 
 onlyBuiltDependencies:

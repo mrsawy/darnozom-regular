@@ -1,9 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import { clerkMiddleware } from "@clerk/express";
-import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
-import { isClerkConfigured } from "./lib/clerkConfig";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./lib/auth";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -29,25 +28,17 @@ app.use(
   }),
 );
 
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-
 app.use(cors({ credentials: true, origin: true }));
+
+// MUST come before express.json(). Better Auth reads the raw request stream,
+// and a body parser that runs first consumes it — the handler then sees an
+// empty body and every sign-in fails with a confusing validation error.
+app.all("/api/auth/*splat", toNodeHandler(auth));
+
 // Larger limit allows saving book covers imported as inline base64 data URIs
 // (some sites embed the cover directly in HTML at ~500 KB).
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
-
-// Mounting Clerk unconditionally makes every request throw when the keys are
-// absent, including /api/healthz. Auth-protected routes fall back to 401 via
-// safeGetAuth; everything public keeps working.
-if (isClerkConfigured) {
-  app.use(clerkMiddleware());
-} else {
-  logger.warn(
-    "CLERK_SECRET_KEY / CLERK_PUBLISHABLE_KEY not set — auth is disabled and " +
-      "protected routes will answer 401.",
-  );
-}
 
 app.use("/api", router);
 

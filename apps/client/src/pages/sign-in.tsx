@@ -1,12 +1,9 @@
 import { useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
-import { useSignIn } from "@clerk/react/legacy";
-import { useUser } from "@clerk/react";
 import { Loader2, Eye, EyeOff, Mail, Lock, AlertCircle, KeyRound, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/language-context";
-
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+import { authClient, basePath, useSession } from "@/lib/auth-client";
 
 const COPY = {
   ar: {
@@ -34,11 +31,9 @@ const COPY = {
     verify: "تحقق وادخل",
     verifying: "جارٍ التحقق...",
     resend: "إعادة الإرسال",
-    twoFaTitle: "خطوة تحقق إضافية",
-    twoFaDesc: "تم إرسال كود تحقق من 6 أرقام إلى",
     forgotPassword: "نسيت كلمة المرور؟ / هل تريد إنشاء كلمة مرور؟",
     resetTitle: "إعادة تعيين كلمة المرور",
-    resetDesc: "ادخل بريدك الإلكتروني وسنرسل لك كود إعادة تعيين كلمة المرور. إذا لم يكن لحسابك كلمة مرور، يمكنك إنشاء واحدة الآن.",
+    resetDesc: "ادخل بريدك الإلكتروني وسنرسل لك كود إعادة تعيين كلمة المرور.",
     sendResetCode: "إرسال كود إعادة التعيين",
     resetCodeSentTo: "تم إرسال كود من 6 أرقام إلى",
     newPasswordLabel: "كلمة المرور الجديدة",
@@ -52,18 +47,14 @@ const COPY = {
       missingEmail: "من فضلك ادخل البريد الإلكتروني",
       missingCode: "من فضلك ادخل الكود",
       invalid: "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-      noEmailFactor: "هذا البريد لا يدعم الدخول بكود. جرب Google أو كلمة المرور.",
-      invalidCode: "الكود غير صحيح",
+      emailNotVerified: "لم يتم تأكيد بريدك الإلكتروني بعد. راجع رسالة التأكيد المرسلة إليك.",
+      invalidCode: "الكود غير صحيح أو منتهي الصلاحية",
       generic: "تعذر تسجيل الدخول. حاول مرة أخرى.",
       googleFailed: "تعذر فتح تسجيل الدخول عبر Google",
-      no2faFactor: "لم يتم العثور على وسيلة تحقق ثنائية مدعومة.",
       emailNotFound: "لا يوجد حساب مسجل بهذا البريد الإلكتروني",
-      noResetFactor: "لا يمكن إعادة تعيين كلمة المرور لهذا الحساب عبر البريد. جرب الدخول بكود أو عبر Google.",
       missingNewPassword: "من فضلك ادخل الكود وكلمة المرور الجديدة",
       passwordMismatch: "كلمتا المرور غير متطابقتين",
       passwordTooShort: "كلمة المرور قصيرة جداً — استخدم 8 أحرف على الأقل",
-      passwordPwned: "كلمة المرور هذه ظهرت في تسريب بيانات. اختر كلمة مرور أخرى أكثر أماناً.",
-      passwordWeak: "كلمة المرور ضعيفة. استخدم كلمة مرور أطول وأكثر تعقيداً.",
       resetFailed: "تعذر إعادة تعيين كلمة المرور. حاول مرة أخرى.",
     },
   },
@@ -92,11 +83,9 @@ const COPY = {
     verify: "Verify and sign in",
     verifying: "Verifying...",
     resend: "Resend",
-    twoFaTitle: "Extra verification step",
-    twoFaDesc: "A 6-digit verification code was sent to",
     forgotPassword: "Forgot password? / Need to set one?",
     resetTitle: "Reset your password",
-    resetDesc: "Enter your email and we'll send you a password reset code. If your account has no password yet, you can set one now.",
+    resetDesc: "Enter your email and we'll send you a password reset code.",
     sendResetCode: "Send reset code",
     resetCodeSentTo: "We sent a 6-digit code to",
     newPasswordLabel: "New password",
@@ -110,18 +99,14 @@ const COPY = {
       missingEmail: "Please enter your email",
       missingCode: "Please enter the code",
       invalid: "Incorrect email or password",
-      noEmailFactor: "This email doesn't support code sign-in. Try Google or password.",
-      invalidCode: "Invalid code",
+      emailNotVerified: "Your email isn't verified yet. Check the verification email we sent you.",
+      invalidCode: "Invalid or expired code",
       generic: "Unable to sign in. Please try again.",
       googleFailed: "Unable to start Google sign-in",
-      no2faFactor: "No supported second-factor verification method found.",
       emailNotFound: "No account found with this email address",
-      noResetFactor: "Password reset by email isn't available for this account. Try code sign-in or Google.",
       missingNewPassword: "Please enter the code and your new password",
       passwordMismatch: "Passwords don't match",
       passwordTooShort: "Password is too short — use at least 8 characters",
-      passwordPwned: "This password appeared in a data breach. Please choose a different, more secure one.",
-      passwordWeak: "Password is too weak. Use a longer, more complex password.",
       resetFailed: "Unable to reset the password. Please try again.",
     },
   },
@@ -139,7 +124,6 @@ type Mode =
   | "password"
   | "email-code-request"
   | "email-code-verify"
-  | "2fa-verify"
   | "reset-request"
   | "reset-verify";
 
@@ -148,8 +132,7 @@ export default function SignInPage() {
   const t = COPY[language];
   const isAr = language === "ar";
   const [, navigate] = useLocation();
-  const { isLoaded: userLoaded, isSignedIn } = useUser();
-  const { isLoaded, signIn, setActive } = useSignIn();
+  const { data: session, isPending: sessionPending } = useSession();
 
   const [mode, setMode] = useState<Mode>("password");
   const [email, setEmail] = useState("");
@@ -165,282 +148,180 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
 
   // If already signed in, bounce to redirect target.
-  if (userLoaded && isSignedIn) {
+  if (!sessionPending && session?.user) {
     const target = getRedirectTarget();
     if (typeof window !== "undefined" && window.location.pathname + window.location.search !== target) {
       navigate(target.startsWith(basePath) ? target.slice(basePath.length) || "/" : target);
     }
   }
 
-  function clerkErrorMessage(err: unknown, fallback: string): string {
-    const e = err as {
-      errors?: Array<{ code?: string; message?: string; longMessage?: string }>;
-    };
-    const first = e?.errors?.[0];
-    return first?.longMessage || first?.message || fallback;
+  /**
+   * Better Auth returns a machine-readable `code` alongside an English
+   * `message`. Prefer our own localized copy where we recognise the code and
+   * fall back to the server text otherwise.
+   */
+  function errorMessage(
+    err: { code?: string; message?: string } | null | undefined,
+    fallback: string,
+  ): string {
+    const code = err?.code;
+    switch (code) {
+      case "INVALID_EMAIL_OR_PASSWORD":
+      case "INVALID_PASSWORD":
+        return t.errors.invalid;
+      case "EMAIL_NOT_VERIFIED":
+        return t.errors.emailNotVerified;
+      case "USER_NOT_FOUND":
+        return t.errors.emailNotFound;
+      case "INVALID_OTP":
+      case "OTP_EXPIRED":
+      case "TOO_MANY_ATTEMPTS":
+        return t.errors.invalidCode;
+      case "PASSWORD_TOO_SHORT":
+        return t.errors.passwordTooShort;
+      default:
+        return err?.message || fallback;
+    }
   }
 
-  async function onSubmitPassword(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!isLoaded || !signIn) return;
-    setError(null);
+  function goToTarget() {
+    const target = getRedirectTarget();
+    navigate(target.startsWith(basePath) ? target.slice(basePath.length) || "/" : target);
+  }
 
+  async function onSubmitPassword(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
     const emailTrim = email.trim();
     if (!emailTrim || !password) {
       setError(t.errors.missing);
       return;
     }
-
     setSubmitting(true);
     try {
-      const result = await signIn.create({
-        identifier: emailTrim,
+      const { error: err } = await authClient.signIn.email({
+        email: emailTrim,
         password,
-        strategy: "password",
+        rememberMe: true,
       });
-
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        const target = getRedirectTarget();
-        if (typeof window !== "undefined") window.location.assign(target);
+      if (err) {
+        setError(errorMessage(err, t.errors.generic));
         return;
       }
-      if (result.status === "needs_second_factor") {
-        await prepare2fa(result);
-        return;
-      }
-      setError(t.errors.generic);
-    } catch (err: unknown) {
-      const e = err as { errors?: Array<{ code?: string; message?: string; longMessage?: string }> };
-      const code = e?.errors?.[0]?.code ?? "";
-      if (
-        code === "form_password_incorrect" ||
-        code === "form_identifier_not_found" ||
-        code === "form_param_format_invalid"
-      ) {
-        setError(t.errors.invalid);
-      } else {
-        setError(clerkErrorMessage(err, t.errors.generic));
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function prepare2fa(attempt: { supportedSecondFactors?: Array<{ strategy: string; emailAddressId?: string; phoneNumberId?: string }> | null }) {
-    if (!signIn) return;
-    const factors = (attempt.supportedSecondFactors ?? []) as Array<{
-      strategy: string;
-      emailAddressId?: string;
-      phoneNumberId?: string;
-    }>;
-    const totp = factors.find((f) => f.strategy === "totp");
-    const emailFactor = factors.find((f) => f.strategy === "email_code");
-    const phoneFactor = factors.find((f) => f.strategy === "phone_code");
-    try {
-      if (totp) {
-        setMode("2fa-verify");
-        return;
-      }
-      if (emailFactor?.emailAddressId) {
-        await signIn.prepareSecondFactor({ strategy: "email_code", emailAddressId: emailFactor.emailAddressId });
-        setMode("2fa-verify");
-        return;
-      }
-      if (phoneFactor?.phoneNumberId) {
-        await signIn.prepareSecondFactor({ strategy: "phone_code", phoneNumberId: phoneFactor.phoneNumberId });
-        setMode("2fa-verify");
-        return;
-      }
-      setError(t.errors.no2faFactor);
+      goToTarget();
     } catch (err) {
-      setError(clerkErrorMessage(err, t.errors.generic));
-    }
-  }
-
-  async function verify2faCode(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!isLoaded || !signIn) return;
-    setError(null);
-    const codeTrim = code.trim();
-    if (!codeTrim) {
-      setError(t.errors.missingCode);
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const factors = (signIn.supportedSecondFactors ?? []) as Array<{ strategy: string }>;
-      const hasTotp = factors.some((f) => f.strategy === "totp");
-      const hasPhone = factors.some((f) => f.strategy === "phone_code");
-      const strategy: "totp" | "phone_code" | "email_code" = hasTotp ? "totp" : hasPhone ? "phone_code" : "email_code";
-      const result = await signIn.attemptSecondFactor({ strategy, code: codeTrim });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        const target = getRedirectTarget();
-        if (typeof window !== "undefined") window.location.assign(target);
-        return;
-      }
-      setError(t.errors.generic);
-    } catch (err: unknown) {
-      const e = err as { errors?: Array<{ code?: string }> };
-      const code = e?.errors?.[0]?.code ?? "";
-      if (code === "form_code_incorrect" || code === "verification_failed") {
-        setError(t.errors.invalidCode);
-      } else {
-        setError(clerkErrorMessage(err, t.errors.generic));
-      }
+      setError(errorMessage(err as { message?: string }, t.errors.generic));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function onGoogle() {
-    if (!isLoaded || !signIn) return;
     setError(null);
     setGoogleLoading(true);
     try {
-      const target = getRedirectTarget();
-      await signIn.authenticateWithRedirect({
-        strategy: "oauth_google",
-        redirectUrl: `${basePath}/sso-callback`,
-        redirectUrlComplete: target,
+      // Full-page redirect to Google; the server callback sets the session
+      // cookie and sends the browser on to `callbackURL`.
+      const { error: err } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: getRedirectTarget(),
+        errorCallbackURL: `${basePath}/sign-in`,
       });
+      if (err) {
+        setError(errorMessage(err, t.errors.googleFailed));
+        setGoogleLoading(false);
+      }
     } catch {
       setError(t.errors.googleFailed);
       setGoogleLoading(false);
     }
   }
 
-  async function sendEmailCode(e?: FormEvent<HTMLFormElement>) {
+  async function sendEmailCode(e?: FormEvent) {
     e?.preventDefault();
-    if (!isLoaded || !signIn) return;
     setError(null);
-
     const emailTrim = email.trim();
     if (!emailTrim) {
       setError(t.errors.missingEmail);
       return;
     }
-
     setSendingCode(true);
     try {
-      // Start a sign-in attempt with just the identifier — Clerk responds
-      // with the supported first factors (incl. email_code if available).
-      const attempt = await signIn.create({ identifier: emailTrim });
-
-      const factors = (attempt.supportedFirstFactors ?? []) as Array<{
-        strategy: string;
-        emailAddressId?: string;
-      }>;
-      const emailFactor = factors.find((f) => f.strategy === "email_code");
-      if (!emailFactor || !emailFactor.emailAddressId) {
-        setError(t.errors.noEmailFactor);
+      const { error: err } = await authClient.emailOtp.sendVerificationOtp({
+        email: emailTrim,
+        type: "sign-in",
+      });
+      if (err) {
+        setError(errorMessage(err, t.errors.generic));
         return;
       }
-
-      await signIn.prepareFirstFactor({
-        strategy: "email_code",
-        emailAddressId: emailFactor.emailAddressId,
-      });
+      setCode("");
       setMode("email-code-verify");
-    } catch (err: unknown) {
-      const e = err as { errors?: Array<{ code?: string }> };
-      const code = e?.errors?.[0]?.code ?? "";
-      if (code === "form_identifier_not_found") {
-        setError(t.errors.invalid);
-      } else {
-        setError(clerkErrorMessage(err, t.errors.generic));
-      }
+    } catch (err) {
+      setError(errorMessage(err as { message?: string }, t.errors.generic));
     } finally {
       setSendingCode(false);
     }
   }
 
-  async function verifyEmailCode(e: FormEvent<HTMLFormElement>) {
+  async function verifyEmailCode(e: FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setError(null);
-
     const codeTrim = code.trim();
     if (!codeTrim) {
       setError(t.errors.missingCode);
       return;
     }
-
     setSubmitting(true);
     try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "email_code",
-        code: codeTrim,
+      const { error: err } = await authClient.signIn.emailOtp({
+        email: email.trim(),
+        otp: codeTrim,
       });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        const target = getRedirectTarget();
-        if (typeof window !== "undefined") window.location.assign(target);
+      if (err) {
+        setError(errorMessage(err, t.errors.invalidCode));
         return;
       }
-      setError(t.errors.generic);
-    } catch (err: unknown) {
-      const e = err as { errors?: Array<{ code?: string }> };
-      const code = e?.errors?.[0]?.code ?? "";
-      if (code === "form_code_incorrect" || code === "verification_failed") {
-        setError(t.errors.invalidCode);
-      } else {
-        setError(clerkErrorMessage(err, t.errors.generic));
-      }
+      goToTarget();
+    } catch (err) {
+      setError(errorMessage(err as { message?: string }, t.errors.generic));
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function sendResetCode(e?: FormEvent<HTMLFormElement>) {
+  async function sendResetCode(e?: FormEvent) {
     e?.preventDefault();
-    if (!isLoaded || !signIn) return;
     setError(null);
-
     const emailTrim = email.trim();
     if (!emailTrim) {
       setError(t.errors.missingEmail);
       return;
     }
-
     setSendingCode(true);
     try {
-      const attempt = await signIn.create({ identifier: emailTrim });
-
-      const factors = (attempt.supportedFirstFactors ?? []) as Array<{
-        strategy: string;
-        emailAddressId?: string;
-      }>;
-      const resetFactor = factors.find((f) => f.strategy === "reset_password_email_code");
-      if (!resetFactor || !resetFactor.emailAddressId) {
-        setError(t.errors.noResetFactor);
+      // The OTP variant of reset keeps the inline 6-digit flow this page was
+      // built around; the link-based `requestPasswordReset` would send people
+      // out to email and back to a separate page instead.
+      const { error: err } = await authClient.emailOtp.requestPasswordReset({
+        email: emailTrim,
+      });
+      if (err) {
+        setError(errorMessage(err, t.errors.generic));
         return;
       }
-
-      await signIn.prepareFirstFactor({
-        strategy: "reset_password_email_code",
-        emailAddressId: resetFactor.emailAddressId,
-      });
+      setCode("");
       setMode("reset-verify");
-    } catch (err: unknown) {
-      const e = err as { errors?: Array<{ code?: string }> };
-      const code = e?.errors?.[0]?.code ?? "";
-      if (code === "form_identifier_not_found") {
-        setError(t.errors.emailNotFound);
-      } else {
-        setError(clerkErrorMessage(err, t.errors.generic));
-      }
+    } catch (err) {
+      setError(errorMessage(err as { message?: string }, t.errors.generic));
     } finally {
       setSendingCode(false);
     }
   }
 
-  async function submitResetPassword(e: FormEvent<HTMLFormElement>) {
+  async function submitResetPassword(e: FormEvent) {
     e.preventDefault();
-    if (!isLoaded || !signIn) return;
     setError(null);
-
     const codeTrim = code.trim();
     if (!codeTrim || !newPassword) {
       setError(t.errors.missingNewPassword);
@@ -450,48 +331,44 @@ export default function SignInPage() {
       setError(t.errors.passwordMismatch);
       return;
     }
-
+    if (newPassword.length < 8) {
+      setError(t.errors.passwordTooShort);
+      return;
+    }
     setSubmitting(true);
     try {
-      const result = await signIn.attemptFirstFactor({
-        strategy: "reset_password_email_code",
-        code: codeTrim,
+      const { error: err } = await authClient.emailOtp.resetPassword({
+        email: email.trim(),
+        otp: codeTrim,
         password: newPassword,
       });
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        const target = getRedirectTarget();
-        if (typeof window !== "undefined") window.location.assign(target);
+      if (err) {
+        setError(errorMessage(err, t.errors.resetFailed));
         return;
       }
-      if (result.status === "needs_second_factor") {
-        setCode("");
-        await prepare2fa(result);
+      // Resetting does not create a session, so sign in with the new password.
+      const { error: signInErr } = await authClient.signIn.email({
+        email: email.trim(),
+        password: newPassword,
+        rememberMe: true,
+      });
+      if (signInErr) {
+        // The password did change — send them to sign in manually rather than
+        // implying the reset failed.
+        setMode("password");
+        setPassword("");
+        setError(errorMessage(signInErr, t.errors.generic));
         return;
       }
-      setError(t.errors.resetFailed);
-    } catch (err: unknown) {
-      const e = err as { errors?: Array<{ code?: string }> };
-      const errCode = e?.errors?.[0]?.code ?? "";
-      if (errCode === "form_code_incorrect" || errCode === "verification_failed") {
-        setError(t.errors.invalidCode);
-      } else if (errCode === "form_password_pwned") {
-        setError(t.errors.passwordPwned);
-      } else if (errCode === "form_password_length_too_short") {
-        setError(t.errors.passwordTooShort);
-      } else if (
-        errCode === "form_password_not_strong_enough" ||
-        errCode === "form_password_validation_failed" ||
-        errCode === "form_password_size_in_bytes_exceeded"
-      ) {
-        setError(t.errors.passwordWeak);
-      } else {
-        setError(clerkErrorMessage(err, t.errors.resetFailed));
-      }
+      goToTarget();
+    } catch (err) {
+      setError(errorMessage(err as { message?: string }, t.errors.resetFailed));
     } finally {
       setSubmitting(false);
     }
   }
+
+  const busy = submitting || googleLoading || sendingCode;
 
   return (
     <div
@@ -513,7 +390,7 @@ export default function SignInPage() {
             <button
               type="button"
               onClick={onGoogle}
-              disabled={!isLoaded || googleLoading || submitting || sendingCode}
+              disabled={busy}
               className="w-full flex items-center justify-center gap-3 border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors disabled:opacity-60"
             >
               {googleLoading ? (
@@ -604,11 +481,9 @@ export default function SignInPage() {
               </div>
             )}
 
-            <div id="clerk-captcha" />
-
             <Button
               type="submit"
-              disabled={!isLoaded || submitting || googleLoading}
+              disabled={busy}
               className="w-full rounded-none gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -657,11 +532,9 @@ export default function SignInPage() {
               </div>
             )}
 
-            <div id="clerk-captcha" />
-
             <Button
               type="submit"
-              disabled={!isLoaded || sendingCode}
+              disabled={sendingCode}
               className="w-full rounded-none gap-2"
             >
               {sendingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
@@ -715,11 +588,9 @@ export default function SignInPage() {
               </div>
             )}
 
-            <div id="clerk-captcha" />
-
             <Button
               type="submit"
-              disabled={!isLoaded || sendingCode}
+              disabled={sendingCode}
               className="w-full rounded-none gap-2"
             >
               {sendingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
@@ -824,7 +695,7 @@ export default function SignInPage() {
 
             <Button
               type="submit"
-              disabled={!isLoaded || submitting || code.length < 4 || !newPassword || !confirmPassword}
+              disabled={submitting || code.length < 4 || !newPassword || !confirmPassword}
               className="w-full rounded-none gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -889,7 +760,7 @@ export default function SignInPage() {
 
             <Button
               type="submit"
-              disabled={!isLoaded || submitting || code.length < 4}
+              disabled={submitting || code.length < 4}
               className="w-full rounded-none gap-2"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -914,64 +785,6 @@ export default function SignInPage() {
                 {sendingCode ? t.sendingCode : t.resend}
               </button>
             </div>
-          </form>
-        )}
-
-        {mode === "2fa-verify" && (
-          <form onSubmit={verify2faCode} className="space-y-4">
-            <div>
-              <div className="text-base font-bold text-primary mb-1">{t.twoFaTitle}</div>
-              <div className="text-sm text-muted-foreground">
-                {t.twoFaDesc}{" "}
-                <span className="font-bold text-primary" dir="ltr">{email}</span>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="2fa-code" className="block text-sm font-bold text-primary mb-1.5">
-                {t.codeLabel}
-              </label>
-              <input
-                id="2fa-code"
-                type="text"
-                inputMode="numeric"
-                pattern="\d*"
-                maxLength={6}
-                autoComplete="one-time-code"
-                required
-                autoFocus
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder={t.codePlaceholder}
-                dir="ltr"
-                className="w-full border border-border bg-white px-3 py-3 text-center text-xl tracking-[0.5em] font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-secondary focus:border-secondary"
-              />
-            </div>
-
-            {error && (
-              <div className="flex items-start gap-2 bg-destructive/10 border border-destructive/30 text-destructive text-sm px-3 py-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              disabled={!isLoaded || submitting || code.length < 4}
-              className="w-full rounded-none gap-2"
-            >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {submitting ? t.verifying : t.verify}
-            </Button>
-
-            <button
-              type="button"
-              onClick={() => { setError(null); setCode(""); setMode("password"); }}
-              className="w-full flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary pt-1"
-            >
-              <ArrowLeft className={`w-3.5 h-3.5 ${isAr ? "rotate-180" : ""}`} />
-              {t.backToPassword}
-            </button>
           </form>
         )}
 

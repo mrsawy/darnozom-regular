@@ -10,6 +10,8 @@
     "dev:client": "pnpm --filter @workspace/client dev",
     "dev:api": "pnpm --filter @workspace/api-server dev",
     "db:push": "pnpm --filter @workspace/db push",
+    "db:seed:users": "pnpm --filter @workspace/api-server run seed:dev-users",
+
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "build:client": "pnpm --filter @workspace/client build",
     "build:api": "pnpm --filter @workspace/api-server build",

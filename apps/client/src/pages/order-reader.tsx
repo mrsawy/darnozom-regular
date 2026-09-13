@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "wouter";
-import { useUser } from "@clerk/react";
+import { useSession } from "@/lib/auth-client";
 import {
   Loader2, AlertCircle, ArrowLeft, ArrowRight, Download, BookOpen,
 } from "lucide-react";
@@ -42,7 +42,9 @@ export default function OrderReaderPage() {
   const t = COPY[language];
   const isAr = language === "ar";
   const Arrow = isAr ? ArrowLeft : ArrowRight;
-  const { isLoaded, isSignedIn } = useUser();
+  const { data: session, isPending } = useSession();
+  const isLoaded = !isPending;
+  const isSignedIn = !!session?.user;
   const params = useParams<{ orderId: string; itemId: string }>();
   const orderId = params.orderId;
   const itemId = params.itemId;

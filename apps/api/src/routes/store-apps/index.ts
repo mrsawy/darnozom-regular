@@ -7,7 +7,7 @@ import { timingSafeEqual } from "node:crypto";
 
 const router = Router();
 
-// These write endpoints sit above the Clerk auth gate in routes/index.ts, so
+// These write endpoints sit above the session auth gate in routes/index.ts, so
 // this header is the only thing protecting them. It therefore fails CLOSED:
 // with no BOOKS_ADMIN_SECRET configured the endpoints reject everything.
 // (It previously fell back to a hardcoded literal, which left them writable by

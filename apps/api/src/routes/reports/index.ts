@@ -266,19 +266,16 @@ Format the report as follows:
       }
     }
 
-    const clerkId = req.clerkUserId;
-    if (clerkId) {
+    const consultantEmail = req.userEmail;
+    if (consultantEmail) {
       try {
-        const [consultant] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
-        if (consultant?.email) {
-          void sendReportReadyNotification({
-            consultantEmail: consultant.email,
-            reportId: saved.id,
-            reportTitle: title,
-            clientName: client.name,
-            reportType: reportTypeDescriptions[reportType] ?? reportType,
-          });
-        }
+        void sendReportReadyNotification({
+          consultantEmail,
+          reportId: saved.id,
+          reportTitle: title,
+          clientName: client.name,
+          reportType: reportTypeDescriptions[reportType] ?? reportType,
+        });
       } catch (notifyErr) {
         console.error("Report notification error:", notifyErr);
       }

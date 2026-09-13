@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation } from "wouter";
-import { useUser } from "@clerk/react";
+import { useSession } from "@/lib/auth-client";
 import {
   CreditCard,
   Smartphone,
@@ -171,7 +171,10 @@ export default function CheckoutPage() {
   const Arrow = isAr ? ArrowLeft : ArrowRight;
   const [, navigate] = useLocation();
 
-  const { isLoaded: userLoaded, isSignedIn, user } = useUser();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const userLoaded = !isPending;
+  const isSignedIn = !!user;
   const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems } = useCart();
 
   const [fullName, setFullName] = useState("");
@@ -294,27 +297,25 @@ export default function CheckoutPage() {
   const shippingUnresolved =
     hasPaperItems && (shipping.loading || shipping.error || !shipping.rate);
 
-  // Tracks fields the user has typed into so async pre-fills (Clerk profile,
+  // Tracks fields the user has typed into so async pre-fills (account,
   // saved checkout details) never clobber their edits.
   const editedFieldsRef = useRef<Set<string>>(new Set());
   const markEdited = (field: string) => {
     editedFieldsRef.current.add(field);
   };
 
-  // Pre-fill from Clerk user (fallback — only fills fields still empty so it
-  // never overwrites saved checkout details or user edits).
+  // Pre-fill from the signed-in account (fallback — only fills fields still
+  // empty so it never overwrites saved checkout details or user edits).
+  // There is no phone here: accounts carry a name and an email, and phone
+  // now comes solely from the saved checkout profile below.
   useEffect(() => {
-    if (user) {
-      const clerkName =
-        user.fullName || `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "";
-      if (clerkName) setFullName((prev) => prev || clerkName);
-      const phoneFromClerk = user.primaryPhoneNumber?.phoneNumber || "";
-      if (phoneFromClerk) setPhone((prev) => prev || phoneFromClerk);
+    if (user?.name) {
+      setFullName((prev) => prev || user.name);
     }
   }, [user]);
 
   // Pre-fill from the customer's saved checkout details (last order). Saved
-  // values take precedence over the Clerk fallback but never over fields the
+  // values take precedence over the account fallback but never over fields the
   // user has already edited. Notes are intentionally not pre-filled. Setting
   // the city also triggers the debounced shipping-rate lookup above.
   useEffect(() => {
@@ -352,7 +353,7 @@ export default function CheckoutPage() {
     };
   }, [isSignedIn]);
 
-  const email = user?.primaryEmailAddress?.emailAddress || "";
+  const email = user?.email || "";
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

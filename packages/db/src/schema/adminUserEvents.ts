@@ -1,17 +1,12 @@
 import { pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
-export const adminUsers = pgTable("admin_users", {
-  id: serial("id").primaryKey(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
-  clerkUserId: varchar("clerk_user_id", { length: 255 }),
-  addedByEmail: varchar("added_by_email", { length: 255 }),
-  note: text("note"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export type AdminUser = typeof adminUsers.$inferSelect;
-export type NewAdminUser = typeof adminUsers.$inferInsert;
-
+/**
+ * Audit log for admin grants and revocations.
+ *
+ * The `admin_users` allowlist this used to accompany is gone: admin access is
+ * now `users.role`, so there is no second table to keep in sync. The log stays
+ * because "who promoted whom, and when" is not recoverable from a role column.
+ */
 export const adminUserEvents = pgTable("admin_user_events", {
   id: serial("id").primaryKey(),
   action: varchar("action", { length: 32 }).notNull(),

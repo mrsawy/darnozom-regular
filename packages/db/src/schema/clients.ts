@@ -14,7 +14,8 @@ export const clients = pgTable("clients", {
   goals: text("goals").notNull(),
   context: text("context"),
   selfRegistered: boolean("self_registered").notNull().default(false),
-  clerkId: varchar("clerk_id", { length: 255 }),
+  /** Owning auth user (`users.id`), set when a client self-registers. */
+  ownerUserId: text("owner_user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

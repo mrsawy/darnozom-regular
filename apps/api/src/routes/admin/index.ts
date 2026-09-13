@@ -7,18 +7,17 @@ import {
   events,
   academyCourses,
   courseRegistrations,
-  adminUsers,
   adminUserEvents,
   orders,
+  users,
 } from "@workspace/db";
-import { count, desc, eq, gte, sql } from "drizzle-orm";
+import { count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import {
   checkAdminStatus,
   requireAdmin,
   getBootstrapAdminEmails,
-  getClerkUserEmails,
   type AdminAuthRequest,
 } from "../../middlewares/adminAuth";
 import { ObjectStorageService, objectStorageClient } from "../../lib/objectStorage";
@@ -136,23 +135,62 @@ router.get("/admin/stats", requireAdmin, async (_req, res) => {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const ADMIN_ROLES = ["admin", "super_admin"] as const;
+
+/**
+ * Admins are users carrying an admin role — there is no separate allowlist
+ * table any more, so "admin" and "has an account" can no longer disagree.
+ *
+ * `bootstrapAdmins` still reports ADMIN_EMAILS entries that have not signed up
+ * yet: those addresses get the role automatically on first sign-up, and the UI
+ * shows them as pending so an operator can tell "invited" from "active".
+ */
 router.get("/admin/admins", requireAdmin, async (req: AdminAuthRequest, res: Response) => {
   try {
     const rows = await db
-      .select()
-      .from(adminUsers)
-      .orderBy(sql`${adminUsers.createdAt} DESC`);
+      .select({
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        role: users.role,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .where(inArray(users.role, [...ADMIN_ROLES]))
+      .orderBy(desc(users.createdAt));
 
-    const dbEmails = new Set(rows.map((r) => r.email.toLowerCase()));
-    const bootstrap = getBootstrapAdminEmails().filter((e) => !dbEmails.has(e));
+    // The audit log is the only record of who granted whom, so it is joined in
+    // here rather than denormalised onto the user row.
+    const grants = await db
+      .select({
+        targetEmail: adminUserEvents.targetEmail,
+        actorEmail: adminUserEvents.actorEmail,
+        note: adminUserEvents.note,
+      })
+      .from(adminUserEvents)
+      .where(eq(adminUserEvents.action, "added"))
+      .orderBy(desc(adminUserEvents.createdAt));
+
+    const grantByEmail = new Map<string, { actorEmail: string | null; note: string | null }>();
+    for (const g of grants) {
+      const key = g.targetEmail.toLowerCase();
+      if (!grantByEmail.has(key)) {
+        grantByEmail.set(key, { actorEmail: g.actorEmail, note: g.note });
+      }
+    }
+
+    const existing = new Set(rows.map((r) => r.email.toLowerCase()));
+    const bootstrap = getBootstrapAdminEmails().filter((e) => !existing.has(e));
 
     res.json({
       currentEmail: req.adminEmail ?? null,
       admins: rows.map((r) => ({
         id: r.id,
         email: r.email,
-        addedByEmail: r.addedByEmail,
-        note: r.note,
+        name: r.name,
+        role: r.role,
+        addedByEmail: grantByEmail.get(r.email.toLowerCase())?.actorEmail ?? null,
+        note: grantByEmail.get(r.email.toLowerCase())?.note ?? null,
         createdAt: r.createdAt,
         source: "db" as const,
       })),
@@ -187,6 +225,17 @@ router.get("/admin/admins/events", requireAdmin, async (_req: AdminAuthRequest, 
   }
 });
 
+/**
+ * Grants the admin role to an existing account.
+ *
+ * Behaviour change from the Clerk-era allowlist: the person must already have
+ * an account. Previously an arbitrary email could be added to `admin_users` and
+ * would take effect whenever that person eventually signed up. With the role
+ * living on the user row there is nothing to attach a grant to until the row
+ * exists, so this answers 404 with an actionable message instead of silently
+ * recording a grant that may never apply. ADMIN_EMAILS still covers the
+ * bootstrap case of seeding admins before anyone has signed up.
+ */
 router.post("/admin/admins", requireAdmin, async (req: AdminAuthRequest, res: Response) => {
   try {
     const emailRaw = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
@@ -194,41 +243,46 @@ router.post("/admin/admins", requireAdmin, async (req: AdminAuthRequest, res: Re
     if (!emailRaw || !EMAIL_RE.test(emailRaw)) {
       return res.status(400).json({ error: "بريد إلكتروني غير صالح" });
     }
-    const existing = await db
-      .select({ id: adminUsers.id })
-      .from(adminUsers)
-      .where(sql`lower(${adminUsers.email}) = ${emailRaw}`)
+
+    const [target] = await db
+      .select({ id: users.id, email: users.email, name: users.name, role: users.role })
+      .from(users)
+      .where(sql`lower(${users.email}) = ${emailRaw}`)
       .limit(1);
-    if (existing.length > 0) {
-      return res.status(409).json({ error: "هذا البريد مضاف مسبقًا" });
+
+    if (!target) {
+      return res.status(404).json({
+        error: "لا يوجد حساب بهذا البريد. اطلب من الشخص إنشاء حساب أولاً ثم أضفه كمشرف.",
+      });
     }
-    let actorEmail = req.adminEmail ?? null;
-    if (!actorEmail && req.adminClerkUserId) {
-      const { primary, all } = await getClerkUserEmails(req.adminClerkUserId);
-      actorEmail = primary ?? all[0] ?? null;
+    if (target.role === "admin" || target.role === "super_admin") {
+      return res.status(409).json({ error: "هذا المستخدم مشرف بالفعل" });
     }
+
+    const actorEmail = req.adminEmail ?? null;
+
     const row = await db.transaction(async (tx) => {
-      const [inserted] = await tx
-        .insert(adminUsers)
-        .values({
-          email: emailRaw,
-          addedByEmail: actorEmail,
-          note: note || null,
-        })
+      const [updated] = await tx
+        .update(users)
+        .set({ role: "admin", updatedAt: new Date() })
+        .where(eq(users.id, target.id))
         .returning();
       await tx.insert(adminUserEvents).values({
         action: "added",
-        targetEmail: inserted.email,
+        targetEmail: updated.email,
         actorEmail,
         note: note || null,
       });
-      return inserted;
+      return updated;
     });
+
     return res.status(201).json({
       id: row.id,
       email: row.email,
-      addedByEmail: row.addedByEmail,
-      note: row.note,
+      name: row.name,
+      role: row.role,
+      addedByEmail: actorEmail,
+      note: note || null,
       createdAt: row.createdAt,
       source: "db",
     });
@@ -238,33 +292,53 @@ router.post("/admin/admins", requireAdmin, async (req: AdminAuthRequest, res: Re
   }
 });
 
+/**
+ * Revokes admin. The user is demoted to `client` rather than deleted — the
+ * account, its orders and its bookings all survive. `client` is deliberate:
+ * the pre-promotion role is not recorded anywhere, so least privilege is the
+ * only safe assumption.
+ */
 router.delete("/admin/admins/:id", requireAdmin, async (req: AdminAuthRequest, res: Response) => {
   try {
-    const id = Number(req.params.id);
-    if (!Number.isFinite(id) || id <= 0) {
+    const id = String(req.params.id);
+    if (!id) {
       return res.status(400).json({ error: "معرّف غير صالح" });
     }
-    const [row] = await db.select().from(adminUsers).where(eq(adminUsers.id, id)).limit(1);
-    if (!row) {
+    const [row] = await db
+      .select({ id: users.id, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!row || (row.role !== "admin" && row.role !== "super_admin")) {
       return res.status(404).json({ error: "المشرف غير موجود" });
     }
-    const actorEmails = new Set<string>();
-    if (req.adminEmail) actorEmails.add(req.adminEmail.toLowerCase());
-    if (req.adminClerkUserId) {
-      const { all } = await getClerkUserEmails(req.adminClerkUserId);
-      for (const e of all) actorEmails.add(e);
-    }
-    if (actorEmails.has(row.email.toLowerCase())) {
+    if (req.adminEmail && req.adminEmail.toLowerCase() === row.email.toLowerCase()) {
       return res.status(400).json({ error: "لا يمكنك حذف نفسك" });
     }
-    const actorEmail = req.adminEmail ?? (actorEmails.size > 0 ? Array.from(actorEmails)[0] : null);
+    // Only a super-admin may demote a super-admin; otherwise any admin could
+    // strip the owner's access.
+    if (row.role === "super_admin") {
+      const [actor] = await db
+        .select({ role: users.role })
+        .from(users)
+        .where(eq(users.id, req.adminUserId ?? ""))
+        .limit(1);
+      if (actor?.role !== "super_admin") {
+        return res.status(403).json({ error: "لا يمكن إزالة مشرف عام إلا بواسطة مشرف عام" });
+      }
+    }
+
+    const actorEmail = req.adminEmail ?? null;
     await db.transaction(async (tx) => {
-      await tx.delete(adminUsers).where(eq(adminUsers.id, id));
+      await tx
+        .update(users)
+        .set({ role: "client", updatedAt: new Date() })
+        .where(eq(users.id, id));
       await tx.insert(adminUserEvents).values({
         action: "removed",
         targetEmail: row.email,
         actorEmail,
-        note: row.note ?? null,
+        note: null,
       });
     });
     return res.json({ ok: true });

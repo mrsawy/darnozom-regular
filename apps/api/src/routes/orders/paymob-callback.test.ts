@@ -46,7 +46,7 @@ vi.mock("../../lib/email", () => ({
 // Stub auth boundaries (the callback itself is public).
 vi.mock("../../middlewares/authMiddleware", () => ({
   requireAuth: (
-    req: express.Request & { clerkUserId?: string },
+    req: express.Request & { userId?: string; userEmail?: string },
     res: express.Response,
     next: express.NextFunction,
   ) => {
@@ -55,7 +55,8 @@ vi.mock("../../middlewares/authMiddleware", () => ({
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    req.clerkUserId = uid;
+    req.userId = uid;
+    req.userEmail = "buyer@example.com";
     next();
   },
 }));
@@ -63,16 +64,6 @@ vi.mock("../../middlewares/authMiddleware", () => ({
 vi.mock("../../middlewares/adminAuth", () => ({
   requireAdmin: (_req: express.Request, res: express.Response) =>
     res.status(403).json({ error: "Forbidden" }),
-}));
-
-vi.mock("@clerk/express", () => ({
-  clerkClient: {
-    users: {
-      getUser: vi.fn(async () => ({
-        emailAddresses: [{ emailAddress: "buyer@example.com" }],
-      })),
-    },
-  },
 }));
 
 vi.mock("../../lib/objectStorage", () => ({

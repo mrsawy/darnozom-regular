@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { assessments, clients, reports } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import type { AuthRequest } from "../../middlewares/authMiddleware";
+import { isStaffRole, type AuthRequest } from "../../middlewares/authMiddleware";
 
 const router = Router();
 
@@ -52,7 +52,11 @@ function getMonthLabel(date: Date): string {
 
 router.get("/analytics", async (req: AuthRequest, res) => {
   try {
-    if (req.userRole !== "consultant") {
+    // `isStaffRole`, not a literal comparison: admin and super_admin are now
+    // values of the same column rather than a flag layered on a consultant, so
+    // `role !== "consultant"` would lock out exactly the people this endpoint's
+    // own error message says are allowed.
+    if (!isStaffRole(req.userRole)) {
       return res.status(403).json({ error: "Forbidden: consultant or admin access required" });
     }
 

@@ -1,6 +1,5 @@
 import { Router } from "express";
 import type { Response } from "express";
-import { clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import {
   academyApplications,
@@ -16,18 +15,16 @@ import { requireAuth, type AuthRequest } from "../../middlewares/authMiddleware"
 
 const router = Router();
 
-async function getCurrentUserEmails(req: AuthRequest): Promise<string[]> {
-  const userId = req.clerkUserId;
-  if (!userId) return [];
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    const emails = (user.emailAddresses ?? [])
-      .map((e) => (e.emailAddress || "").trim().toLowerCase())
-      .filter(Boolean);
-    return Array.from(new Set(emails));
-  } catch {
-    return [];
-  }
+/**
+ * Still returns a list because the historical records these queries match
+ * against (academy applications, RFP submissions) were keyed by whatever email
+ * the visitor typed, and the callers below build `lower(col) IN (...)` filters.
+ * An account now has exactly one address, so the list holds at most one — under
+ * Clerk a user could hold several verified addresses.
+ */
+function getCurrentUserEmails(req: AuthRequest): string[] {
+  const email = req.userEmail?.trim().toLowerCase();
+  return email ? [email] : [];
 }
 
 function emailFilter(column: AnyPgColumn, emails: string[]) {
@@ -42,7 +39,7 @@ function emailFilter(column: AnyPgColumn, emails: string[]) {
 // who ordered before the profile table existed still get pre-fill.
 router.get("/account/me/checkout-details", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.clerkUserId!;
+    const userId = req.userId!;
     const [profile] = await db
       .select({
         fullName: checkoutProfiles.fullName,
@@ -76,7 +73,7 @@ router.get("/account/me/checkout-details", requireAuth, async (req: AuthRequest,
 
 router.get("/account/me/academy-registrations", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const emails = await getCurrentUserEmails(req);
+    const emails = getCurrentUserEmails(req);
     if (emails.length === 0) {
       return res.json({ email: null, applications: [], registrations: [] });
     }
@@ -120,7 +117,7 @@ router.get("/account/me/academy-registrations", requireAuth, async (req: AuthReq
 
 router.get("/account/me/service-requests", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const emails = await getCurrentUserEmails(req);
+    const emails = getCurrentUserEmails(req);
     if (emails.length === 0) {
       return res.json({ email: null, requests: [] });
     }

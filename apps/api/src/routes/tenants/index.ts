@@ -174,10 +174,13 @@ router.post("/tenants/:id/invite", requireSuperAdmin, async (req: AuthRequest, r
 router.post("/tenants/:id/assign-user", requireSuperAdmin, async (req: AuthRequest, res) => {
   try {
     const tenantId = parseInt(String(req.params.id));
-    const { clerkId } = req.body as { clerkId?: string };
+    // Was `clerkId`; the body field is now the local user id. `userId` is also
+    // still accepted under the old name so an in-flight admin tab does not 400.
+    const body = req.body as { userId?: string; clerkId?: string };
+    const userId = body.userId ?? body.clerkId;
 
-    if (!clerkId) {
-      return res.status(400).json({ error: "clerkId is required" });
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
     }
 
     const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId));
@@ -185,14 +188,14 @@ router.post("/tenants/:id/assign-user", requireSuperAdmin, async (req: AuthReque
       return res.status(404).json({ error: "Tenant not found" });
     }
 
-    const [user] = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1);
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
     const [updated] = await db.update(users)
       .set({ tenantId, updatedAt: new Date() })
-      .where(eq(users.clerkId, clerkId))
+      .where(eq(users.id, userId))
       .returning();
 
     return res.json(updated);

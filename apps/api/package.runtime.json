@@ -6,6 +6,7 @@
   "comment": "Uploaded next to dist/ on the server and installed with `npm install --omit=dev`. Only lists packages esbuild deliberately leaves out of the bundle (see build.mjs `external`) that the server actually imports at runtime.",
   "dependencies": {
     "@google-cloud/storage": "^7.19.0",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
     "@swc/helpers": "^0.5.23"
   }
 }

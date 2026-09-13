@@ -1,6 +1,5 @@
 import { Switch, Route, Router as WouterRouter, Redirect, useSearch } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ClerkProvider } from "@clerk/react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
@@ -35,6 +34,8 @@ import Contact from "@/pages/contact";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
 import SsoCallbackPage from "@/pages/sso-callback";
+import ResetPasswordPage from "@/pages/reset-password";
+import VerifyEmailPage from "@/pages/verify-email";
 import AccountPage from "@/pages/account";
 import OrderReaderPage from "@/pages/order-reader";
 import CartPage from "@/pages/cart";
@@ -64,7 +65,6 @@ import { CartProvider } from "@/lib/cart-context";
 import { ScrollToTop } from "@/components/scroll-to-top";
 
 const queryClient = new QueryClient();
-const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
 
 function AdminRouter() {
   return (
@@ -131,6 +131,8 @@ function Router() {
       <Route path="/sign-up/:rest*" component={SignUpPage} />
       <Route path="/sso-callback" component={SsoCallbackPage} />
       <Route path="/sso-callback/:rest*" component={SsoCallbackPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
+      <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/account" component={AccountPage} />
       <Route path="/account/consultations" component={AccountConsultationsPage} />
       <Route path="/services/consulting/book" component={BookConsultationPage} />
@@ -150,7 +152,7 @@ function Router() {
       <Route path="/admin-academy"><Redirect to="/admin/academy" /></Route>
       <Route path="/admin-events"><Redirect to="/admin/events" /></Route>
 
-      {/* Unified admin (Clerk-protected) */}
+      {/* Unified admin (role-gated by AdminGate) */}
       <Route path="/admin" component={AdminRouter} />
       <Route path="/admin/:rest*" component={AdminRouter} />
 
@@ -193,99 +195,8 @@ function AppShell() {
   );
 }
 
-function ClerkMissingNotice() {
-  return (
-    <div style={{ padding: 24, fontFamily: "sans-serif", direction: "rtl", maxWidth: 600, margin: "40px auto", border: "1px solid #ddd", borderRadius: 8 }}>
-      <h2>تعذّر تحميل لوحة الإدارة</h2>
-      <p>متغير البيئة <code>VITE_CLERK_PUBLISHABLE_KEY</code> غير معرّف. يُرجى من المسؤول إضافته لتفعيل تسجيل الدخول.</p>
-    </div>
-  );
-}
-
 function App() {
-  if (!CLERK_KEY) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <LanguageProvider>
-            <CartProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <ScrollToTop />
-              <Switch>
-                <Route path="/sign-in" component={ClerkMissingNotice} />
-                <Route path="/sign-in/:rest*" component={ClerkMissingNotice} />
-                <Route path="/sign-up" component={ClerkMissingNotice} />
-                <Route path="/sign-up/:rest*" component={ClerkMissingNotice} />
-                <Route path="/sso-callback" component={ClerkMissingNotice} />
-                <Route path="/sso-callback/:rest*" component={ClerkMissingNotice} />
-                <Route path="/admin" component={ClerkMissingNotice} />
-                <Route path="/admin/:rest*" component={ClerkMissingNotice} />
-                <Route path="/account" component={ClerkMissingNotice} />
-                <Route path="/" component={Home} />
-                <Route path="/about" component={About} />
-                <Route path="/case-studies" component={CaseStudies} />
-                <Route path="/case-studies/:id" component={CaseStudyDetail} />
-                <Route path="/نماذج-الأعمال" component={CaseStudies} />
-                <Route path="/services" component={Services} />
-                <Route path="/sectors" component={Sectors} />
-                <Route path="/contact" component={Contact} />
-                <Route path="/academy" component={Academy} />
-                <Route path="/academy/islamic-systems" component={AcademyIslamic} />
-                <Route path="/academy/professional-management" component={AcademyManagement} />
-                <Route path="/academy/digital-transformation" component={AcademyDigital} />
-                <Route path="/academy/integrated-diploma" component={AcademyDiploma} />
-                <Route path="/academy/diplomas" component={AcademyDiplomas} />
-                <Route path="/academy/courses" component={AcademyCourses} />
-                <Route path="/academy/executive-education"><Redirect to="/academy/integrated-diploma" /></Route>
-                <Route path="/academy/career-paths" component={AcademyCareerPaths} />
-                <Route path="/academy/for-organizations" component={AcademyForOrganizations} />
-                <Route path="/academy/apply" component={AcademyApply} />
-                <Route path="/academy/register" component={AcademyRegister} />
-                <Route path="/events" component={Events} />
-                <Route path="/rfp" component={RfpRedirect} />
-                <Route path="/service-registration" component={ServiceRegistration} />
-                <Route path="/services/store" component={StorePage} />
-                <Route path="/services/store/books" component={StoreBooksPage} />
-                <Route path="/services/store/books/:id" component={StoreBookDetailPage} />
-                <Route path="/services/store/courses" component={StoreCoursesPage} />
-                <Route path="/services/store/courses/:id" component={StoreCourseDetailPage} />
-                <Route path="/cart" component={CartPage} />
-                <Route path="/checkout" component={CheckoutPage} />
-                <Route path="/checkout/paypal/return" component={CheckoutPayPalReturnPage} />
-                <Route path="/checkout/paypal/cancel"><Redirect to="/cart" /></Route>
-                <Route path="/checkout/paymob/pay" component={CheckoutPaymobPayPage} />
-                <Route path="/checkout/paymob/wallet" component={CheckoutPaymobWalletPage} />
-                <Route path="/careers" component={Careers} />
-                <Route path="/services/consulting" component={ServicesConsulting} />
-                <Route path="/services/:slug" component={ServiceDetail} />
-                <Route component={NotFound} />
-              </Switch>
-            </WouterRouter>
-            <Toaster />
-            </CartProvider>
-          </LanguageProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
-  }
-  const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-  const isProdKey = CLERK_KEY.startsWith("pk_live_");
-  const proxyUrl =
-    isProdKey && typeof window !== "undefined"
-      ? `${window.location.origin}/api/__clerk`
-      : undefined;
-  return (
-    <ClerkProvider
-      publishableKey={CLERK_KEY}
-      proxyUrl={proxyUrl}
-      signInUrl={`${basePath}/sign-in`}
-      signUpUrl={`${basePath}/sign-up`}
-      signInFallbackRedirectUrl={`${basePath}/account`}
-      signUpFallbackRedirectUrl={`${basePath}/account`}
-    >
-      <AppShell />
-    </ClerkProvider>
-  );
+  return <AppShell />;
 }
 
 export default App;

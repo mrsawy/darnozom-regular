@@ -23,10 +23,10 @@ vi.mock("../../lib/paypal", () => ({
   createPayPalOrder: vi.fn(),
 }));
 
-// Stub auth: trust an `x-test-user` header instead of Clerk. Absent → 401.
+// Stub auth: trust an `x-test-user` header instead of a session. Absent → 401.
 vi.mock("../../middlewares/authMiddleware", () => ({
   requireAuth: (
-    req: express.Request & { clerkUserId?: string },
+    req: express.Request & { userId?: string; userEmail?: string },
     res: express.Response,
     next: express.NextFunction,
   ) => {
@@ -35,7 +35,8 @@ vi.mock("../../middlewares/authMiddleware", () => ({
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
-    req.clerkUserId = uid;
+    req.userId = uid;
+    req.userEmail = "buyer@example.com";
     next();
   },
 }));

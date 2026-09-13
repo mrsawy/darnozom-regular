@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader, Toast, useToast } from "./layout";
 
 interface DbAdmin {
-  id: number;
+  /** The user's id — admin is a role on the account, not a separate row. */
+  id: string;
   email: string;
+  name: string | null;
+  role: "admin" | "super_admin";
   addedByEmail: string | null;
   note: string | null;
   createdAt: string;
@@ -40,8 +43,8 @@ export default function AdminsPage() {
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
   const { toast, show } = useToast();
 
   async function load() {
@@ -78,10 +81,10 @@ export default function AdminsPage() {
       });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) {
-        show(body.error || "فشلت الإضافة", "error");
+        show(body.error || "فشل منح الصلاحية", "error");
         return;
       }
-      show("تمت الإضافة");
+      show("تم منح الصلاحية");
       setEmail(""); setNote(""); setShowForm(false);
       load();
     } finally {
@@ -89,7 +92,7 @@ export default function AdminsPage() {
     }
   }
 
-  async function remove(id: number) {
+  async function remove(id: string) {
     setDeletingId(id);
     try {
       const r = await adminFetch(`/api/admin/admins/${id}`, {
@@ -98,10 +101,10 @@ export default function AdminsPage() {
       });
       const body = await r.json().catch(() => ({}));
       if (!r.ok) {
-        show(body.error || "فشل الحذف", "error");
+        show(body.error || "فشل سحب الصلاحية", "error");
         return;
       }
-      show("تم الحذف");
+      show("تم سحب الصلاحية");
       setConfirmId(null);
       load();
     } finally {
@@ -116,10 +119,10 @@ export default function AdminsPage() {
       <Toast toast={toast} />
       <PageHeader
         title="المشرفون"
-        description="أضف أو احذف مشرفي لوحة التحكم بالبريد الإلكتروني."
+        description="امنح أو اسحب صلاحية الإشراف لحسابات موجودة بالبريد الإلكتروني."
         actions={
           <Button onClick={() => setShowForm((s) => !s)} className="gap-2 rounded-none">
-            <Plus className="w-4 h-4" /> {showForm ? "إغلاق" : "إضافة مشرف"}
+            <Plus className="w-4 h-4" /> {showForm ? "إغلاق" : "منح صلاحية إشراف"}
           </Button>
         }
       />
@@ -138,7 +141,7 @@ export default function AdminsPage() {
               className="rounded-none"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              يجب أن يستخدم المشرف هذا البريد عند تسجيل الدخول عبر Clerk.
+              يجب أن يكون لدى الشخص حساب على الموقع بهذا البريد بالفعل. إن لم يكن كذلك، اطلب منه إنشاء حساب أولاً ثم امنحه الصلاحية.
             </p>
           </div>
           <div>
@@ -177,7 +180,7 @@ export default function AdminsPage() {
         <div className="space-y-6">
           <section>
             <h2 className="text-sm font-black text-primary mb-2 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4" /> مشرفو قاعدة البيانات ({data?.admins.length ?? 0})
+              <ShieldCheck className="w-4 h-4" /> المشرفون الحاليون ({data?.admins.length ?? 0})
             </h2>
             {data && data.admins.length > 0 ? (
               <div className="bg-background border border-border divide-y divide-border">
@@ -193,7 +196,9 @@ export default function AdminsPage() {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {a.addedByEmail ? `أضافه: ${a.addedByEmail}` : "أضيف مباشرة"}
+                          {a.name ? `${a.name} · ` : ""}
+                          {a.role === "super_admin" ? "مشرف عام · " : ""}
+                          {a.addedByEmail ? `منحه: ${a.addedByEmail}` : "مُنح مباشرة"}
                           {" · "}
                           {new Date(a.createdAt).toLocaleDateString("ar")}
                         </div>

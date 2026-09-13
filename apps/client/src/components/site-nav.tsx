@@ -3,18 +3,21 @@ import { Link, useLocation } from "wouter";
 import { Menu, X, Globe, ChevronDown, User, LogIn, LogOut, ShieldCheck, UserCircle2, ShoppingCart } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLanguage } from "@/lib/language-context";
-import { useUser, useClerk, useAuth } from "@clerk/react";
+import { signOut, useSession } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { useCart } from "@/lib/cart-context";
 
+// Local stand-ins for Clerk's <SignedIn>/<SignedOut> control components.
+// Both render nothing until the session has resolved, so the nav never
+// flashes a Sign In link at someone who is already signed in.
 function SignedIn({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useUser();
-  if (!isLoaded || !isSignedIn) return null;
+  const { data: session, isPending } = useSession();
+  if (isPending || !session?.user) return null;
   return <>{children}</>;
 }
 function SignedOut({ children }: { children: React.ReactNode }) {
-  const { isLoaded, isSignedIn } = useUser();
-  if (isLoaded && isSignedIn) return null;
+  const { data: session, isPending } = useSession();
+  if (isPending || session?.user) return null;
   return <>{children}</>;
 }
 
@@ -23,7 +26,6 @@ interface SiteNavProps {
   theme?: "emerald" | "light";
 }
 
-const CLERK_ENABLED = !!(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined);
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const NAV_LABELS = {
@@ -160,15 +162,12 @@ interface AdminMeData {
 }
 
 function useIsAdmin(enabled: boolean) {
-  const { getToken } = useAuth();
   return useQuery<AdminMeData>({
     queryKey: ["admin-me"],
     enabled,
     queryFn: async () => {
-      const token = await getToken();
       const res = await fetch("/api/admin/me", {
         credentials: "include",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) return { signedIn: false, isAdmin: false };
       return res.json();
@@ -188,8 +187,9 @@ function UserMenu({
   onNavigate: (href: string) => void;
 }) {
   const t = NAV_LABELS[language];
-  const { user, isSignedIn } = useUser();
-  const { signOut, openUserProfile } = useClerk();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const isSignedIn = !!user;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const adminQuery = useIsAdmin(!!isSignedIn);
@@ -204,9 +204,9 @@ function UserMenu({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
-  const name = user?.firstName || user?.fullName || email.split("@")[0] || (isRTL ? "حسابي" : "Account");
-  const imageUrl = user?.imageUrl;
+  const email = user?.email || "";
+  const name = user?.name || email.split("@")[0] || (isRTL ? "حسابي" : "Account");
+  const imageUrl = user?.image;
 
   return (
     <div className="relative" ref={ref}>
@@ -271,7 +271,7 @@ function UserMenu({
               <button
                 onClick={() => {
                   setOpen(false);
-                  openUserProfile();
+                  onNavigate("/account");
                 }}
                 className="w-full text-start px-4 py-2.5 text-sm text-primary-foreground/80 hover:text-secondary hover:bg-secondary/5 flex items-center gap-2"
               >
@@ -283,7 +283,13 @@ function UserMenu({
               <button
                 onClick={() => {
                   setOpen(false);
-                  signOut({ redirectUrl: `${basePath}/` });
+                  void signOut({
+                    fetchOptions: {
+                      onSuccess: () => {
+                        window.location.href = `${basePath}/`;
+                      },
+                    },
+                  });
                 }}
                 className="w-full text-start px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2"
                 data-testid="nav-user-sign-out"
@@ -329,7 +335,8 @@ function AdminNavButton({
   onNavigate: (href: string) => void;
 }) {
   const t = NAV_LABELS[language];
-  const { isSignedIn } = useUser();
+  const { data: session } = useSession();
+  const isSignedIn = !!session?.user;
   const adminQuery = useIsAdmin(!!isSignedIn);
   if (adminQuery.data?.isAdmin !== true) return null;
   return (
@@ -353,7 +360,6 @@ function AuthSlot({
   language: "ar" | "en";
   onNavigate: (href: string) => void;
 }) {
-  if (!CLERK_ENABLED) return null;
   return (
     <>
       <SignedOut>
@@ -374,7 +380,6 @@ function MobileAuthSlot({
   language: "ar" | "en";
   onNavigate: (href: string) => void;
 }) {
-  if (!CLERK_ENABLED) return null;
   return <MobileAuthSlotInner language={language} onNavigate={onNavigate} />;
 }
 
@@ -386,12 +391,13 @@ function MobileAuthSlotInner({
   onNavigate: (href: string) => void;
 }) {
   const t = NAV_LABELS[language];
-  const { signOut } = useClerk();
-  const { user, isSignedIn } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const isSignedIn = !!user;
   const adminQuery = useIsAdmin(!!isSignedIn);
   const isAdmin = adminQuery.data?.isAdmin === true;
-  const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || "";
-  const name = user?.firstName || user?.fullName || email.split("@")[0] || "";
+  const email = user?.email || "";
+  const name = user?.name || email.split("@")[0] || "";
 
   return (
     <>
@@ -427,7 +433,15 @@ function MobileAuthSlotInner({
             </button>
           )}
           <button
-            onClick={() => signOut({ redirectUrl: `${basePath}/` })}
+            onClick={() =>
+              void signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    window.location.href = `${basePath}/`;
+                  },
+                },
+              })
+            }
             className="w-full py-2.5 text-sm text-red-400 hover:text-red-300 flex items-center gap-2 text-start"
           >
             <LogOut size={14} /> {t.signOut}

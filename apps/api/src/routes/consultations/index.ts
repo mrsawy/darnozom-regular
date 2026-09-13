@@ -1,5 +1,4 @@
 import { Router, type Response } from "express";
-import { clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import { consultationSlots, consultationBookings } from "@workspace/db";
 import { and, asc, desc, eq, gte, sql, inArray } from "drizzle-orm";
@@ -167,23 +166,19 @@ router.post("/consultation-bookings", async (req, res) => {
 
 // ───────────────────── ACCOUNT (signed-in client) ──────────────────
 
-async function getCurrentUserEmails(req: AuthRequest): Promise<string[]> {
-  const userId = req.clerkUserId;
-  if (!userId) return [];
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    return (user.emailAddresses ?? [])
-      .map((e) => (e.emailAddress || "").trim().toLowerCase())
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+/**
+ * Bookings placed before sign-up are matched by email, so this still feeds a
+ * list-shaped filter. An account has exactly one address now.
+ */
+function getCurrentUserEmails(req: AuthRequest): string[] {
+  const email = req.userEmail?.trim().toLowerCase();
+  return email ? [email] : [];
 }
 
 router.get("/account/me/bookings", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const emails = await getCurrentUserEmails(req);
-    const userId = req.clerkUserId;
+    const emails = getCurrentUserEmails(req);
+    const userId = req.userId;
     const orConditions = [] as ReturnType<typeof eq>[];
     if (userId) orConditions.push(eq(consultationBookings.userId, userId));
     if (emails.length) {
@@ -224,8 +219,8 @@ router.get("/account/me/bookings", requireAuth, async (req: AuthRequest, res: Re
 router.post("/account/me/bookings/:id/cancel", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt10(req.params.id);
-    const emails = await getCurrentUserEmails(req);
-    const userId = req.clerkUserId;
+    const emails = getCurrentUserEmails(req);
+    const userId = req.userId;
     const [b] = await db.select().from(consultationBookings).where(eq(consultationBookings.id, id));
     if (!b) return res.status(404).json({ error: "غير موجود" });
     const owns =

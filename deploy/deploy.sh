@@ -22,6 +22,40 @@ POSTGRES_DB="${POSTGRES_DB:-darnozom}"
 log() { echo "==> $*"; }
 
 # ---------------------------------------------------------------------------
+# 0. Docker + Compose (install if missing)
+# ---------------------------------------------------------------------------
+ensure_docker() {
+  if command -v docker >/dev/null 2>&1 \
+    && docker compose version >/dev/null 2>&1 \
+    && systemctl is-active --quiet docker 2>/dev/null; then
+    log "Docker already installed and running ($(docker --version))"
+    return 0
+  fi
+
+  log "Docker and/or Compose missing — installing via get.docker.com"
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -y
+  apt-get install -y ca-certificates curl
+  curl -fsSL https://get.docker.com | sh
+  systemctl enable --now docker
+
+  if ! docker compose version >/dev/null 2>&1; then
+    # Rare: older installs without the compose plugin. Force a retry of the
+    # convenience script packages, then fall back to the apt plugin.
+    apt-get install -y docker-compose-plugin || true
+  fi
+
+  if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
+    echo "Docker install finished but 'docker compose' is still unavailable." >&2
+    exit 1
+  fi
+
+  log "Docker ready ($(docker --version); $(docker compose version))"
+}
+
+ensure_docker
+
+# ---------------------------------------------------------------------------
 # 1. Postgres container
 # ---------------------------------------------------------------------------
 mkdir -p "$DB_DIR" "$API_DIR" "$DBTOOLS_DIR"
@@ -95,6 +129,25 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 2b. Pre-push destructive migrations
+# ---------------------------------------------------------------------------
+# drizzle-kit push refuses destructive changes with stdin closed (see below), so
+# drops and column removals have to be applied by hand first. Each file runs at
+# most once, tracked by a marker, and every statement inside is guarded so a
+# re-run is harmless even if the marker is lost.
+for sql in "$DEPLOY_DIR/db"/[0-9][0-9][0-9]_*.sql; do
+  [ -f "$sql" ] || continue
+  marker="$DB_DIR/.migrated-$(basename "$sql" .sql)"
+  if [ -f "$marker" ]; then
+    log "Pre-push migration $(basename "$sql") already applied"
+    continue
+  fi
+  log "Applying pre-push migration $(basename "$sql")"
+  psql_db -v ON_ERROR_STOP=1 -f - < "$sql"
+  touch "$marker"
+done
+
+# ---------------------------------------------------------------------------
 # 3. Schema sync (drizzle-kit push)
 # ---------------------------------------------------------------------------
 # drizzle-kit and the schema's own deps live in a persistent directory, so this
@@ -163,10 +216,10 @@ PORT=$API_PORT
 LOG_LEVEL=${LOG_LEVEL:-info}
 DATABASE_URL=$DB_URL
 PUBLIC_SITE_URL=${PUBLIC_SITE_URL:-}
-CLERK_SECRET_KEY=${CLERK_SECRET_KEY:-}
-CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY:-}
+BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
 ADMIN_EMAILS=${ADMIN_EMAILS:-}
-ADMIN_CLERK_USER_IDS=${ADMIN_CLERK_USER_IDS:-}
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
 BOOKS_ADMIN_SECRET=${BOOKS_ADMIN_SECRET:-}
 AI_INTEGRATIONS_OPENAI_API_KEY=${AI_INTEGRATIONS_OPENAI_API_KEY:-}
 AI_INTEGRATIONS_OPENAI_BASE_URL=${AI_INTEGRATIONS_OPENAI_BASE_URL:-}

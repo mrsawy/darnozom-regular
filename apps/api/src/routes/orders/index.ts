@@ -1,5 +1,4 @@
 import { Router, type Response } from "express";
-import { clerkClient } from "@clerk/express";
 import { db } from "@workspace/db";
 import {
   orders,
@@ -240,7 +239,7 @@ router.get("/store/paymob-config", (_req, res) => {
 
 router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.clerkUserId!;
+    const userId = req.userId!;
     const body = req.body as Record<string, unknown>;
 
     const fullName = String(body.fullName || "").trim();
@@ -315,14 +314,8 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
       return res.status(400).json({ error: "Cart is empty" });
     }
 
-    // Resolve user email from Clerk.
-    let email = "";
-    try {
-      const u = await clerkClient.users.getUser(userId);
-      email = (u.emailAddresses?.[0]?.emailAddress || "").toLowerCase();
-    } catch {
-      // ignore
-    }
+    // The session already carries the address — no identity-provider round-trip.
+    const email = (req.userEmail || "").toLowerCase();
     if (!email) {
       return res.status(400).json({ error: "Account email not found" });
     }
@@ -991,7 +984,7 @@ router.post(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
@@ -1149,7 +1142,7 @@ router.post(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
@@ -1333,7 +1326,7 @@ router.post(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
@@ -1406,7 +1399,7 @@ router.post(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
@@ -1487,7 +1480,7 @@ router.post(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
@@ -1569,7 +1562,7 @@ router.post(
 
 router.get("/account/me/orders", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.clerkUserId!;
+    const userId = req.userId!;
     const rows = await db
       .select()
       .from(orders)
@@ -1600,7 +1593,7 @@ router.get("/account/me/orders", requireAuth, async (req: AuthRequest, res: Resp
 
 router.get("/account/me/orders/:id", requireAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.clerkUserId!;
+    const userId = req.userId!;
     const id = Number.parseInt(String(req.params.id), 10);
     if (!id || Number.isNaN(id)) return res.status(400).json({ error: "Invalid id" });
     const [order] = await db
@@ -1632,7 +1625,7 @@ router.get(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number.parseInt(String(req.params.orderId), 10);
       const itemId = Number.parseInt(String(req.params.itemId), 10);
       if (!Number.isInteger(orderId) || !Number.isInteger(itemId)) {
@@ -1734,7 +1727,7 @@ router.head(
   requireAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.clerkUserId!;
+      const userId = req.userId!;
       const orderId = Number.parseInt(String(req.params.orderId), 10);
       const itemId = Number.parseInt(String(req.params.itemId), 10);
       if (!Number.isInteger(orderId) || !Number.isInteger(itemId)) {

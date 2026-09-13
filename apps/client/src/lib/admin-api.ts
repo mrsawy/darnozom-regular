@@ -4,27 +4,21 @@ export function adminJsonHeaders(): HeadersInit {
   return { "Content-Type": "application/json" };
 }
 
-interface ClerkGlobal {
-  session?: { getToken: () => Promise<string | null> };
-}
-
-async function getClerkToken(): Promise<string | null> {
-  try {
-    const clerk = (window as unknown as { Clerk?: ClerkGlobal }).Clerk;
-    return (await clerk?.session?.getToken()) ?? null;
-  } catch {
-    return null;
-  }
-}
-
+/**
+ * Authenticated fetch for admin endpoints.
+ *
+ * The session is an httpOnly cookie, so `credentials: "include"` is the whole
+ * mechanism — there is no token to fetch first. This used to await
+ * `window.Clerk.session.getToken()` before every request and attach a bearer
+ * header, which also meant a request fired before Clerk finished loading went
+ * out unauthenticated.
+ */
 export async function adminFetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
-  const token = await getClerkToken();
   return fetch(input, {
     credentials: "include",
     ...init,
     headers: {
       ...(init?.headers || {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
 }
