@@ -31,3 +31,6 @@ dist-ssr
 # Local deploy keys (never commit)
 .deploy-keys/
 
+# Local object storage (book covers, uploads)
+data/
+

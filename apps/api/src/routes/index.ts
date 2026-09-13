@@ -53,6 +53,10 @@ router.use(jobsRouter);
 router.use(accountRouter);
 router.use(consultationsRouter);
 
+// Storage must be reachable for anonymous storefront images (book covers etc.).
+// Sensitive keys still require auth inside the router.
+router.use(storageRouter);
+
 router.use(requireAuth);
 router.use(loadUserRole);
 
@@ -60,7 +64,6 @@ router.use(usersRouter);
 router.use(tenantsRouter);
 router.use(clientsRouter);
 router.use(reportsRouter);
-router.use(storageRouter);
 router.use(documentsRouter);
 // conversationsRouter (and the attachments router it mounts) is deliberately
 // NOT mounted. The `conversations` table has no owner column and these routes

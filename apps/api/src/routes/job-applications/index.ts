@@ -1,5 +1,4 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { Readable } from "stream";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import { db } from "@workspace/db";
@@ -7,14 +6,14 @@ import { jobApplications } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import {
-  ObjectStorageService,
-  ObjectNotFoundError,
-  objectStorageClient,
-} from "../../lib/objectStorage";
+  savePrivateObject,
+  openPrivateObjectStream,
+  privateObjectExists,
+  readPrivateObjectMeta,
+} from "../../lib/objectStore";
 import { sendJobApplicationNotification, PLATFORM_URL } from "../../lib/email";
 
 const router = Router();
-const objectStorageService = new ObjectStorageService();
 
 const ALLOWED_RESUME_MIME = new Set([
   "application/pdf",
@@ -83,23 +82,12 @@ router.post(
       if (!ALLOWED_RESUME_MIME.has(req.file.mimetype))
         return res.status(400).json({ error: "صيغة الملف غير مدعومة (PDF / DOC / DOCX) / Unsupported file format" });
 
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = randomUUID();
       const safeName = sanitizeFileName(req.file.originalname);
-      const fullPath = `${privateObjectDir}/job-applications/${objectId}-${safeName}`;
-      const pathParts = fullPath.replace(/^\//, "").split("/");
-      const bucketName = pathParts[0];
-      const objectName = pathParts.slice(1).join("/");
-      const file = objectStorageClient.bucket(bucketName).file(objectName);
-      await file.save(req.file.buffer, {
-        contentType: req.file.mimetype,
-        metadata: {
-          cacheControl: "private, max-age=0, no-store",
-          contentDisposition: `attachment; filename="${safeName}"`,
-        },
-      });
-
       const resumePath = `job-applications/${objectId}-${safeName}`;
+      await savePrivateObject(resumePath, req.file.buffer, req.file.mimetype, {
+        cacheControl: "private, max-age=0, no-store",
+      });
 
       const [inserted] = await db
         .insert(jobApplications)
@@ -196,23 +184,20 @@ router.get("/job-applications/:id/resume", requireAdmin, async (req, res) => {
     const [row] = await db.select().from(jobApplications).where(eq(jobApplications.id, id)).limit(1);
     if (!row) return res.status(404).json({ error: "Not found" });
 
-    let entityDir = objectStorageService.getPrivateObjectDir();
-    if (!entityDir.endsWith("/")) entityDir = `${entityDir}/`;
-    const fullPath = `${entityDir}${row.resumePath}`;
-    const pathParts = fullPath.replace(/^\//, "").split("/");
-    const bucketName = pathParts[0];
-    const objectName = pathParts.slice(1).join("/");
-    const file = objectStorageClient.bucket(bucketName).file(objectName);
-    const [exists] = await file.exists();
-    if (!exists) throw new ObjectNotFoundError();
+    if (!(await privateObjectExists(row.resumePath))) {
+      return res.status(404).json({ error: "Resume file not found" });
+    }
 
     const safeName = sanitizeFileName(row.resumeFileName);
-    res.setHeader("Content-Type", row.resumeMimeType || "application/octet-stream");
+    const meta = await readPrivateObjectMeta(row.resumePath);
+    res.setHeader("Content-Type", row.resumeMimeType || meta?.contentType || "application/octet-stream");
     res.setHeader("Cache-Control", "private, max-age=0, no-store");
     res.setHeader("Content-Disposition", `attachment; filename="${safeName}"`);
-    if (row.resumeSize) res.setHeader("Content-Length", String(row.resumeSize));
+    if (row.resumeSize || meta?.size) {
+      res.setHeader("Content-Length", String(row.resumeSize || meta?.size));
+    }
 
-    const nodeStream = file.createReadStream();
+    const nodeStream = openPrivateObjectStream(row.resumePath);
     nodeStream.on("error", (e) => {
       console.error("[job-applications] stream error:", e);
       if (!res.headersSent) res.status(500).json({ error: "Failed to read file" });
@@ -221,9 +206,6 @@ router.get("/job-applications/:id/resume", requireAdmin, async (req, res) => {
     nodeStream.pipe(res);
     return;
   } catch (err) {
-    if (err instanceof ObjectNotFoundError) {
-      return res.status(404).json({ error: "Resume file not found" });
-    }
     console.error(err);
     return res.status(500).json({ error: "Failed to download resume" });
   }

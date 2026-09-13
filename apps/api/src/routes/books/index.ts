@@ -3,15 +3,13 @@ import { db } from "@workspace/db";
 import { books } from "@workspace/db";
 import { eq, and, ilike, or, desc } from "drizzle-orm";
 import type { Request, Response, NextFunction } from "express";
-import { ObjectStorageService, objectStorageClient } from "../../lib/objectStorage";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import { scrapeBookUrl, BROWSER_HEADERS, DATA_IMAGE_RE, sniffImageMime } from "./scrapeUrl";
+import { savePrivateObject } from "../../lib/objectStore";
 
 const router = Router();
-
-const objectStorageService = new ObjectStorageService();
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -117,17 +115,9 @@ async function storeCover(
   const loaded = await loadCoverBytes(imageUrl, refererUrl);
   if (!loaded) return null;
   try {
-    const privateObjectDir = objectStorageService.getPrivateObjectDir();
     const objectId = randomUUID();
-    const fullPath = `${privateObjectDir}/book-covers/${objectId}`;
-    const pathParts = fullPath.replace(/^\//, "").split("/");
-    const bucketName = pathParts[0];
-    const objectName = pathParts.slice(1).join("/");
-    const bucket = objectStorageClient.bucket(bucketName);
-    const file = bucket.file(objectName);
-    await file.save(loaded.buffer, {
-      contentType: loaded.contentType,
-      metadata: { cacheControl: "public, max-age=31536000" },
+    await savePrivateObject(`book-covers/${objectId}`, loaded.buffer, loaded.contentType, {
+      cacheControl: "public, max-age=31536000",
     });
     return `/api/storage/objects/book-covers/${objectId}`;
   } catch {
@@ -290,20 +280,9 @@ router.post(
         return res.status(400).json({ error: "Only JPG, PNG, and WebP images are allowed" });
       }
 
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = randomUUID();
-      const fullPath = `${privateObjectDir}/book-covers/${objectId}`;
-
-      const pathParts = fullPath.replace(/^\//, "").split("/");
-      const bucketName = pathParts[0];
-      const objectName = pathParts.slice(1).join("/");
-
-      const bucket = objectStorageClient.bucket(bucketName);
-      const file = bucket.file(objectName);
-
-      await file.save(req.file.buffer, {
-        contentType: req.file.mimetype,
-        metadata: { cacheControl: "public, max-age=31536000" },
+      await savePrivateObject(`book-covers/${objectId}`, req.file.buffer, req.file.mimetype, {
+        cacheControl: "public, max-age=31536000",
       });
 
       const objectPath = `/objects/book-covers/${objectId}`;
@@ -378,19 +357,9 @@ router.post(
         return res.status(400).json({ error: "Only PDF files are allowed" });
       }
 
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = randomUUID();
-      const fullPath = `${privateObjectDir}/book-pdfs/${objectId}`;
-
-      const pathParts = fullPath.replace(/^\//, "").split("/");
-      const bucketName = pathParts[0];
-      const objectName = pathParts.slice(1).join("/");
-
-      const bucket = objectStorageClient.bucket(bucketName);
-      const file = bucket.file(objectName);
-      await file.save(req.file.buffer, {
-        contentType: "application/pdf",
-        metadata: { cacheControl: "private, max-age=0" },
+      await savePrivateObject(`book-pdfs/${objectId}`, req.file.buffer, "application/pdf", {
+        cacheControl: "private, max-age=0",
       });
 
       // Internal opaque URL — never served directly from public storage.

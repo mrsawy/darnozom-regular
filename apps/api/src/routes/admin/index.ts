@@ -20,10 +20,9 @@ import {
   getBootstrapAdminEmails,
   type AdminAuthRequest,
 } from "../../middlewares/adminAuth";
-import { ObjectStorageService, objectStorageClient } from "../../lib/objectStorage";
+import { savePrivateObject } from "../../lib/objectStore";
 
 const router = Router();
-const objectStorageService = new ObjectStorageService();
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const upload = multer({
@@ -53,16 +52,9 @@ router.post(
       if (!req.file) return res.status(400).json({ error: "No image file provided" });
       const folderRaw = (req.query.folder as string | undefined) || "uploads";
       const folder = folderRaw.replace(/[^a-z0-9_-]/gi, "").slice(0, 32) || "uploads";
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
       const objectId = randomUUID();
-      const fullPath = `${privateObjectDir}/${folder}/${objectId}`;
-      const pathParts = fullPath.replace(/^\//, "").split("/");
-      const bucketName = pathParts[0];
-      const objectName = pathParts.slice(1).join("/");
-      const file = objectStorageClient.bucket(bucketName).file(objectName);
-      await file.save(req.file.buffer, {
-        contentType: req.file.mimetype,
-        metadata: { cacheControl: "public, max-age=31536000" },
+      await savePrivateObject(`${folder}/${objectId}`, req.file.buffer, req.file.mimetype, {
+        cacheControl: "public, max-age=31536000",
       });
       const url = `/api/storage/objects/${folder}/${objectId}`;
       return res.json({ url });

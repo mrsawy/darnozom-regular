@@ -5,7 +5,15 @@ import {
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
-import { ObjectPermission } from "../lib/objectAcl";
+import {
+  entityKeyFromObjectPath,
+  isLocalObjectStorage,
+  isPublicObjectKey,
+  openPrivateObjectStream,
+  privateObjectExists,
+  readPrivateObjectMeta,
+} from "../lib/objectStore";
+import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -13,14 +21,20 @@ const objectStorageService = new ObjectStorageService();
 /**
  * POST /storage/uploads/request-url
  *
- * Request a presigned URL for file upload.
- * The client sends JSON metadata (name, size, contentType) — NOT the file.
- * Then uploads the file directly to the returned presigned URL.
+ * Request a presigned URL for file upload (GCS/Replit only).
  */
 router.post("/storage/uploads/request-url", async (req: Request, res: Response) => {
   const parsed = RequestUploadUrlBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Missing or invalid required fields" });
+    return;
+  }
+
+  if (isLocalObjectStorage()) {
+    res.status(501).json({
+      error:
+        "Presigned uploads are not available with local object storage. Use the multipart upload endpoints instead.",
+    });
     return;
   }
 
@@ -45,10 +59,6 @@ router.post("/storage/uploads/request-url", async (req: Request, res: Response) 
 
 /**
  * GET /storage/public-objects/*
- *
- * Serve public assets from PUBLIC_OBJECT_SEARCH_PATHS.
- * These are unconditionally public — no authentication or ACL checks.
- * IMPORTANT: Always provide this endpoint when object storage is set up.
  */
 router.get("/storage/public-objects/*filePath", async (req: Request, res: Response) => {
   try {
@@ -77,35 +87,34 @@ router.get("/storage/public-objects/*filePath", async (req: Request, res: Respon
   }
 });
 
-/**
- * GET /storage/objects/*
- *
- * Serve object entities from PRIVATE_OBJECT_DIR.
- * These are served from a separate path from /public-objects and can optionally
- * be protected with authentication or ACL checks based on the use case.
- */
-router.get("/storage/objects/*path", async (req: Request, res: Response) => {
+async function servePrivateObject(req: Request, res: Response) {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
     const objectPath = `/objects/${wildcardPath}`;
+    const relativeKey = entityKeyFromObjectPath(objectPath);
+
+    if (isLocalObjectStorage()) {
+      const exists = await privateObjectExists(relativeKey);
+      if (!exists) {
+        res.status(404).json({ error: "Object not found" });
+        return;
+      }
+      const meta = await readPrivateObjectMeta(relativeKey);
+      res.setHeader("Content-Type", meta?.contentType || "application/octet-stream");
+      if (meta?.size) res.setHeader("Content-Length", String(meta.size));
+      res.setHeader(
+        "Cache-Control",
+        meta?.cacheControl ||
+          (isPublicObjectKey(relativeKey)
+            ? "public, max-age=31536000"
+            : "private, max-age=3600"),
+      );
+      openPrivateObjectStream(relativeKey).pipe(res);
+      return;
+    }
+
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
-
-    // --- Protected route example (uncomment when using replit-auth) ---
-    // if (!req.isAuthenticated()) {
-    //   res.status(401).json({ error: "Unauthorized" });
-    //   return;
-    // }
-    // const canAccess = await objectStorageService.canAccessObjectEntity({
-    //   userId: req.user.id,
-    //   objectFile,
-    //   requestedPermission: ObjectPermission.READ,
-    // });
-    // if (!canAccess) {
-    //   res.status(403).json({ error: "Forbidden" });
-    //   return;
-    // }
-
     const response = await objectStorageService.downloadObject(objectFile);
 
     res.status(response.status);
@@ -126,6 +135,25 @@ router.get("/storage/objects/*path", async (req: Request, res: Response) => {
     req.log.error({ err: error }, "Error serving object");
     res.status(500).json({ error: "Failed to serve object" });
   }
-});
+}
+
+/**
+ * GET /storage/objects/*
+ *
+ * Public prefixes (book covers, site imagery) are open. Everything else
+ * requires a signed-in session (digital PDFs, resumes, etc.).
+ */
+router.get(
+  "/storage/objects/*path",
+  (req: Request, res: Response, next) => {
+    const raw = req.params.path;
+    const wildcardPath = Array.isArray(raw) ? raw.join("/") : raw;
+    if (isPublicObjectKey(wildcardPath)) {
+      return next();
+    }
+    return requireAuth(req, res, next);
+  },
+  servePrivateObject,
+);
 
 export default router;

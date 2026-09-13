@@ -32,7 +32,7 @@ ensure_docker() {
     return 0
   fi
 
-  log "Docker and/or Compose missing — installing via get.docker.com"
+  log "Docker and/or Compose missing â€” installing via get.docker.com"
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
   apt-get install -y ca-certificates curl
@@ -132,7 +132,7 @@ psql_db() {
 
 # Postgres only applies POSTGRES_PASSWORD on first volume init. Later deploys
 # (or a rotated GitHub secret) rewrite db/.env and recreate the container, but
-# the role password inside the volume stays stale — drizzle-kit then fails TCP
+# the role password inside the volume stays stale â€” drizzle-kit then fails TCP
 # auth with a useless "Pulling schema..." spinner and exit 1. Sync via local
 # socket auth (no password) so DATABASE_URL always matches the live role.
 log "Syncing Postgres role password to match deploy secret"
@@ -144,10 +144,10 @@ psql_db -v ON_ERROR_STOP=1 \
 # ---------------------------------------------------------------------------
 # 2. One-time restore of the legacy dump
 # ---------------------------------------------------------------------------
-# backup.sql is NOT in git (it holds real customer PII) — scp it to
+# backup.sql is NOT in git (it holds real customer PII) â€” scp it to
 # $DB_DIR/backup.sql once, before the first deploy, to carry the old data over.
 if [ -f "$DB_DIR/backup.sql" ] && [ ! -f "$DB_DIR/.seeded" ]; then
-  log "First run with a backup present — restoring $DB_DIR/backup.sql"
+  log "First run with a backup present â€” restoring $DB_DIR/backup.sql"
 
   # The dump came from Neon and assigns ownership/grants to roles that do not
   # exist on a stock Postgres. Create them as plain no-login roles so the
@@ -167,7 +167,7 @@ if [ -f "$DB_DIR/backup.sql" ] && [ ! -f "$DB_DIR/.seeded" ]; then
     -c "DROP TYPE IF EXISTS book_category;"
 
   touch "$DB_DIR/.seeded"
-  log "Restore complete — marker written, future deploys skip this"
+  log "Restore complete â€” marker written, future deploys skip this"
 else
   log "Skipping restore (no backup.sql, or already seeded)"
 fi
@@ -251,10 +251,14 @@ if [ -f "$API_DIR/dist/package.json" ]; then
   log "Installing API runtime externals"
   (cd "$API_DIR/dist" && npm install --omit=dev --no-audit --no-fund)
 else
-  log "No dist/package.json — skipping runtime externals install"
+  log "No dist/package.json â€” skipping runtime externals install"
 fi
 
 log "Writing $ENV_FILE"
+# Local disk object store (Replit GCS sidecar is not available on the VPS).
+OBJECTS_DIR="${PRIVATE_OBJECT_DIR:-$ROOT/objects}"
+PUBLIC_OBJECTS="${PUBLIC_OBJECT_SEARCH_PATHS:-$OBJECTS_DIR/public}"
+mkdir -p "$OBJECTS_DIR" "$PUBLIC_OBJECTS"
 umask 077
 cat > "$ENV_FILE" <<EOF
 NODE_ENV=production
@@ -282,8 +286,9 @@ GOOGLE_CALENDAR_CLIENT_SECRET=${GOOGLE_CALENDAR_CLIENT_SECRET:-}
 GOOGLE_CALENDAR_REFRESH_TOKEN=${GOOGLE_CALENDAR_REFRESH_TOKEN:-}
 GOOGLE_CALENDAR_ID=${GOOGLE_CALENDAR_ID:-}
 RESEND_API_KEY=${RESEND_API_KEY:-}
-PRIVATE_OBJECT_DIR=${PRIVATE_OBJECT_DIR:-}
-PUBLIC_OBJECT_SEARCH_PATHS=${PUBLIC_OBJECT_SEARCH_PATHS:-}
+OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
+PRIVATE_OBJECT_DIR=$OBJECTS_DIR
+PUBLIC_OBJECT_SEARCH_PATHS=$PUBLIC_OBJECTS
 EOF
 chmod 600 "$ENV_FILE"
 umask 022

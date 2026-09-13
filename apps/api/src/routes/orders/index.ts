@@ -14,7 +14,11 @@ import {
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireAuth, type AuthRequest } from "../../middlewares/authMiddleware";
 import { requireAdmin } from "../../middlewares/adminAuth";
-import { ObjectStorageService, objectStorageClient } from "../../lib/objectStorage";
+import {
+  openPrivateObjectStream,
+  privateObjectExists,
+  readPrivateObjectMeta,
+} from "../../lib/objectStore";
 import { computeFormats } from "../books";
 import { convertEgpToUsd } from "../../lib/currency";
 import {
@@ -53,8 +57,6 @@ import {
 import { sendOrderPaidNotifications } from "../../lib/orderPaidNotifications";
 
 const router = Router();
-
-const objectStorageService = new ObjectStorageService();
 
 type ProductType = "book" | "course" | "app";
 type Format = "paper" | "digital";
@@ -1679,32 +1681,25 @@ router.get(
         return res.status(400).json({ error: "Invalid file reference" });
       }
 
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
-      const fullPath = `${privateObjectDir}/book-pdfs/${objectId}`.replace(/^\//, "");
-      const parts = fullPath.split("/");
-      const bucketName = parts[0];
-      const objectName = parts.slice(1).join("/");
-
-      const file = objectStorageClient.bucket(bucketName).file(objectName);
-      const [exists] = await file.exists();
-      if (!exists) {
+      const relativeKey = `book-pdfs/${objectId}`;
+      if (!(await privateObjectExists(relativeKey))) {
         return res.status(404).json({ error: "File not found in storage" });
       }
-      const [meta] = await file.getMetadata();
+      const meta = await readPrivateObjectMeta(relativeKey);
 
       const download = String(req.query.download || "") === "1";
       const safeTitle = (item.productTitle || "book").replace(/[^A-Za-z0-9 _\-\.\u0600-\u06FF]/g, "").slice(0, 80) || "book";
       const filename = `${safeTitle}.pdf`;
 
       res.setHeader("Content-Type", "application/pdf");
-      if (meta.size) res.setHeader("Content-Length", String(meta.size));
+      if (meta?.size) res.setHeader("Content-Length", String(meta.size));
       res.setHeader("Cache-Control", "private, no-store");
       res.setHeader(
         "Content-Disposition",
         `${download ? "attachment" : "inline"}; filename="${filename}"`,
       );
 
-      const stream = file.createReadStream();
+      const stream = openPrivateObjectStream(relativeKey);
       stream.on("error", (err) => {
         req.log.error({ err }, "pdf stream error");
         if (!res.headersSent) res.status(500).end();
@@ -1764,14 +1759,8 @@ router.head(
         return res.status(400).end();
       }
 
-      const privateObjectDir = objectStorageService.getPrivateObjectDir();
-      const fullPath = `${privateObjectDir}/book-pdfs/${objectId}`.replace(/^\//, "");
-      const parts = fullPath.split("/");
-      const bucketName = parts[0];
-      const objectName = parts.slice(1).join("/");
-      const file = objectStorageClient.bucket(bucketName).file(objectName);
-      const [exists] = await file.exists();
-      if (!exists) return res.status(404).end();
+      const relativeKey = `book-pdfs/${objectId}`;
+      if (!(await privateObjectExists(relativeKey))) return res.status(404).end();
 
       res.setHeader("Content-Type", "application/pdf");
       res.setHeader("Cache-Control", "private, no-store");
