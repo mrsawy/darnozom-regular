@@ -130,6 +130,17 @@ psql_db() {
   docker exec -i darnozom-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$@"
 }
 
+# Postgres only applies POSTGRES_PASSWORD on first volume init. Later deploys
+# (or a rotated GitHub secret) rewrite db/.env and recreate the container, but
+# the role password inside the volume stays stale — drizzle-kit then fails TCP
+# auth with a useless "Pulling schema..." spinner and exit 1. Sync via local
+# socket auth (no password) so DATABASE_URL always matches the live role.
+log "Syncing Postgres role password to match deploy secret"
+# Quote-escape so rotated secrets with apostrophes still work.
+pass_sql=$(printf '%s' "$POSTGRES_PASSWORD" | sed "s/'/''/g")
+psql_db -v ON_ERROR_STOP=1 \
+  -c "ALTER USER ${POSTGRES_USER} WITH PASSWORD '${pass_sql}';"
+
 # ---------------------------------------------------------------------------
 # 2. One-time restore of the legacy dump
 # ---------------------------------------------------------------------------
