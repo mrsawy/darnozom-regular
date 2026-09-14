@@ -12,6 +12,7 @@ export * from "./rfpSubmissions";
 export * from "./whatsappLogs";
 export * from "./books";
 export * from "./shipping";
+export * from "./settings";
 export * from "./proposals";
 export * from "./academy";
 export * from "./events";
