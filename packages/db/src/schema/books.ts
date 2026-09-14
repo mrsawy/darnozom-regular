@@ -1,4 +1,4 @@
-import { boolean, numeric, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const bookStatusEnum = pgEnum("book_status", ["available", "coming_soon", "out_of_stock"]);
 export const bookFormatEnum = pgEnum("book_format", ["online", "hardcopy", "both"]);
@@ -42,16 +42,3 @@ export const books = pgTable("books", {
 
 export type Book = typeof books.$inferSelect;
 export type NewBook = typeof books.$inferInsert;
-
-export const shippingRates = pgTable("shipping_rates", {
-  id: serial("id").primaryKey(),
-  city: varchar("city", { length: 200 }).notNull().unique(),
-  price: numeric("price", { precision: 10, scale: 2 }).notNull().default("0"),
-  currency: varchar("currency", { length: 10 }).notNull().default("EGP"),
-  isDefault: boolean("is_default").notNull().default(false),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export type ShippingRate = typeof shippingRates.$inferSelect;
-export type NewShippingRate = typeof shippingRates.$inferInsert;

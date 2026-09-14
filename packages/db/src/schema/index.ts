@@ -11,6 +11,7 @@ export * from "./auth";
 export * from "./rfpSubmissions";
 export * from "./whatsappLogs";
 export * from "./books";
+export * from "./shipping";
 export * from "./proposals";
 export * from "./academy";
 export * from "./events";
