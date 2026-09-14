@@ -1,7 +1,7 @@
 import { db, users, adminUserEvents } from "@workspace/db";
 import { inArray, sql } from "drizzle-orm";
-import { logger } from "./logger";
-import { getBootstrapAdminEmails } from "./auth";
+import { logger } from "../logger";
+import { getBootstrapAdminEmails } from "../auth";
 
 const BOOTSTRAP_NOTE = "Auto-granted from ADMIN_EMAILS on server start.";
 

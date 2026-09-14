@@ -1,6 +1,6 @@
 import { db, jobOpenings, type NewJobOpening } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 const JOBS: NewJobOpening[] = [
   {

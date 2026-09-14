@@ -1,7 +1,7 @@
 import { db, users } from "@workspace/db";
 import { sql } from "drizzle-orm";
-import { logger } from "./logger";
-import { auth } from "./auth";
+import { logger } from "../logger";
+import { auth } from "../auth";
 
 /**
  * Development seed accounts, one per role.

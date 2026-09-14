@@ -1,6 +1,6 @@
 import { db, storeApps, type NewStoreApp } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { logger } from "./logger";
+import { logger } from "../logger";
 
 const ICON_URL = "/darnozom-website/darnozom-n-logo.png";
 

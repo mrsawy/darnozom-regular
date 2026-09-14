@@ -1,4 +1,4 @@
-import { seedDevUsers } from "../lib/seedDevUsers";
+import { seedDevUsers } from "../lib/seed/seedDevUsers";
 
 seedDevUsers({ throwOnError: true })
   .then(() => process.exit(0))

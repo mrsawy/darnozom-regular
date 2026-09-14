@@ -1,4 +1,4 @@
-import { seedJobOpenings } from "../lib/seedJobOpenings";
+import { seedJobOpenings } from "../lib/seed/seedJobOpenings";
 
 seedJobOpenings({ throwOnError: true })
   .then(() => process.exit(0))
