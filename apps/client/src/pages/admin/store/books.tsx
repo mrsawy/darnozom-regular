@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { adminFetch } from "../../lib/admin-api";
+import { adminFetch } from "../../../lib/admin-api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Edit2, Trash2, Save, X, Star, Link as LinkIcon,
@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader, Toast, useToast } from "./layout";
+import { PageHeader, Toast, useToast } from "../layout";
 
 const API_BASE = "/api";
 

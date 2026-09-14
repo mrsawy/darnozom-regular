@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { adminFetch } from "../../lib/admin-api";
+import { adminFetch } from "../../../lib/admin-api";
 import { Plus, Edit2, Trash2, Save, X, Loader2, Star, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { StoreCourse } from "@/lib/store-types";
-import { PageHeader, Toast, useToast } from "./layout";
-import { ImageUploadField } from "./_image-upload";
+import { PageHeader, Toast, useToast } from "../layout";
+import { ImageUploadField } from "../_image-upload";
 
 const API_BASE = "/api";
 
