@@ -3,8 +3,8 @@ import { logger } from "./lib/logger";
 import { seedStoreApps } from "./lib/seedStoreApps";
 import { seedJobOpenings } from "./lib/seedJobOpenings";
 import { seedAdminUsers } from "./lib/seedAdminUsers";
-import { startPayPalReconciliationJob } from "./lib/reconcilePayPalOrders";
-import { startPaymobReconciliationJob } from "./lib/reconcilePaymobOrders";
+import { startPayPalReconciliationJob } from "./lib/payments/reconcilePayPalOrders";
+import { startPaymobReconciliationJob } from "./lib/payments/reconcilePaymobOrders";
 
 const rawPort = process.env["PORT"];
 

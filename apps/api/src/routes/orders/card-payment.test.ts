@@ -42,13 +42,13 @@ const {
   paidNotificationsMock: vi.fn(),
 }));
 
-vi.mock("../../lib/paypal", () => ({
+vi.mock("../../lib/payments/paypal", () => ({
   createPayPalOrder: redirectCreateMock,
   capturePayPalOrder: captureMock,
   getPayPalClientConfig: configMock,
 }));
 
-vi.mock("../../lib/paymob", () => ({
+vi.mock("../../lib/payments/paymob", () => ({
   isPaymobConfigured: paymobConfiguredMock,
   isPaymobWalletConfigured: vi.fn(() => false),
   createPaymobCheckout: paymobCreateMock,

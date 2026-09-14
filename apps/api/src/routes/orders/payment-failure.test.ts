@@ -46,14 +46,14 @@ const {
   autoCancelledMock: vi.fn(),
 }));
 
-vi.mock("../../lib/paypal", () => ({
+vi.mock("../../lib/payments/paypal", () => ({
   createPayPalOrder: redirectCreateMock,
   capturePayPalOrder: captureMock,
   getPayPalOrderStatus: statusMock,
   getPayPalClientConfig: configMock,
 }));
 
-vi.mock("../../lib/paymob", () => ({
+vi.mock("../../lib/payments/paymob", () => ({
   isPaymobConfigured: vi.fn(() => false),
   isPaymobWalletConfigured: vi.fn(() => false),
   createPaymobCheckout: vi.fn(),
@@ -66,7 +66,7 @@ vi.mock("../../lib/paymob", () => ({
 
 // The cleanup-stuck route runs the Paymob reconciler too — stub it so no
 // Paymob code paths execute in these tests.
-vi.mock("../../lib/reconcilePaymobOrders", () => ({
+vi.mock("../../lib/payments/reconcilePaymobOrders", () => ({
   markPaymobOrderPaid: vi.fn(),
   reconcilePendingPaymobOrders: paymobReconcileMock,
 }));
@@ -136,7 +136,7 @@ vi.mock("../../lib/objectStorage", () => ({
 // Import the router (and the real reconcile lib) only AFTER mocks register.
 const { default: ordersRouter } = await import("./index");
 const { expireStalePendingOrders, markOrderPaymentFailed } = await import(
-  "../../lib/reconcilePayPalOrders"
+  "../../lib/payments/reconcilePayPalOrders"
 );
 
 function makeApp() {

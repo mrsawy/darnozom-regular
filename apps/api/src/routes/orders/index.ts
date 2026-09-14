@@ -25,7 +25,7 @@ import {
   createPayPalOrder,
   capturePayPalOrder,
   getPayPalClientConfig,
-} from "../../lib/paypal";
+} from "../../lib/payments/paypal";
 import {
   markPayPalOrderPaid,
   reconcilePendingPayPalOrders,
@@ -33,7 +33,7 @@ import {
   notifyAdminPaymentFailed,
   notifyCustomerOrderCancelled,
   expireStalePendingOrders,
-} from "../../lib/reconcilePayPalOrders";
+} from "../../lib/payments/reconcilePayPalOrders";
 import {
   isPaymobConfigured,
   isPaymobWalletConfigured,
@@ -44,11 +44,11 @@ import {
   getPaymobTransactionStatus,
   verifyPaymobWebhookHmac,
   extractPaymobDeclineReason,
-} from "../../lib/paymob";
+} from "../../lib/payments/paymob";
 import {
   markPaymobOrderPaid,
   reconcilePendingPaymobOrders,
-} from "../../lib/reconcilePaymobOrders";
+} from "../../lib/payments/reconcilePaymobOrders";
 import {
   sendOrderPlacedConfirmation,
   sendOrderStatusUpdate,

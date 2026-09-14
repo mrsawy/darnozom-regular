@@ -79,7 +79,7 @@ vi.mock("../../lib/objectStorage", () => ({
 
 // Import AFTER env vars + mocks are in place. The Paymob lib is real.
 const { default: ordersRouter } = await import("./index");
-const { computePaymobWebhookHmac } = await import("../../lib/paymob");
+const { computePaymobWebhookHmac } = await import("../../lib/payments/paymob");
 
 function makeApp() {
   const app = express();
