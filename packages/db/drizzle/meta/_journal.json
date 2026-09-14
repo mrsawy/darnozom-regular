@@ -78,6 +78,13 @@
       "when": 1783795200000,
       "tag": "0010_book_category_rename",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789378100182,
+      "tag": "0012_shipping_settings_tracking",
+      "breakpoints": true
     }
   ]
 }
