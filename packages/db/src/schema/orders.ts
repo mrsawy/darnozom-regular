@@ -76,6 +76,13 @@ export const orders = pgTable("orders", {
   // Set only when the background reconciler (not the live browser flow)
   // flipped this order to paid — used to show a "payment recovered" note.
   paymentRecoveredAt: timestamp("payment_recovered_at"),
+  // Live tracking, set by an admin once the order ships. trackingUrl is
+  // shown to the customer as a "Track your order" link; trackingCarrier is
+  // a free-text label (e.g. "Aramex"). shippedAt is stamped automatically
+  // the first time trackingUrl is set.
+  trackingUrl: text("tracking_url"),
+  trackingCarrier: varchar("tracking_carrier", { length: 100 }),
+  shippedAt: timestamp("shipped_at"),
   adminNote: text("admin_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
