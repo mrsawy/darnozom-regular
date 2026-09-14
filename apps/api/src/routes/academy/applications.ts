@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { academyApplications } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import { requireAdmin } from "../../middlewares/adminAuth";
-import { sendAcademyApplicationNotification, PLATFORM_URL } from "../../lib/email";
+import { sendAcademyApplicationNotification, PLATFORM_URL } from "../../lib/email/email";
 
 const router = Router();
 

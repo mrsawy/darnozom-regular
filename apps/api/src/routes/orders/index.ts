@@ -53,8 +53,8 @@ import {
   sendOrderPlacedConfirmation,
   sendOrderStatusUpdate,
   sendAdminSalesNotification,
-} from "../../lib/email";
-import { sendOrderPaidNotifications } from "../../lib/orderPaidNotifications";
+} from "../../lib/email/email";
+import { sendOrderPaidNotifications } from "../../lib/email/orderPaidNotifications";
 
 const router = Router();
 

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "@workspace/db";
 import { clients, reports, assessments } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { sendReportToClient } from "../../lib/email";
+import { sendReportToClient } from "../../lib/email/email";
 import type { AuthRequest } from "../../middlewares/authMiddleware";
 
 const router = Router();

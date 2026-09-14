@@ -4,7 +4,7 @@ import { clients, reports, reportAttachments, users } from "@workspace/db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { openai } from "@workspace/ai-server";
 import type { AuthRequest } from "../../middlewares/authMiddleware";
-import { sendReportReadyNotification } from "../../lib/email";
+import { sendReportReadyNotification } from "../../lib/email/email";
 import attachmentsRouter from "./attachments";
 
 const router = Router();

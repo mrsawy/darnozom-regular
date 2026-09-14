@@ -1,6 +1,6 @@
 import { db, orderItems, type Order } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { logger } from "./logger";
+import { logger } from "../logger";
 import { sendAdminSalesNotification, sendOrderReceipt } from "./email";
 
 // Shared post-payment notifications for an order that just became paid:

@@ -11,7 +11,7 @@ import {
   privateObjectExists,
   readPrivateObjectMeta,
 } from "../../lib/objectStore";
-import { sendJobApplicationNotification, PLATFORM_URL } from "../../lib/email";
+import { sendJobApplicationNotification, PLATFORM_URL } from "../../lib/email/email";
 
 const router = Router();
 

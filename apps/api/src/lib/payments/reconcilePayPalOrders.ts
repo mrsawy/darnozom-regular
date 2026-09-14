@@ -2,7 +2,7 @@ import { db, orders, orderItems, type Order } from "@workspace/db";
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { logger } from "../logger";
 import { sendAdminSalesNotification, sendOrderAutoCancelledEmail } from "../email/email";
-import { sendOrderPaidNotifications } from "../orderPaidNotifications";
+import { sendOrderPaidNotifications } from "../email/orderPaidNotifications";
 import { capturePayPalOrder, getPayPalOrderStatus } from "./paypal";
 
 // Server-side safety net for PayPal payments.

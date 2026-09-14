@@ -4,7 +4,7 @@ import { rfpSubmissions } from "@workspace/db";
 import { desc, eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { requireAdmin } from "../../middlewares/adminAuth";
-import { sendServiceRequestNotification } from "../../lib/email";
+import { sendServiceRequestNotification } from "../../lib/email/email";
 
 const router = Router();
 

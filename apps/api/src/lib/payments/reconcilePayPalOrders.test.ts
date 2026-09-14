@@ -24,7 +24,7 @@ vi.mock("./paypal", () => ({
 
 // Stub the shared paid-notification helper (receipt + admin email) at the
 // module boundary — we assert it fires on recovery, not the Resend HTTP call.
-vi.mock("../orderPaidNotifications", () => ({
+vi.mock("../email/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: notifyMock,
 }));
 

@@ -70,7 +70,7 @@ vi.mock("../../lib/currency", () => ({
 }));
 
 // Keep paid-order side effects (emails, entitlements) out of these tests.
-vi.mock("../../lib/orderPaidNotifications", () => ({
+vi.mock("../../lib/email/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: paidNotificationsMock,
 }));
 

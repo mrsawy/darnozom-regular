@@ -19,7 +19,7 @@ import {
   sendOtpEmail,
   sendResetPasswordEmail,
   sendVerificationEmail,
-} from "./authEmail";
+} from "./email/authEmail";
 
 /**
  * Emails listed here are promoted to `admin` the first time they sign up, so a

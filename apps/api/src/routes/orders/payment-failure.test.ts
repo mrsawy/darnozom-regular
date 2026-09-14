@@ -77,7 +77,7 @@ vi.mock("../../lib/currency", () => ({
 
 // Keep all email side effects out of these tests (the reconcile lib and the
 // orders router share this module, so both get the stub).
-vi.mock("../../lib/email", () => ({
+vi.mock("../../lib/email/email", () => ({
   sendOrderPlacedConfirmation: placedConfirmationMock,
   sendOrderStatusUpdate: statusUpdateMock,
   sendAdminSalesNotification: adminSalesMock,
@@ -85,7 +85,7 @@ vi.mock("../../lib/email", () => ({
   sendOrderAutoCancelledEmail: autoCancelledMock,
 }));
 
-vi.mock("../../lib/orderPaidNotifications", () => ({
+vi.mock("../../lib/email/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: paidNotificationsMock,
 }));
 

@@ -29,13 +29,13 @@ const { paidNotificationsMock, adminSalesMock, autoCancelledMock } = vi.hoisted(
 );
 
 // Keep paid-order side effects (emails, entitlements) out of these tests.
-vi.mock("../../lib/orderPaidNotifications", () => ({
+vi.mock("../../lib/email/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: paidNotificationsMock,
 }));
 
 // Stub the email module so decline notifications can be asserted without
 // real sends (shared by the router and the reconcile lib).
-vi.mock("../../lib/email", () => ({
+vi.mock("../../lib/email/email", () => ({
   sendOrderPlacedConfirmation: vi.fn(async () => ({ ok: true })),
   sendOrderStatusUpdate: vi.fn(async () => ({ ok: true })),
   sendAdminSalesNotification: adminSalesMock,
