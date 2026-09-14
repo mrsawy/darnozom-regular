@@ -10,7 +10,7 @@ import {
   openPrivateObjectStream,
   privateObjectExists,
   readPrivateObjectMeta,
-} from "../../lib/objectStore";
+} from "../../lib/storage/objectStore";
 import { sendJobApplicationNotification, PLATFORM_URL } from "../../lib/email/email";
 
 const router = Router();

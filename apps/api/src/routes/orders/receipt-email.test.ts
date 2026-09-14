@@ -53,7 +53,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
     res.status(403).json({ error: "Forbidden" }),
 }));
 
-vi.mock("../../lib/objectStorage", () => {
+vi.mock("../../lib/storage/objectStorage", () => {
   const file = {
     exists: vi.fn(async () => [true]),
     getMetadata: vi.fn(async () => [{ size: 3 }]),

@@ -18,7 +18,7 @@ import {
   openPrivateObjectStream,
   privateObjectExists,
   readPrivateObjectMeta,
-} from "../../lib/objectStore";
+} from "../../lib/storage/objectStore";
 import { computeFormats } from "../books";
 import { convertEgpToUsd } from "../../lib/currency";
 import {

@@ -93,7 +93,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
 }));
 
 // Stub object storage so importing the router doesn't require real GCS.
-vi.mock("../../lib/objectStorage", () => ({
+vi.mock("../../lib/storage/objectStorage", () => ({
   ObjectStorageService: class {
     getPrivateObjectDir() {
       return "test-bucket/private";

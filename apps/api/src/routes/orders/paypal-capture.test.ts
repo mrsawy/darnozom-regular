@@ -50,7 +50,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
 }));
 
 // Stub object storage so the digital-file route resolves without real GCS.
-vi.mock("../../lib/objectStorage", () => {
+vi.mock("../../lib/storage/objectStorage", () => {
   const file = {
     exists: vi.fn(async () => [true]),
     getMetadata: vi.fn(async () => [{ size: 3 }]),

@@ -4,7 +4,7 @@ import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
 } from "@workspace/api-zod";
-import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
+import { ObjectStorageService, ObjectNotFoundError } from "../lib/storage/objectStorage";
 import {
   entityKeyFromObjectPath,
   isLocalObjectStorage,
@@ -12,7 +12,7 @@ import {
   openPrivateObjectStream,
   privateObjectExists,
   readPrivateObjectMeta,
-} from "../lib/objectStore";
+} from "../lib/storage/objectStore";
 import { requireAuth } from "../middlewares/authMiddleware";
 
 const router: IRouter = Router();
