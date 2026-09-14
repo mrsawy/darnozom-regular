@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { adminFetch } from "../../lib/admin-api";
+import { adminFetch } from "../../../lib/admin-api";
 import { Loader2, Users, Download, ChevronDown, ChevronLeft, FileText, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageHeader, Toast, useToast } from "./layout";
+import { PageHeader, Toast, useToast } from "../layout";
 
 const API_BASE = "/api";
 

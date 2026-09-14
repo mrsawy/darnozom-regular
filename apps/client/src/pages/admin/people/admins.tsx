@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { adminFetch } from "../../lib/admin-api";
+import { adminFetch } from "../../../lib/admin-api";
 import { Loader2, Plus, Trash2, ShieldCheck, Lock, AlertTriangle, History, UserPlus, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader, Toast, useToast } from "./layout";
+import { PageHeader, Toast, useToast } from "../layout";
 
 interface DbAdmin {
   /** The user's id — admin is a role on the account, not a separate row. */
