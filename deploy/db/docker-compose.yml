@@ -2,6 +2,10 @@
 # production VPS. Production supplies POSTGRES_PASSWORD via /opt/darnozom/db/.env;
 # locally it falls back to the dev password below.
 #
+# This container also hosts the `medusa` database (Medusa v2 commerce backend,
+# apps/medusa) alongside the primary `darnozom` database — same Postgres
+# instance, no separate service block.
+#
 #   local: pnpm dev:db
 #   prod:  run by deploy/deploy.sh
 

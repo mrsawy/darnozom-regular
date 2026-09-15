@@ -1,0 +1,23 @@
+# Redis for Medusa v2's event bus, workflow engine, and cache.
+# Same lifecycle pattern as deploy/db/docker-compose.yml — one file used
+# identically in local development and on the production VPS.
+
+services:
+  medusa-redis:
+    image: redis:7-alpine
+    container_name: darnozom-medusa-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MEDUSA_REDIS_PORT:-6381}:6379"
+    volumes:
+      - darnozom_medusa_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  darnozom_medusa_redis:
+    name: darnozom_medusa_redis
