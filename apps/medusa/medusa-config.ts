@@ -1,4 +1,4 @@
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { loadEnv, defineConfig, Modules } from '@medusajs/framework/utils'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
@@ -26,6 +26,18 @@ module.exports = defineConfig({
   modules: [
     {
       resolve: './src/modules/digital-product',
+    },
+    {
+      key: Modules.PAYMENT,
+      resolve: '@medusajs/payment',
+      options: {
+        providers: [
+          {
+            resolve: './src/modules/cod',
+            id: 'cod',
+          },
+        ],
+      },
     },
   ],
 })
