@@ -22,5 +22,10 @@ module.exports = defineConfig({
       jwtSecret,
       cookieSecret,
     }
-  }
+  },
+  modules: [
+    {
+      resolve: './src/modules/digital-product',
+    },
+  ],
 })
