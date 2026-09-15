@@ -122,7 +122,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
   },
 }));
 
-vi.mock("../../lib/storage/objectStorage", () => ({
+vi.mock("@workspace/object-store", () => ({
   ObjectStorageService: class {
     getPrivateObjectDir() {
       return "test-bucket/private";

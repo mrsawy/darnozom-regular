@@ -7,7 +7,7 @@ import multer from "multer";
 import { randomUUID } from "crypto";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import { scrapeBookUrl, BROWSER_HEADERS, DATA_IMAGE_RE, sniffImageMime } from "./scrapeUrl";
-import { savePrivateObject } from "../../lib/storage/objectStore";
+import { savePrivateObject } from "@workspace/object-store";
 
 const router = Router();
 

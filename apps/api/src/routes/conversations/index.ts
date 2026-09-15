@@ -3,7 +3,7 @@ import { db, conversations as conversationsTable, messages as messagesTable, doc
 import { eq, desc, count } from "drizzle-orm";
 import attachmentsRouter from "./attachments";
 import { openai } from "@workspace/ai-server";
-import { ObjectStorageService } from "../../lib/storage/objectStorage";
+import { ObjectStorageService } from "@workspace/object-store";
 import {
   CreateConversationBody,
   GetConversationParams,

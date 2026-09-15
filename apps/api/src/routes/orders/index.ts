@@ -18,7 +18,7 @@ import {
   openPrivateObjectStream,
   privateObjectExists,
   readPrivateObjectMeta,
-} from "../../lib/storage/objectStore";
+} from "@workspace/object-store";
 import { computeFormats } from "../books";
 import { convertEgpToUsd } from "../../lib/currency";
 import {

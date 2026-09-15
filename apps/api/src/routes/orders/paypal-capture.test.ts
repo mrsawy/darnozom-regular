@@ -49,14 +49,21 @@ vi.mock("../../middlewares/adminAuth", () => ({
   ) => res.status(403).json({ error: "Forbidden" }),
 }));
 
-// Stub object storage so the digital-file route resolves without real GCS.
-vi.mock("../../lib/storage/objectStorage", () => {
+// Stub the GCS-facing pieces of object storage so the digital-file route
+// resolves without real GCS, while keeping the real local-disk functions
+// (isLocalObjectStorage / privateObjectExists / readPrivateObjectMeta /
+// openPrivateObjectStream) from @workspace/object-store — this route runs
+// in local mode in tests (OBJECT_STORAGE_BACKEND=local) and exercises those
+// directly against PRIVATE_OBJECT_DIR.
+vi.mock("@workspace/object-store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@workspace/object-store")>();
   const file = {
     exists: vi.fn(async () => [true]),
     getMetadata: vi.fn(async () => [{ size: 3 }]),
     createReadStream: vi.fn(() => Readable.from([Buffer.from("pdf")])),
   };
   return {
+    ...actual,
     ObjectStorageService: class {
       getPrivateObjectDir() {
         return "test-bucket/private";

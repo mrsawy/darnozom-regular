@@ -66,7 +66,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
     res.status(403).json({ error: "Forbidden" }),
 }));
 
-vi.mock("../../lib/storage/objectStorage", () => ({
+vi.mock("@workspace/object-store", () => ({
   ObjectStorageService: class {
     getPrivateObjectDir() {
       return "test-bucket/private";
