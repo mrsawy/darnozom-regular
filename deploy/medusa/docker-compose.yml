@@ -8,6 +8,8 @@ services:
     container_name: darnozom-medusa-redis
     restart: unless-stopped
     ports:
+      # Bound to loopback only — Medusa reaches it over localhost, and
+      # the port is never exposed to the public internet.
       - "127.0.0.1:${MEDUSA_REDIS_PORT:-6381}:6379"
     volumes:
       - darnozom_medusa_redis:/data
