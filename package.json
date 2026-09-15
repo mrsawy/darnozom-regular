@@ -9,12 +9,14 @@
     "dev:db:logs": "docker compose --project-directory . -f deploy/db/docker-compose.yml logs -f db",
     "dev:client": "pnpm --filter @workspace/client dev",
     "dev:api": "pnpm --filter @workspace/api-server dev",
+    "dev:medusa": "pnpm --filter medusa dev",
     "db:push": "pnpm --filter @workspace/db push",
     "db:seed:users": "pnpm --filter @workspace/api-server run seed:dev-users",
 
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "build:client": "pnpm --filter @workspace/client build",
     "build:api": "pnpm --filter @workspace/api-server build",
+    "build:medusa": "pnpm --filter medusa build",
     "typecheck:packages": "tsc --build",
     "typecheck": "pnpm run typecheck:packages && pnpm -r --filter \"./apps/**\" --if-present run typecheck",
     "test": "pnpm -r --if-present run test"
