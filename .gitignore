@@ -34,3 +34,6 @@ dist-ssr
 # Local object storage (book covers, uploads)
 data/
 
+# Books-to-products migration output artifact (regenerated per run, not committed)
+apps/medusa/src/scripts/migrate-books-mapping.json
+
