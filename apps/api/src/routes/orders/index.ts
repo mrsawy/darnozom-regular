@@ -25,16 +25,6 @@ import {
   createPayPalOrder,
   capturePayPalOrder,
   getPayPalClientConfig,
-} from "../../lib/payments/paypal";
-import {
-  markPayPalOrderPaid,
-  reconcilePendingPayPalOrders,
-  markOrderPaymentFailed,
-  notifyAdminPaymentFailed,
-  notifyCustomerOrderCancelled,
-  expireStalePendingOrders,
-} from "../../lib/payments/reconcilePayPalOrders";
-import {
   isPaymobConfigured,
   isPaymobWalletConfigured,
   createPaymobCheckout,
@@ -44,7 +34,15 @@ import {
   getPaymobTransactionStatus,
   verifyPaymobWebhookHmac,
   extractPaymobDeclineReason,
-} from "../../lib/payments/paymob";
+} from "@workspace/payment-gateways";
+import {
+  markPayPalOrderPaid,
+  reconcilePendingPayPalOrders,
+  markOrderPaymentFailed,
+  notifyAdminPaymentFailed,
+  notifyCustomerOrderCancelled,
+  expireStalePendingOrders,
+} from "../../lib/payments/reconcilePayPalOrders";
 import {
   markPaymobOrderPaid,
   reconcilePendingPaymobOrders,

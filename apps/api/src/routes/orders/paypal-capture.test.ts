@@ -18,7 +18,7 @@ const STRANGER = `${TEST_USER_PREFIX}stranger`;
 // Shared, per-test-controllable PayPal capture result.
 const { captureMock } = vi.hoisted(() => ({ captureMock: vi.fn() }));
 
-vi.mock("../../lib/payments/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   capturePayPalOrder: captureMock,
   createPayPalOrder: vi.fn(),
 }));

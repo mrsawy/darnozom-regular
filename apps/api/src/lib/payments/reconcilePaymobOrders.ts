@@ -2,7 +2,10 @@ import { db, orders, type Order } from "@workspace/db";
 import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { logger } from "../logger";
 import { sendOrderPaidNotifications } from "../email/orderPaidNotifications";
-import { getPaymobTransactionStatus, isPaymobConfigured } from "./paymob";
+import {
+  getPaymobTransactionStatus,
+  isPaymobConfigured,
+} from "@workspace/payment-gateways";
 
 // Server-side safety net for Paymob card and mobile-wallet payments — mirrors
 // the PayPal reconciler (reconcilePayPalOrders.ts).

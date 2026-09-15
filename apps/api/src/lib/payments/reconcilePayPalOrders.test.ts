@@ -17,7 +17,7 @@ const { statusMock, captureMock, notifyMock } = vi.hoisted(() => ({
   notifyMock: vi.fn(async (_order: { id: number }) => {}),
 }));
 
-vi.mock("./paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   getPayPalOrderStatus: statusMock,
   capturePayPalOrder: captureMock,
 }));

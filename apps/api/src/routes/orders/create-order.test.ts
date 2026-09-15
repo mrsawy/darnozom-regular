@@ -36,7 +36,7 @@ const { createMock, convertMock } = vi.hoisted(() => ({
   convertMock: vi.fn(),
 }));
 
-vi.mock("../../lib/payments/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   createPayPalOrder: createMock,
   capturePayPalOrder: vi.fn(),
 }));

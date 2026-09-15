@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { logger } from "../logger";
+import { logger } from "./logger";
 
 // Paymob (Accept) card payments integration.
 //

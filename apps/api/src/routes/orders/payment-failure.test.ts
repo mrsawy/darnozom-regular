@@ -46,14 +46,11 @@ const {
   autoCancelledMock: vi.fn(),
 }));
 
-vi.mock("../../lib/payments/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   createPayPalOrder: redirectCreateMock,
   capturePayPalOrder: captureMock,
   getPayPalOrderStatus: statusMock,
   getPayPalClientConfig: configMock,
-}));
-
-vi.mock("../../lib/payments/paymob", () => ({
   isPaymobConfigured: vi.fn(() => false),
   isPaymobWalletConfigured: vi.fn(() => false),
   createPaymobCheckout: vi.fn(),

@@ -79,7 +79,7 @@ vi.mock("@workspace/object-store", () => ({
 
 // Import AFTER env vars + mocks are in place. The Paymob lib is real.
 const { default: ordersRouter } = await import("./index");
-const { computePaymobWebhookHmac } = await import("../../lib/payments/paymob");
+const { computePaymobWebhookHmac } = await import("@workspace/payment-gateways");
 
 function makeApp() {
   const app = express();

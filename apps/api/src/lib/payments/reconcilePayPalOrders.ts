@@ -3,7 +3,10 @@ import { and, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { logger } from "../logger";
 import { sendAdminSalesNotification, sendOrderAutoCancelledEmail } from "../email/email";
 import { sendOrderPaidNotifications } from "../email/orderPaidNotifications";
-import { capturePayPalOrder, getPayPalOrderStatus } from "./paypal";
+import {
+  capturePayPalOrder,
+  getPayPalOrderStatus,
+} from "@workspace/payment-gateways";
 
 // Server-side safety net for PayPal payments.
 //

@@ -25,7 +25,7 @@ process.env.RESEND_API_KEY = process.env.RESEND_API_KEY || "test-resend-key";
 // Per-test-controllable PayPal capture result.
 const { captureMock } = vi.hoisted(() => ({ captureMock: vi.fn() }));
 
-vi.mock("../../lib/payments/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   capturePayPalOrder: captureMock,
   createPayPalOrder: vi.fn(),
 }));
