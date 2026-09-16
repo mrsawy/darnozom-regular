@@ -1,4 +1,5 @@
 import { loadEnv, defineConfig, Modules } from '@medusajs/framework/utils'
+import { CITY_SHIPPING_MODULE } from './src/modules/city-shipping'
 
 loadEnv(process.env.NODE_ENV || 'development', process.cwd())
 
@@ -60,6 +61,19 @@ module.exports = defineConfig({
           {
             resolve: './src/modules/lemonsqueezy',
             id: 'lemonsqueezy',
+          },
+        ],
+      },
+    },
+    {
+      key: Modules.FULFILLMENT,
+      resolve: '@medusajs/fulfillment',
+      options: {
+        providers: [
+          {
+            resolve: './src/modules/city-shipping/fulfillment-provider-module',
+            id: 'city-shipping',
+            dependencies: [CITY_SHIPPING_MODULE],
           },
         ],
       },
