@@ -36,6 +36,16 @@ module.exports = defineConfig({
             resolve: './src/modules/cod',
             id: 'cod',
           },
+          {
+            resolve: './src/modules/paymob-card',
+            id: 'paymob-card',
+            options: {
+              apiKey: process.env.PAYMOB_API_KEY,
+              integrationId: process.env.PAYMOB_INTEGRATION_ID,
+              hmacSecret: process.env.PAYMOB_HMAC_SECRET,
+              iframeId: process.env.PAYMOB_IFRAME_ID,
+            },
+          },
         ],
       },
     },
