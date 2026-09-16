@@ -83,5 +83,25 @@ module.exports = defineConfig({
         ],
       },
     },
+    {
+      key: Modules.AUTH,
+      resolve: '@medusajs/auth',
+      options: {
+        providers: [
+          {
+            resolve: './src/modules/better-auth-bridge',
+            id: 'better-auth-bridge',
+          },
+          // Keep the default emailpass provider registered too — Medusa
+          // Admin (/app) staff logins still use it, per the design's
+          // "separate Medusa admin accounts" decision. Store/customer auth
+          // goes through better-auth-bridge; admin auth is unaffected.
+          {
+            resolve: '@medusajs/auth-emailpass',
+            id: 'emailpass',
+          },
+        ],
+      },
+    },
   ],
 })
