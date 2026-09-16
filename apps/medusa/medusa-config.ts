@@ -73,6 +73,11 @@ module.exports = defineConfig({
           {
             resolve: './src/modules/city-shipping/fulfillment-provider-module',
             id: 'city-shipping',
+            // Inert: `dependencies` is only consulted for a module's own
+            // top-level `resolve` entry, never for options.providers[]
+            // entries (confirmed against @medusajs/fulfillment's loader).
+            // The provider resolves CityShippingModuleService itself via
+            // MedusaModule.getModuleInstance() — see fulfillment-provider.ts.
             dependencies: [CITY_SHIPPING_MODULE],
           },
         ],
