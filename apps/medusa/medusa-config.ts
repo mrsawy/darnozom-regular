@@ -50,6 +50,10 @@ module.exports = defineConfig({
             resolve: './src/modules/paymob-wallet',
             id: 'paymob-wallet',
           },
+          {
+            resolve: './src/modules/paypal-egp',
+            id: 'paypal-egp',
+          },
         ],
       },
     },

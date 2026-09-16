@@ -24,6 +24,7 @@ const {
   redirectCreateMock,
   captureMock,
   statusMock,
+  rateMock,
   convertMock,
   configMock,
   adminSalesMock,
@@ -36,6 +37,7 @@ const {
   redirectCreateMock: vi.fn(),
   captureMock: vi.fn(),
   statusMock: vi.fn(),
+  rateMock: vi.fn(),
   convertMock: vi.fn(),
   configMock: vi.fn(),
   adminSalesMock: vi.fn(),
@@ -59,6 +61,8 @@ vi.mock("@workspace/payment-gateways", () => ({
   createPaymobWalletRedirectForExistingOrder: vi.fn(),
   getPaymobTransactionStatus: vi.fn(),
   verifyPaymobWebhookHmac: vi.fn(),
+  fetchEgpToUsdRate: rateMock,
+  convertEgpToUsd: convertMock,
 }));
 
 // The cleanup-stuck route runs the Paymob reconciler too — stub it so no
@@ -66,10 +70,6 @@ vi.mock("@workspace/payment-gateways", () => ({
 vi.mock("../../lib/payments/reconcilePaymobOrders", () => ({
   markPaymobOrderPaid: vi.fn(),
   reconcilePendingPaymobOrders: paymobReconcileMock,
-}));
-
-vi.mock("../../lib/currency", () => ({
-  convertEgpToUsd: convertMock,
 }));
 
 // Keep all email side effects out of these tests (the reconcile lib and the
@@ -217,7 +217,8 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+  rateMock.mockResolvedValue(0.0325);
+  convertMock.mockReturnValue("3.25");
   redirectCreateMock.mockResolvedValue({
     id: `PP-NEW-${Math.random().toString(36).slice(2)}`,
     approveUrl: "https://paypal.example/approve",

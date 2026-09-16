@@ -20,7 +20,7 @@ import {
   readPrivateObjectMeta,
 } from "@workspace/object-store";
 import { computeFormats } from "../books";
-import { convertEgpToUsd } from "../../lib/currency";
+import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
   capturePayPalOrder,
@@ -849,9 +849,10 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
 
     // PayPal redirect: convert the authoritative EGP total to USD server-side
     // (never trust any client amount) and create a PayPal order.
-    let converted;
+    let converted: { usd: string; rate: number };
     try {
-      converted = await convertEgpToUsd(grandTotalEgp);
+      const rate = await fetchEgpToUsdRate();
+      converted = { usd: convertEgpToUsd(grandTotalEgp, rate), rate };
     } catch (err) {
       req.log.error({ err, orderId: order.id }, "EGP→USD conversion failed");
       // Mark the order failed so it isn't left dangling; refuse to charge.

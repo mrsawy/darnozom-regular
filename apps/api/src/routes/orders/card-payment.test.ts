@@ -21,6 +21,7 @@ const STRANGER = `${TEST_USER_PREFIX}stranger`;
 const {
   redirectCreateMock,
   captureMock,
+  rateMock,
   convertMock,
   configMock,
   paymobConfiguredMock,
@@ -32,6 +33,7 @@ const {
 } = vi.hoisted(() => ({
   redirectCreateMock: vi.fn(),
   captureMock: vi.fn(),
+  rateMock: vi.fn(),
   convertMock: vi.fn(),
   configMock: vi.fn(),
   paymobConfiguredMock: vi.fn(),
@@ -54,9 +56,7 @@ vi.mock("@workspace/payment-gateways", () => ({
   createPaymobWalletRedirectForExistingOrder: vi.fn(),
   getPaymobTransactionStatus: paymobStatusMock,
   verifyPaymobWebhookHmac: paymobVerifyHmacMock,
-}));
-
-vi.mock("../../lib/currency", () => ({
+  fetchEgpToUsdRate: rateMock,
   convertEgpToUsd: convertMock,
 }));
 
@@ -188,7 +188,8 @@ beforeEach(() => {
   paymobRegenUrlMock.mockResolvedValue(
     "https://accept.paymob.com/api/acceptance/iframes/1?payment_token=tok2",
   );
-  convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+  rateMock.mockResolvedValue(0.0325);
+  convertMock.mockReturnValue("3.25");
   redirectCreateMock.mockResolvedValue({
     id: "PP-REDIRECT-ORDER",
     approveUrl: "https://paypal.example/approve",
@@ -199,6 +200,7 @@ afterEach(async () => {
   await db.delete(orders).where(like(orders.userId, `${TEST_USER_PREFIX}%`));
   redirectCreateMock.mockReset();
   captureMock.mockReset();
+  rateMock.mockReset();
   convertMock.mockReset();
   configMock.mockReset();
   paymobConfiguredMock.mockReset();

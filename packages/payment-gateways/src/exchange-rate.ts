@@ -6,6 +6,13 @@ import { logger } from "./logger";
 // client-supplied amount — the USD figure is always derived server-side from
 // the authoritative EGP order total using a live exchange rate. If we cannot
 // obtain a fresh rate we refuse to charge rather than guessing.
+//
+// Moved here from apps/api/src/lib/currency.ts (getEgpToUsdRate /
+// convertEgpToUsd) as part of the paypal-egp Medusa payment provider
+// extraction — same rate source, caching, and staleness rules as the
+// original Express implementation, renamed to match the shape the Medusa
+// provider and its tests expect (fetchEgpToUsdRate / a synchronous
+// convertEgpToUsd(egp, rate)).
 
 interface CachedRate {
   rate: number;
@@ -51,7 +58,7 @@ async function fetchRateFromApi(): Promise<number | null> {
  * Returns the number of USD per 1 EGP. Throws if no fresh-enough rate can be
  * obtained (so the caller refuses to charge instead of using a bad rate).
  */
-export async function getEgpToUsdRate(): Promise<number> {
+export async function fetchEgpToUsdRate(): Promise<number> {
   const now = Date.now();
   if (cache && now - cache.fetchedAt < CACHE_TTL_MS) {
     return cache.rate;
@@ -69,26 +76,22 @@ export async function getEgpToUsdRate(): Promise<number> {
   throw new Error("Unable to obtain a live EGP→USD exchange rate");
 }
 
-export interface ConvertedAmount {
-  usd: string; // fixed 2-decimal string, safe for PayPal `value`
-  rate: number; // EGP→USD rate used
-}
-
 /**
- * Converts an EGP amount to USD using the live rate. Returns the USD string
- * (2 dp) and the rate used. Throws if the rate is unavailable or the result is
- * not a sane, positive amount.
+ * Converts an EGP amount to a USD amount string (2 dp, safe for PayPal
+ * `value`) given an already-fetched EGP→USD rate. Throws if the inputs or
+ * the resulting amount are not sane/positive.
  */
-export async function convertEgpToUsd(egpAmount: number): Promise<ConvertedAmount> {
-  if (!Number.isFinite(egpAmount) || egpAmount <= 0) {
+export function convertEgpToUsd(egp: number, rate: number): string {
+  if (!Number.isFinite(egp) || egp <= 0) {
     throw new Error("Invalid EGP amount for conversion");
   }
-  const rate = await getEgpToUsdRate();
-  const usdNum = egpAmount * rate;
+  if (!Number.isFinite(rate) || rate <= 0) {
+    throw new Error("Invalid EGP→USD rate for conversion");
+  }
+  const usdNum = egp * rate;
   if (!Number.isFinite(usdNum) || usdNum <= 0) {
     throw new Error("Converted USD amount is invalid");
   }
   // PayPal rejects amounts below 0.01.
-  const usd = Math.max(0.01, Math.round(usdNum * 100) / 100).toFixed(2);
-  return { usd, rate };
+  return Math.max(0.01, Math.round(usdNum * 100) / 100).toFixed(2);
 }

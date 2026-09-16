@@ -13,6 +13,10 @@ import type {
   extractPaymobDeclineReason as ExtractPaymobDeclineReason,
   createPaymobWalletPayment as CreatePaymobWalletPayment,
   createPaymobWalletRedirectForExistingOrder as CreatePaymobWalletRedirectForExistingOrder,
+  createPayPalOrder as CreatePayPalOrder,
+  capturePayPalOrder as CapturePayPalOrder,
+  fetchEgpToUsdRate as FetchEgpToUsdRate,
+  convertEgpToUsd as ConvertEgpToUsd,
 } from "@workspace/payment-gateways" with { "resolution-mode": "import" };
 
 type PaymentGatewaysModule = typeof import("@workspace/payment-gateways", { with: { "resolution-mode": "import" } });
@@ -59,4 +63,32 @@ export async function createPaymobWalletRedirectForExistingOrder(
 ): Promise<ReturnType<typeof CreatePaymobWalletRedirectForExistingOrder>> {
   const mod = await loadPaymentGateways();
   return mod.createPaymobWalletRedirectForExistingOrder(...args);
+}
+
+export async function createPayPalOrder(
+  ...args: Parameters<typeof CreatePayPalOrder>
+): Promise<ReturnType<typeof CreatePayPalOrder>> {
+  const mod = await loadPaymentGateways();
+  return mod.createPayPalOrder(...args);
+}
+
+export async function capturePayPalOrder(
+  ...args: Parameters<typeof CapturePayPalOrder>
+): Promise<ReturnType<typeof CapturePayPalOrder>> {
+  const mod = await loadPaymentGateways();
+  return mod.capturePayPalOrder(...args);
+}
+
+export async function fetchEgpToUsdRate(
+  ...args: Parameters<typeof FetchEgpToUsdRate>
+): Promise<ReturnType<typeof FetchEgpToUsdRate>> {
+  const mod = await loadPaymentGateways();
+  return mod.fetchEgpToUsdRate(...args);
+}
+
+export async function convertEgpToUsd(
+  ...args: Parameters<typeof ConvertEgpToUsd>
+): Promise<ReturnType<typeof ConvertEgpToUsd>> {
+  const mod = await loadPaymentGateways();
+  return mod.convertEgpToUsd(...args);
 }

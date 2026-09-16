@@ -30,18 +30,24 @@ const OWNER = `${TEST_USER_PREFIX}owner`;
 const TEST_CITY = "TestCreateCity";
 const SHIPPING_PRICE = 50;
 
-// Per-test-controllable mocks for the money boundaries.
-const { createMock, convertMock } = vi.hoisted(() => ({
+// Per-test-controllable mocks for the money boundaries. The route composes
+// `const rate = await fetchEgpToUsdRate(); convertEgpToUsd(egp, rate)`
+// (moved from apps/api/src/lib/currency.ts into
+// @workspace/payment-gateways/src/exchange-rate.ts in Task 16). rateMock
+// drives the rate-fetch step (and can be rejected to simulate "rate
+// unavailable"); convertMock receives the real EGP amount and rate the route
+// computed and returns the USD string synchronously, same as the real
+// convertEgpToUsd.
+const { createMock, rateMock, convertMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
+  rateMock: vi.fn(),
   convertMock: vi.fn(),
 }));
 
 vi.mock("@workspace/payment-gateways", () => ({
   createPayPalOrder: createMock,
   capturePayPalOrder: vi.fn(),
-}));
-
-vi.mock("../../lib/currency", () => ({
+  fetchEgpToUsdRate: rateMock,
   convertEgpToUsd: convertMock,
 }));
 
@@ -153,7 +159,8 @@ beforeAll(async () => {
 
 beforeEach(() => {
   // Default happy-path stubs; individual tests may override.
-  convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+  rateMock.mockResolvedValue(0.0325);
+  convertMock.mockReturnValue("3.25");
   createMock.mockResolvedValue({
     id: "PP-TEST-ORDER",
     approveUrl: "https://paypal.example/approve",
@@ -163,6 +170,7 @@ beforeEach(() => {
 afterEach(async () => {
   await db.delete(orders).where(like(orders.userId, `${TEST_USER_PREFIX}%`));
   createMock.mockReset();
+  rateMock.mockReset();
   convertMock.mockReset();
 });
 
@@ -207,14 +215,15 @@ describe("POST /store/orders — price resolution", () => {
     expect(items[0].unitPrice).toBe("100.00");
 
     // The authoritative EGP grand total is what gets converted.
-    expect(convertMock).toHaveBeenCalledWith(200);
+    expect(convertMock).toHaveBeenCalledWith(200, 0.0325);
   });
 });
 
 describe("POST /store/orders — EGP→USD conversion recorded", () => {
   it("stores the converted USD amount and exchange rate on the order", async () => {
     const bookId = await seedBook({ digitalPrice: "100.00" });
-    convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+    rateMock.mockResolvedValue(0.0325);
+    convertMock.mockReturnValue("3.25");
 
     const res = await request(app)
       .post("/store/orders")
@@ -247,7 +256,7 @@ describe("POST /store/orders — EGP→USD conversion recorded", () => {
 
   it("fails the order (503) and never calls PayPal when conversion fails", async () => {
     const bookId = await seedBook({ digitalPrice: "100.00" });
-    convertMock.mockRejectedValue(new Error("rate unavailable"));
+    rateMock.mockRejectedValue(new Error("rate unavailable"));
 
     const res = await request(app)
       .post("/store/orders")
@@ -356,7 +365,7 @@ describe("POST /store/orders — shipping only for paper items", () => {
     expect(order.totalAmount).toBe("200.00");
     expect(order.shippingCity).toBe(TEST_CITY);
     // The shipping-inclusive EGP total is what gets converted / charged.
-    expect(convertMock).toHaveBeenCalledWith(200);
+    expect(convertMock).toHaveBeenCalledWith(200, 0.0325);
   });
 
   it("does not add shipping for a digital-only order even if a city is sent", async () => {
@@ -383,7 +392,7 @@ describe("POST /store/orders — shipping only for paper items", () => {
     expect(order.shippingTotal).toBe("0.00");
     expect(order.totalAmount).toBe("100.00");
     expect(order.shippingCity).toBeNull();
-    expect(convertMock).toHaveBeenCalledWith(100);
+    expect(convertMock).toHaveBeenCalledWith(100, 0.0325);
   });
 
   it("rejects a paper order when the city has no shipping rate", async () => {
