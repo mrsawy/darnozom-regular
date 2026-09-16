@@ -23,6 +23,6 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   res.setHeader("Content-Type", contentTypeFor(relativeKey));
   res.setHeader("Cache-Control", "no-store");
-  const stream = openPrivateObjectStream(relativeKey);
+  const stream = await openPrivateObjectStream(relativeKey);
   stream.pipe(res);
 }

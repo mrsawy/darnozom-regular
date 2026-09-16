@@ -36,7 +36,7 @@ describe("GET /store/digital-products/download", () => {
       relativeKey: "books/digital/42.pdf",
     });
     const fakeStream = { pipe: vi.fn() };
-    vi.spyOn(objectStore, "openPrivateObjectStream").mockReturnValue(fakeStream as any);
+    vi.spyOn(objectStore, "openPrivateObjectStream").mockResolvedValue(fakeStream as any);
 
     const res = fakeRes();
     await GET(fakeReq({ token: "good" }), res);
