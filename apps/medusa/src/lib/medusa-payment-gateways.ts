@@ -17,6 +17,8 @@ import type {
   capturePayPalOrder as CapturePayPalOrder,
   fetchEgpToUsdRate as FetchEgpToUsdRate,
   convertEgpToUsd as ConvertEgpToUsd,
+  createLemonSqueezyCheckout as CreateLemonSqueezyCheckout,
+  verifyLemonSqueezyWebhookSignature as VerifyLemonSqueezyWebhookSignature,
 } from "@workspace/payment-gateways" with { "resolution-mode": "import" };
 
 type PaymentGatewaysModule = typeof import("@workspace/payment-gateways", { with: { "resolution-mode": "import" } });
@@ -91,4 +93,18 @@ export async function convertEgpToUsd(
 ): Promise<ReturnType<typeof ConvertEgpToUsd>> {
   const mod = await loadPaymentGateways();
   return mod.convertEgpToUsd(...args);
+}
+
+export async function createLemonSqueezyCheckout(
+  ...args: Parameters<typeof CreateLemonSqueezyCheckout>
+): Promise<ReturnType<typeof CreateLemonSqueezyCheckout>> {
+  const mod = await loadPaymentGateways();
+  return mod.createLemonSqueezyCheckout(...args);
+}
+
+export async function verifyLemonSqueezyWebhookSignature(
+  ...args: Parameters<typeof VerifyLemonSqueezyWebhookSignature>
+): Promise<ReturnType<typeof VerifyLemonSqueezyWebhookSignature>> {
+  const mod = await loadPaymentGateways();
+  return mod.verifyLemonSqueezyWebhookSignature(...args);
 }

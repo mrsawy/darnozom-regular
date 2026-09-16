@@ -54,6 +54,10 @@ module.exports = defineConfig({
             resolve: './src/modules/paypal-egp',
             id: 'paypal-egp',
           },
+          {
+            resolve: './src/modules/lemonsqueezy',
+            id: 'lemonsqueezy',
+          },
         ],
       },
     },
