@@ -108,11 +108,21 @@ class LemonSqueezyProviderService extends AbstractPaymentProvider {
 
     const parsed = JSON.parse(body.rawData) as {
       meta: { event_name: string };
-      data: { id: string };
+      data: { id: string; attributes?: { total?: number } };
     };
 
     if (parsed.meta.event_name === "order_created") {
-      return { action: "captured", data: { session_id: parsed.data.id, amount: 0 } };
+      // Lemon Squeezy's order_created webhook carries the full Order
+      // resource under `data` (JSON:API shape), with the order total in
+      // cents at `data.attributes.total` — matching Lemon Squeezy's own
+      // integer-cents convention across its API (same units as this
+      // module's amountCents param to createLemonSqueezyCheckout).
+      // Falls back to 0 only if the field is unexpectedly absent, rather
+      // than throwing and losing the capture entirely.
+      return {
+        action: "captured",
+        data: { session_id: parsed.data.id, amount: parsed.data.attributes?.total ?? 0 },
+      };
     }
     if (parsed.meta.event_name === "order_refunded") {
       return { action: "not_supported" };

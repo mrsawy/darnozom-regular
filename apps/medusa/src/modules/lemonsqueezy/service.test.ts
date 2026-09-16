@@ -32,7 +32,25 @@ describe("LemonSqueezyProviderService", () => {
     expect(result.data.checkoutUrl).toBe("https://darnozom.lemonsqueezy.com/checkout/chk_1");
   });
 
-  it("getWebhookActionAndData maps order_created to captured", async () => {
+  it("getWebhookActionAndData maps order_created to captured with the real order amount", async () => {
+    vi.spyOn(gateways, "verifyLemonSqueezyWebhookSignature").mockResolvedValue(true);
+
+    const service = new LemonSqueezyProviderService({} as any, {});
+    const result = await service.getWebhookActionAndData({
+      data: {
+        rawData: JSON.stringify({
+          meta: { event_name: "order_created" },
+          data: { id: "chk_1", attributes: { total: 15000 } },
+        }),
+        headers: { "x-signature": "sig" },
+      },
+    } as any);
+
+    expect(result.action).toBe("captured");
+    expect((result.data as any).amount).toBe(15000);
+  });
+
+  it("getWebhookActionAndData falls back to amount 0 when the webhook body has no total", async () => {
     vi.spyOn(gateways, "verifyLemonSqueezyWebhookSignature").mockResolvedValue(true);
 
     const service = new LemonSqueezyProviderService({} as any, {});
@@ -44,5 +62,6 @@ describe("LemonSqueezyProviderService", () => {
     } as any);
 
     expect(result.action).toBe("captured");
+    expect((result.data as any).amount).toBe(0);
   });
 });
