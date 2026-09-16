@@ -28,6 +28,9 @@ module.exports = defineConfig({
       resolve: './src/modules/digital-product',
     },
     {
+      resolve: './src/modules/city-shipping',
+    },
+    {
       key: Modules.PAYMENT,
       resolve: '@medusajs/payment',
       options: {
