@@ -11,6 +11,8 @@ import type {
   createPaymobCheckout as CreatePaymobCheckout,
   verifyPaymobWebhookHmac as VerifyPaymobWebhookHmac,
   extractPaymobDeclineReason as ExtractPaymobDeclineReason,
+  createPaymobWalletPayment as CreatePaymobWalletPayment,
+  createPaymobWalletRedirectForExistingOrder as CreatePaymobWalletRedirectForExistingOrder,
 } from "@workspace/payment-gateways" with { "resolution-mode": "import" };
 
 type PaymentGatewaysModule = typeof import("@workspace/payment-gateways", { with: { "resolution-mode": "import" } });
@@ -43,4 +45,18 @@ export async function extractPaymobDeclineReason(
 ): Promise<ReturnType<typeof ExtractPaymobDeclineReason>> {
   const mod = await loadPaymentGateways();
   return mod.extractPaymobDeclineReason(...args);
+}
+
+export async function createPaymobWalletPayment(
+  ...args: Parameters<typeof CreatePaymobWalletPayment>
+): Promise<ReturnType<typeof CreatePaymobWalletPayment>> {
+  const mod = await loadPaymentGateways();
+  return mod.createPaymobWalletPayment(...args);
+}
+
+export async function createPaymobWalletRedirectForExistingOrder(
+  ...args: Parameters<typeof CreatePaymobWalletRedirectForExistingOrder>
+): Promise<ReturnType<typeof CreatePaymobWalletRedirectForExistingOrder>> {
+  const mod = await loadPaymentGateways();
+  return mod.createPaymobWalletRedirectForExistingOrder(...args);
 }

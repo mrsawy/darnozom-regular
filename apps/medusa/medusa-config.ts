@@ -46,6 +46,10 @@ module.exports = defineConfig({
               iframeId: process.env.PAYMOB_IFRAME_ID,
             },
           },
+          {
+            resolve: './src/modules/paymob-wallet',
+            id: 'paymob-wallet',
+          },
         ],
       },
     },
