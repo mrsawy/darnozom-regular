@@ -22,6 +22,16 @@ module.exports = defineConfig({
       authCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9000',
       jwtSecret,
       cookieSecret,
+      // Restrict each actor type to only its intended auth provider(s).
+      // This prevents unintended auth flows (e.g., a customer Better Auth
+      // assertion being accepted for admin/user login via /auth/user/better-auth-bridge).
+      // See Task 23 review feedback: without this, the protection against
+      // cross-actor auth was accidental (empty app_metadata causing token minting to
+      // fail) rather than designed. This makes it explicit and tamper-resistant.
+      authMethodsPerActor: {
+        user: ['emailpass'],
+        customer: ['better-auth-bridge'],
+      },
     }
   },
   modules: [
