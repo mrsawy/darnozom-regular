@@ -31,6 +31,7 @@ import jobApplicationsRouter from "./job-applications/index";
 import jobsRouter from "./jobs/index";
 import accountRouter from "./account/index";
 import consultationsRouter from "./consultations/index";
+import { medusaBridgeRouter } from "./medusa-bridge/index";
 
 const router: IRouter = Router();
 
@@ -47,6 +48,7 @@ router.use(storeCoursesRouter);
 router.use(storeAppsRouter);
 router.use(ordersRouter);
 router.use(shippingRatesRouter);
+router.use("/store", medusaBridgeRouter);
 router.use(adminRouter);
 router.use(jobApplicationsRouter);
 router.use(jobsRouter);
