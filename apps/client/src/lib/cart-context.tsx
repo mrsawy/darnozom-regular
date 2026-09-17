@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { HttpTypes } from "@medusajs/types";
+import type { ClientHeaders } from "@medusajs/js-sdk";
 import { getMedusaClient, getMedusaCustomerToken } from "./medusa-client";
 
 const CART_ID_STORAGE_KEY = "medusa_cart_id";
@@ -134,9 +135,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<HttpTypes.StoreCart | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const authHeaders = useCallback(() => {
+  const authHeaders = useCallback((): ClientHeaders => {
     const token = getMedusaCustomerToken();
-    return token ? { authorization: `Bearer ${token}` } : {};
+    const headers: ClientHeaders = {};
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
+    }
+    return headers;
   }, []);
 
   // Retrieve or create cart on mount.
@@ -199,7 +204,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     async (lineItemId: string) => {
       if (!cart) return;
       const sdk = getMedusaClient();
-      await sdk.store.cart.deleteLineItem(cart.id, lineItemId, authHeaders());
+      await sdk.store.cart.deleteLineItem(cart.id, lineItemId, {}, authHeaders());
       const { cart: refreshed } = await sdk.store.cart.retrieve(
         cart.id,
         { fields: CART_RETRIEVE_FIELDS },

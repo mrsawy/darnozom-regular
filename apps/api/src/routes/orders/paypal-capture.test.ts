@@ -64,6 +64,10 @@ vi.mock("@workspace/object-store", async (importOriginal) => {
   };
   return {
     ...actual,
+    isLocalObjectStorage: () => false,
+    privateObjectExists: vi.fn(async () => true),
+    readPrivateObjectMeta: vi.fn(async () => ({ contentType: "application/pdf", size: 3 })),
+    openPrivateObjectStream: vi.fn(() => Readable.from([Buffer.from("pdf")])),
     ObjectStorageService: class {
       getPrivateObjectDir() {
         return "test-bucket/private";
