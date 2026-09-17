@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
+import type { HttpTypes } from "@medusajs/types";
 import { Search, ChevronLeft, BookOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +10,14 @@ import ProductCard, { type ProductCardItem } from "@/components/store/product-ca
 import { AdminFab } from "@/components/store/admin-fab";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import type { Book, BookFormat, BookLanguage, BookCategory } from "@/lib/store-types";
+import { getMedusaClient } from "@/lib/medusa-client";
+import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
+
+type StoreProduct = HttpTypes.StoreProduct;
+type BookFormat = "online" | "hardcopy" | "both";
+type BookLanguage = "ar" | "en";
+type BookCategory = "shariah" | "management" | "digital_transformation";
 
 const T = {
   ar: {
@@ -59,7 +66,8 @@ export default function StoreBooksPage() {
   const searchString = useSearch();
   const initialQ = useMemo(() => new URLSearchParams(searchString).get("q") || "", [searchString]);
 
-  const [books, setBooks] = useState<Book[]>([]);
+  const cart = useCart();
+  const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -74,78 +82,97 @@ export default function StoreBooksPage() {
       setLoading(true);
       setError(false);
       try {
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (category !== "all") params.set("category", category);
-        const res = await fetch(`/api/books?${params}`);
+        const sdk = getMedusaClient();
+        // The Store API doesn't filter on arbitrary metadata server-side, so
+        // search/category/format/language filters are applied client-side
+        // below, same as the previous implementation's in-memory filtering.
+        const { products: fetched } = await sdk.store.product.list({
+          limit: 100,
+          fields: "*variants,*variants.calculated_price,*variants.metadata",
+        });
         if (cancelled) return;
-        if (!res.ok) {
-          setError(true);
-          setBooks([]);
-        } else {
-          setBooks(await res.json());
-        }
+        setProducts(fetched);
       } catch {
         if (!cancelled) {
           setError(true);
-          setBooks([]);
+          setProducts([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-    const t = setTimeout(load, 250);
+    const timer = setTimeout(load, 250);
     return () => {
       cancelled = true;
-      clearTimeout(t);
+      clearTimeout(timer);
     };
   }, [search, category, reloadKey]);
 
-  const filtered = books.filter(b => {
+  function variantInfo(p: StoreProduct) {
+    const variants = p.variants || [];
+    const paperVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "paper");
+    const digitalVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "digital");
+    const paperPrice = typeof paperVariant?.calculated_price?.calculated_amount === "number" ? paperVariant.calculated_price.calculated_amount : 0;
+    const digitalPrice = typeof digitalVariant?.calculated_price?.calculated_amount === "number" ? digitalVariant.calculated_price.calculated_amount : 0;
+    const paperAvailable = !!paperVariant && paperPrice > 0;
+    const digitalAvailable = !!digitalVariant && digitalPrice > 0;
+    return { paperVariant, digitalVariant, paperPrice, digitalPrice, paperAvailable, digitalAvailable };
+  }
+
+  const filtered = products.filter((p) => {
+    const meta = (p.metadata || {}) as Record<string, unknown>;
+    const { paperAvailable, digitalAvailable } = variantInfo(p);
     // Map legacy filter values to the new paper/digital availability flags.
-    if (format === "online" && !b.digitalAvailable) return false;
-    if (format === "hardcopy" && !b.paperAvailable) return false;
-    if (format === "both" && !(b.paperAvailable && b.digitalAvailable)) return false;
-    if (language !== "all" && b.language !== language && b.language !== "both") return false;
+    if (format === "online" && !digitalAvailable) return false;
+    if (format === "hardcopy" && !paperAvailable) return false;
+    if (format === "both" && !(paperAvailable && digitalAvailable)) return false;
+    const bookLanguage = meta.language as BookLanguage | "both" | undefined;
+    if (language !== "all" && bookLanguage !== language && bookLanguage !== "both") return false;
+    if (category !== "all" && meta.category !== category) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const title = String(p.title || "").toLowerCase();
+      const author = String(meta.author || "").toLowerCase();
+      if (!title.includes(q) && !author.includes(q)) return false;
+    }
     return true;
   });
 
-  const parsePriceStr = (raw: string | null | undefined): number => {
-    if (!raw) return 0;
-    const cleaned = String(raw).replace(/[^\d.]/g, "");
-    const n = Number.parseFloat(cleaned);
-    return Number.isFinite(n) ? n : 0;
-  };
-
-  const items: ProductCardItem[] = filtered.map(b => {
-    const paperPrice = parsePriceStr(b.paperPrice ?? b.price);
-    const digitalPrice = parsePriceStr(b.digitalPrice ?? b.price);
-    const hasBoth = b.paperAvailable && b.digitalAvailable && paperPrice > 0 && digitalPrice > 0;
+  const items: ProductCardItem[] = filtered.map((p) => {
+    const meta = (p.metadata || {}) as Record<string, unknown>;
+    const { paperVariant, digitalVariant, paperPrice, digitalPrice, paperAvailable, digitalAvailable } = variantInfo(p);
+    const hasBoth = paperAvailable && digitalAvailable;
     const lowest = hasBoth
       ? Math.min(paperPrice, digitalPrice)
-      : b.paperAvailable && paperPrice > 0
+      : paperAvailable
         ? paperPrice
-        : b.digitalAvailable && digitalPrice > 0
+        : digitalAvailable
           ? digitalPrice
           : 0;
-    const showPrice = lowest > 0 ? String(lowest) : b.price;
+    const singleVariant = paperAvailable && !digitalAvailable
+      ? paperVariant
+      : digitalAvailable && !paperAvailable
+        ? digitalVariant
+        : undefined;
     return {
-      id: b.id,
+      id: p.id,
       type: "book" as const,
-      title: isArabic ? b.title : (b.titleEn || b.title),
-      subtitle: b.author,
-      description: isArabic ? b.description : (b.descriptionEn || b.description),
-      imageUrl: b.coverImageUrl,
-      price: showPrice,
-      currency: b.currency,
-      isFeatured: b.isFeatured,
-      isNewRelease: b.isNewRelease,
-      externalUrl: b.buyLink || b.externalUrl,
-      detailUrl: `/services/store/books/${b.id}`,
-      paperAvailable: b.paperAvailable,
-      digitalAvailable: b.digitalAvailable,
+      title: p.title,
+      subtitle: (meta.author as string) || undefined,
+      description: p.description,
+      imageUrl: p.thumbnail,
+      price: lowest > 0 ? String(lowest) : null,
+      currency: "EGP",
+      isFeatured: !!meta.isFeatured,
+      isNewRelease: !!meta.isNewRelease,
+      externalUrl: (meta.buyLink as string) || (meta.externalUrl as string) || null,
+      detailUrl: `/services/store/books/${p.id}`,
+      paperAvailable,
+      digitalAvailable,
       singleFormatPrice: hasBoth ? null : lowest,
       pricePrefix: hasBoth && paperPrice !== digitalPrice ? (isArabic ? "يبدأ من" : "from") : null,
+      variantId: singleVariant?.id ?? null,
+      inCart: singleVariant ? !!cart.cart?.items?.some((li) => li.variant_id === singleVariant.id) : false,
     };
   });
 

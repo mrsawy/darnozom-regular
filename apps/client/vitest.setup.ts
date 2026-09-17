@@ -21,3 +21,23 @@ const localStorageMock = (() => {
 Object.defineProperty(global, "localStorage", {
   value: localStorageMock,
 });
+
+// jsdom doesn't implement IntersectionObserver, which framer-motion's
+// `whileInView` (used throughout the store pages) relies on.
+class IntersectionObserverMock {
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly thresholds: number[] = [];
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+
+Object.defineProperty(global, "IntersectionObserver", {
+  writable: true,
+  configurable: true,
+  value: IntersectionObserverMock,
+});

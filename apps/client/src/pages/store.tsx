@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import type { HttpTypes } from "@medusajs/types";
 import {
   BookOpen, GraduationCap, MonitorSmartphone, Search, ArrowUpRight,
   ShieldCheck, BadgeCheck, Users, Library, Sparkle,
@@ -10,8 +11,16 @@ import SiteNav from "@/components/site-nav";
 import ProductCard, { type ProductCardItem } from "@/components/store/product-card";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import type { Book, StoreCourse } from "@/lib/store-types";
+import { getMedusaClient } from "@/lib/medusa-client";
+import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
+
+type StoreProduct = HttpTypes.StoreProduct;
+
+function formatAmount(amount: number | null | undefined): number {
+  if (typeof amount !== "number") return 0;
+  return amount;
+}
 
 const T = {
   ar: {
@@ -90,38 +99,60 @@ const T = {
   },
 };
 
-function bookToItem(b: Book, isArabic: boolean): ProductCardItem {
+// A book product carries a paper and/or digital variant, stamped with
+// metadata.kind by Task 4's migration. The card shows the lowest available
+// price and, when only one format exists, can add straight to cart.
+function productToItem(p: StoreProduct, isArabic: boolean): ProductCardItem {
+  const meta = (p.metadata || {}) as Record<string, unknown>;
+  const variants = p.variants || [];
+  const paperVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "paper");
+  const digitalVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "digital");
+  const paperPrice = formatAmount(paperVariant?.calculated_price?.calculated_amount);
+  const digitalPrice = formatAmount(digitalVariant?.calculated_price?.calculated_amount);
+  const paperAvailable = !!paperVariant && paperPrice > 0;
+  const digitalAvailable = !!digitalVariant && digitalPrice > 0;
+  const hasBoth = paperAvailable && digitalAvailable;
+  const lowest = hasBoth
+    ? Math.min(paperPrice, digitalPrice)
+    : paperAvailable
+      ? paperPrice
+      : digitalAvailable
+        ? digitalPrice
+        : 0;
+  const singleVariant = paperAvailable && !digitalAvailable
+    ? paperVariant
+    : digitalAvailable && !paperAvailable
+      ? digitalVariant
+      : undefined;
+
   return {
-    id: b.id, type: "book",
-    title: isArabic ? b.title : (b.titleEn || b.title),
-    subtitle: b.author,
-    description: isArabic ? b.description : (b.descriptionEn || b.description),
-    imageUrl: b.coverImageUrl,
-    price: b.price, currency: b.currency,
-    isFeatured: b.isFeatured, isNewRelease: b.isNewRelease,
-    externalUrl: b.buyLink || b.externalUrl,
+    id: p.id,
+    type: "book",
+    title: p.title,
+    subtitle: (meta.author as string) || undefined,
+    description: p.description,
+    imageUrl: p.thumbnail,
+    price: lowest > 0 ? String(lowest) : null,
+    currency: "EGP",
+    isFeatured: !!meta.isFeatured,
+    isNewRelease: !!meta.isNewRelease,
+    externalUrl: (meta.buyLink as string) || (meta.externalUrl as string) || null,
+    detailUrl: `/services/store/books/${p.id}`,
     badge: isArabic ? "مرجع" : "Reference",
+    paperAvailable,
+    digitalAvailable,
+    singleFormatPrice: hasBoth ? null : lowest,
+    pricePrefix: hasBoth && paperPrice !== digitalPrice ? (isArabic ? "يبدأ من" : "from") : null,
+    variantId: singleVariant?.id ?? null,
   };
 }
-function courseToItem(c: StoreCourse, isArabic: boolean): ProductCardItem {
-  return {
-    id: c.id, type: "course",
-    title: isArabic ? c.titleAr : (c.titleEn || c.titleAr),
-    subtitle: c.instructor,
-    description: isArabic ? c.descriptionAr : (c.descriptionEn || c.descriptionAr),
-    imageUrl: c.thumbnailUrl,
-    price: c.price, currency: c.currency,
-    isFeatured: c.isFeatured, isNewRelease: c.isNewRelease,
-    externalUrl: c.syllabusUrl,
-    badge: isArabic ? "برنامج" : "Program",
-  };
-}
+
 export default function StorePage() {
   const { isArabic } = useLanguage();
   const t = isArabic ? T.ar : T.en;
+  const cart = useCart();
   const [search, setSearch] = useState("");
-  const [books, setBooks] = useState<Book[]>([]);
-  const [courses, setCourses] = useState<StoreCourse[]>([]);
+  const [products, setProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -132,26 +163,20 @@ export default function StorePage() {
       setLoading(true);
       setError(false);
       try {
-        const [bRes, cRes] = await Promise.all([
-          fetch("/api/books"),
-          fetch("/api/store/courses"),
-        ]);
+        const sdk = getMedusaClient();
+        // calculated_price is only populated when explicitly requested via
+        // `fields` — a bare list() call omits it, per the Medusa v2 store
+        // SDK docs ("How to retrieve a product variant's prices").
+        const { products: fetched } = await sdk.store.product.list({
+          limit: 100,
+          fields: "*variants,*variants.calculated_price,*variants.metadata",
+        });
         if (cancelled) return;
-        if (!bRes.ok || !cRes.ok) {
-          setError(true);
-          setBooks([]);
-          setCourses([]);
-          return;
-        }
-        const [b, c] = await Promise.all([bRes.json(), cRes.json()]);
-        if (cancelled) return;
-        setBooks(b);
-        setCourses(c);
+        setProducts(fetched);
       } catch {
         if (!cancelled) {
           setError(true);
-          setBooks([]);
-          setCourses([]);
+          setProducts([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -163,13 +188,13 @@ export default function StorePage() {
     };
   }, [reloadKey]);
 
-  const allItems: ProductCardItem[] = [
-    ...books.map(b => bookToItem(b, isArabic)),
-    ...courses.map(c => courseToItem(c, isArabic)),
-  ];
+  const allItems: ProductCardItem[] = products.map((p) => {
+    const item = productToItem(p, isArabic);
+    return { ...item, inCart: item.variantId ? !!cart.cart?.items?.some((li) => li.variant_id === item.variantId) : false };
+  });
   const editorPicks = allItems.filter(i => i.isFeatured).slice(0, 4);
   const latest = allItems.filter(i => i.isNewRelease).slice(0, 4);
-  const totalCount = books.length + courses.length;
+  const totalCount = products.length;
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -178,8 +203,10 @@ export default function StorePage() {
   }
 
   const cats = [
-    { key: "books", icon: BookOpen, href: "/services/store/books", count: books.length },
-    { key: "courses", icon: GraduationCap, href: "/academy/courses", count: courses.length },
+    { key: "books", icon: BookOpen, href: "/services/store/books", count: products.length },
+    // Courses remain on the old Express-backed store-courses page (out of
+    // scope for this migration), so their count isn't sourced here.
+    { key: "courses", icon: GraduationCap, href: "/academy/courses", count: 0 },
     { key: "apps", icon: MonitorSmartphone, href: "/services/digital-transformation", count: 0 },
   ] as const;
 
