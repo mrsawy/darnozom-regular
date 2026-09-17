@@ -404,6 +404,11 @@ export default function CheckoutPage() {
       const cancelUrl = isPaypal
         ? `${window.location.origin}${basePath}/checkout/paypal/cancel`
         : undefined;
+
+      // ── Hybrid submission: Medusa cart data → Express order endpoint ──
+      // The Express POST /api/store/orders endpoint expects legacy numeric
+      // product IDs. We read legacyProductId from the Medusa product
+      // metadata (stamped by the Task 4 migration script).
       const res = await fetch("/api/store/orders", {
         method: "POST",
         credentials: "include",
@@ -423,7 +428,7 @@ export default function CheckoutPage() {
           cancelUrl,
           items: items.map((it) => ({
             productType: it.type,
-            productId: it.productId,
+            productId: it.legacyProductId ?? it.productId,
             quantity: it.quantity,
             format: it.format ?? undefined,
           })),
@@ -865,12 +870,12 @@ export default function CheckoutPage() {
               <ul className="space-y-3 mb-4 max-h-72 overflow-y-auto pr-1">
                 {items.map((it) => (
                   <li
-                    key={`${it.type}-${it.productId}-${it.format ?? "x"}`}
+                    key={it.lineItemId}
                     className="flex items-start gap-3 text-sm"
                   >
                     <div className="w-12 h-12 shrink-0 bg-muted/40 border border-border overflow-hidden">
-                      {it.imageUrl ? (
-                        <img src={it.imageUrl} alt="" className="w-full h-full object-cover" />
+                      {it.thumbnail ? (
+                        <img src={it.thumbnail} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-muted-foreground/50 text-sm font-bold">
                           {it.title.charAt(0)}
@@ -890,11 +895,11 @@ export default function CheckoutPage() {
                         {it.title}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {it.quantity} × {it.price.toFixed(2)} {it.currency}
+                        {it.quantity} × {it.unitPrice.toFixed(2)} {currency}
                       </div>
                     </div>
                     <div className="text-sm font-bold text-primary shrink-0">
-                      {(it.price * it.quantity).toFixed(2)}
+                      {(it.unitPrice * it.quantity).toFixed(2)}
                     </div>
                   </li>
                 ))}

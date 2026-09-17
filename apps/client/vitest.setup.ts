@@ -1,4 +1,9 @@
-import { vi } from "vitest";
+import { vi, afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
+
+afterEach(() => {
+  cleanup();
+});
 
 // jsdom doesn't provide a fully functional localStorage, so we provide a mock
 const localStorageMock = (() => {
