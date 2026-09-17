@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev:services": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:servers": "pnpm -r --parallel run dev",
+    "dev": "pnpm dev:services && pnpm dev:servers",
     "dev:db": "docker compose --project-directory . -f deploy/db/docker-compose.yml up -d",
     "dev:db:down": "docker compose --project-directory . -f deploy/db/docker-compose.yml down",
     "dev:db:logs": "docker compose --project-directory . -f deploy/db/docker-compose.yml logs -f db",

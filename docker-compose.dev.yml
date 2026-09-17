@@ -1,0 +1,43 @@
+# Unified Local Development Docker Compose
+# Starts both PostgreSQL and Redis containers with exact same names, volumes, and ports.
+
+services:
+  db:
+    image: postgres:16
+    container_name: darnozom-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-darnozom}
+      POSTGRES_USER: ${POSTGRES_USER:-darnozom}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-darnozom}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - darnozom_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-darnozom} -d ${POSTGRES_DB:-darnozom}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  medusa-redis:
+    image: redis:7-alpine
+    container_name: darnozom-medusa-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MEDUSA_REDIS_PORT:-6381}:6379"
+    volumes:
+      - darnozom_medusa_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  darnozom_pgdata:
+    name: darnozom_pgdata
+  darnozom_medusa_redis:
+    name: darnozom_medusa_redis
