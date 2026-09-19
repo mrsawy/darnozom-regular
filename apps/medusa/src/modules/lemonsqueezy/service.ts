@@ -35,6 +35,10 @@ import {
 class LemonSqueezyProviderService extends AbstractPaymentProvider {
   static identifier = "lemonsqueezy";
 
+  constructor(cradle: Record<string, unknown>, config?: Record<string, unknown>) {
+    super(cradle, config);
+  }
+
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const data = (input.data ?? {}) as { lemonSqueezyVariantId?: string; redirectUrl?: string };
     if (!data.lemonSqueezyVariantId) {

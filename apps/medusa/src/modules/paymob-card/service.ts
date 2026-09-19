@@ -35,6 +35,10 @@ import {
 class PaymobCardProviderService extends AbstractPaymentProvider {
   static identifier = "paymob-card";
 
+  constructor(cradle: Record<string, unknown>, config?: Record<string, unknown>) {
+    super(cradle, config);
+  }
+
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const amountEgp = Number(input.amount) / 100;
     const customer = (input.context as any)?.customer;

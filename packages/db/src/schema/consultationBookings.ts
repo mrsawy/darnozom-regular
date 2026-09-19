@@ -1,5 +1,5 @@
 import { integer, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
-import { consultationSlots } from "./consultationSlots";
+import { consultationSlots } from "./consultationSlots.js";
 
 export const consultationBookingStatusEnum = pgEnum("consultation_booking_status", [
   "confirmed",

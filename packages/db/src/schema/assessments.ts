@@ -1,6 +1,6 @@
 import { integer, jsonb, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
-import { clients } from "./clients";
-import { tenants } from "./tenants";
+import { clients } from "./clients.js";
+import { tenants } from "./tenants.js";
 
 export const assessmentServiceEnum = pgEnum("assessment_service_type", [
   "management",

@@ -1,6 +1,6 @@
 import { integer, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
-import { clients } from "./clients";
-import { reports } from "./reports";
+import { clients } from "./clients.js";
+import { reports } from "./reports.js";
 
 export const whatsappMethodEnum = pgEnum("whatsapp_method", ["manual", "auto"]);
 

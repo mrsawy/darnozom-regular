@@ -15,7 +15,7 @@ import { CityRate } from "./models/city-rate";
 // confirmed empirically by instantiating a throwaway subclass and calling
 // createCityRates(), which resolved to this override, not the generated one.
 class CityShippingModuleService extends MedusaService({ CityRate }) {
-  async createCityRates(
+  async addCityRates(
     rows: Array<{ city: string; price: number; currency: string; isDefault: boolean }>,
   ) {
     return super.createCityRates(

@@ -41,6 +41,10 @@ import {
 class PaypalEgpProviderService extends AbstractPaymentProvider {
   static identifier = "paypal-egp";
 
+  constructor(cradle: Record<string, unknown>, config?: Record<string, unknown>) {
+    super(cradle, config);
+  }
+
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const amountEgp = Number(input.amount) / 100;
     const rate = await fetchEgpToUsdRate();

@@ -18,11 +18,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const service = req.scope.resolve<any>(CITY_SHIPPING_MODULE);
   const body = req.body as { city: string; price: number; currency: string; isDefault: boolean };
-  // createCityRates([...]) is the hand-written override on
-  // CityShippingModuleService (service.ts) that shadows the generated
-  // create${pluralize(modelName)} method and maps isDefault -> is_default.
-  // It takes an array of rows and returns an array of created entities
-  // (verified against apps/medusa/src/modules/city-shipping/service.ts).
-  const created = await service.createCityRates([body]);
+  // addCityRates([...]) maps isDefault -> is_default, then calls the
+  // generated createCityRates on MedusaService.
+  const created = await service.addCityRates([body]);
   res.status(201).json({ cityRate: created[0] });
 }

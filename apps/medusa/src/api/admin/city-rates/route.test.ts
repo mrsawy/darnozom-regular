@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from "vitest";
 import { GET, POST } from "./route";
 
-function fakeReq(overrides: { listCityRates?: any; createCityRates?: any; body?: any } = {}) {
+function fakeReq(overrides: { listCityRates?: any; addCityRates?: any; body?: any } = {}) {
   return {
     body: overrides.body,
     scope: {
       resolve: () => ({
         listCityRates: overrides.listCityRates ?? vi.fn(),
-        createCityRates: overrides.createCityRates ?? vi.fn(),
+        addCityRates: overrides.addCityRates ?? vi.fn(),
       }),
     },
   } as any;
@@ -37,15 +37,15 @@ describe("GET /admin/city-rates", () => {
 });
 
 describe("POST /admin/city-rates", () => {
-  it("creates a city rate via createCityRates([body]) and returns the first created entity", async () => {
+  it("creates a city rate via addCityRates([body]) and returns the first created entity", async () => {
     const body = { city: "Giza", price: 4000, currency: "egp", isDefault: false };
-    const createCityRates = vi.fn().mockResolvedValue([
+    const addCityRates = vi.fn().mockResolvedValue([
       { id: "cr_2", city: "Giza", price: 4000, currency: "egp", is_default: false },
     ]);
     const res = fakeRes();
-    await POST(fakeReq({ createCityRates, body }), res);
+    await POST(fakeReq({ addCityRates, body }), res);
 
-    expect(createCityRates).toHaveBeenCalledWith([body]);
+    expect(addCityRates).toHaveBeenCalledWith([body]);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({
       cityRate: { id: "cr_2", city: "Giza", price: 4000, currency: "egp", is_default: false },

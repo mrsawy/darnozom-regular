@@ -28,6 +28,10 @@ import { randomUUID } from "crypto";
 class CodProviderService extends AbstractPaymentProvider {
   static identifier = "cod";
 
+  constructor(cradle: Record<string, unknown>, config?: Record<string, unknown>) {
+    super(cradle, config);
+  }
+
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     return { data: {}, id: randomUUID() };
   }

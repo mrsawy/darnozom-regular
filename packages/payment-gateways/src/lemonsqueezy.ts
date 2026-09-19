@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 const LEMONSQUEEZY_BASE_URL = "https://api.lemonsqueezy.com/v1";
 

@@ -8,7 +8,7 @@ export {
   entityKeyFromObjectPath,
   PUBLIC_OBJECT_PREFIXES,
   isPublicObjectKey,
-} from "./objectStore";
+} from "./objectStore.js";
 
 // Additional exports needed by apps/api's existing import sites (not listed
 // in the task-11 brief's export list, which only covers objectStore.ts, but
@@ -18,4 +18,4 @@ export {
   ObjectStorageService,
   ObjectNotFoundError,
   objectStorageClient,
-} from "./objectStorage";
+} from "./objectStorage.js";
