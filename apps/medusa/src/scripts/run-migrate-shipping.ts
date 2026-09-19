@@ -14,6 +14,9 @@ import { CITY_SHIPPING_MODULE } from "../modules/city-shipping";
 export default async function ({ container }: { container: MedusaContainer }) {
   const { db } = await import("@workspace/db");
   const cityShippingService = container.resolve(CITY_SHIPPING_MODULE);
-  const count = await migrateShipping({ shippingDb: db, cityShippingService });
+  const count = await migrateShipping({
+    shippingDb: db as unknown as Parameters<typeof migrateShipping>[0]["shippingDb"],
+    cityShippingService,
+  });
   console.log(`Migrated ${count} shipping rates.`);
 }

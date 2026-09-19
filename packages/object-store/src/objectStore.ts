@@ -5,7 +5,7 @@ import type { Readable } from "stream";
 import {
   ObjectStorageService,
   objectStorageClient,
-} from "./objectStorage";
+} from "./objectStorage.js";
 
 /**
  * Object storage backend.

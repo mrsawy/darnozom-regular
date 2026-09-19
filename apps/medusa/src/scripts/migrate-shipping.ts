@@ -14,7 +14,7 @@ export interface CityRateInput {
 }
 
 interface CityShippingServiceLike {
-  createCityRates(rows: CityRateInput[]): Promise<unknown>;
+  addCityRates(rows: CityRateInput[]): Promise<unknown>;
 }
 
 interface MigrateShippingDeps {
@@ -30,6 +30,6 @@ export async function migrateShipping(deps: MigrateShippingDeps): Promise<number
     currency: r.currency.toLowerCase(),
     isDefault: r.isDefault,
   }));
-  await deps.cityShippingService.createCityRates(input);
+  await deps.cityShippingService.addCityRates(input);
   return rows.length;
 }

@@ -1,4 +1,4 @@
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 // Live EGP→USD conversion used at PayPal payment time.
 //

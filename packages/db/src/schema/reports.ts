@@ -1,5 +1,5 @@
 import { integer, jsonb, pgEnum, pgTable, serial, text, timestamp, varchar } from "drizzle-orm/pg-core";
-import { clients } from "./clients";
+import { clients } from "./clients.js";
 
 export const reportTypeEnum = pgEnum("report_type", ["strategy", "governance", "sharia", "combined"]);
 

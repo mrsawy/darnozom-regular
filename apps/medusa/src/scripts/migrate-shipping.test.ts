@@ -13,13 +13,13 @@ describe("migrateShipping", () => {
       }),
     };
 
-    const createCityRates = vi.fn().mockResolvedValue(undefined);
-    const cityShippingService = { createCityRates };
+    const addCityRates = vi.fn().mockResolvedValue(undefined);
+    const cityShippingService = { addCityRates };
 
     const count = await migrateShipping({ shippingDb: shippingDb as any, cityShippingService });
 
     expect(count).toBe(2);
-    expect(createCityRates).toHaveBeenCalledWith([
+    expect(addCityRates).toHaveBeenCalledWith([
       { city: "Cairo", price: 5000, currency: "egp", isDefault: false },
       { city: "Other", price: 8000, currency: "egp", isDefault: true },
     ]);

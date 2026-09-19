@@ -38,6 +38,10 @@ import {
 class PaymobWalletProviderService extends AbstractPaymentProvider {
   static identifier = "paymob-wallet";
 
+  constructor(cradle: Record<string, unknown>, config?: Record<string, unknown>) {
+    super(cradle, config);
+  }
+
   async initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentOutput> {
     const walletPhone = (input.data as any)?.walletPhone;
     if (!walletPhone || typeof walletPhone !== "string") {

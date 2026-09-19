@@ -32,5 +32,8 @@ export async function runMigrateBooks(args: RunMigrateBooksArgs): Promise<void> 
 // Medusa exec-script default export contract: receives { container }.
 export default async function ({ container }: { container: MedusaContainer }) {
   const { db } = await import("@workspace/db");
-  await runMigrateBooks({ booksDb: db, medusaContainer: container });
+  await runMigrateBooks({
+    booksDb: db as unknown as RunMigrateBooksArgs["booksDb"],
+    medusaContainer: container,
+  });
 }

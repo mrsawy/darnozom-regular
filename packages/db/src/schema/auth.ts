@@ -20,8 +20,8 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { clients } from "./clients";
-import { tenants } from "./tenants";
+import { clients } from "./clients.js";
+import { tenants } from "./tenants.js";
 
 /**
  * Single source of truth for authorization. Replaces the old two-value enum

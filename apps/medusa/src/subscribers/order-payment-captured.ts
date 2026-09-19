@@ -34,7 +34,7 @@ export default async function orderPaymentCapturedHandler({
   });
 
   const order = data[0];
-  if (!order) return;
+  if (!order?.customer_id) return;
 
   const digitalItems = (order.items as OrderItemLike[]).filter(
     (item) => item.product?.metadata?.kind === "digital",
