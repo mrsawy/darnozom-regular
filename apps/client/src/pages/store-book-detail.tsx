@@ -20,7 +20,7 @@ import SiteNav from "@/components/site-nav";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { useCart } from "@/lib/cart-context";
-import { getMedusaClient } from "@/lib/medusa-client";
+import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { SiteFooter } from "@/components/site-footer";
 
 type StoreProduct = HttpTypes.StoreProduct;
@@ -127,8 +127,13 @@ export default function StoreBookDetailPage() {
     setLoading(true);
     setError(false);
     const sdk = getMedusaClient();
-    sdk.store.product
-      .retrieve(id, { fields: "*variants,*variants.calculated_price,*variants.metadata" })
+    getStoreRegionId()
+      .then((regionId) =>
+        sdk.store.product.retrieve(id, {
+          region_id: regionId,
+          fields: "*variants,*variants.calculated_price,*variants.metadata",
+        }),
+      )
       .then(({ product }) => {
         if (cancelled) return;
         setBook(product);

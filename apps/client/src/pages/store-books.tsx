@@ -10,7 +10,7 @@ import ProductCard, { type ProductCardItem } from "@/components/store/product-ca
 import { AdminFab } from "@/components/store/admin-fab";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import { getMedusaClient } from "@/lib/medusa-client";
+import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -83,11 +83,11 @@ export default function StoreBooksPage() {
       setError(false);
       try {
         const sdk = getMedusaClient();
-        // The Store API doesn't filter on arbitrary metadata server-side, so
-        // search/category/format/language filters are applied client-side
-        // below, same as the previous implementation's in-memory filtering.
+        const regionId = await getStoreRegionId();
+        // calculated_price requires a region; without region_id Medusa returns 400.
         const { products: fetched } = await sdk.store.product.list({
           limit: 100,
+          region_id: regionId,
           fields: "*variants,*variants.calculated_price,*variants.metadata",
         });
         if (cancelled) return;

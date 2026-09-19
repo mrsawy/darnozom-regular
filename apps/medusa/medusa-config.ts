@@ -18,8 +18,8 @@ module.exports = defineConfig({
     redisUrl: process.env.MEDUSA_REDIS_URL,
     http: {
       storeCors: process.env.MEDUSA_STORE_CORS || 'http://localhost:5173',
-      adminCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9000',
-      authCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9000',
+      adminCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9010',
+      authCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9010',
       jwtSecret,
       cookieSecret,
       // Restrict each actor type to only its intended auth provider(s).

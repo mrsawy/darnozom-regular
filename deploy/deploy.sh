@@ -255,6 +255,36 @@ else
 fi
 
 log "Writing $ENV_FILE"
+# Secrets that must stay stable across deploys. Prefer the GitHub secret,
+# then the value already on disk, then generate once.
+read_env_value() {
+  local file="$1" key="$2"
+  [ -f "$file" ] || return 0
+  grep -m1 "^${key}=" "$file" 2>/dev/null | cut -d= -f2- || true
+}
+ensure_secret() {
+  local incoming="$1" file="$2" key="$3"
+  if [ -n "$incoming" ]; then
+    printf '%s' "$incoming"
+    return
+  fi
+  local existing
+  existing="$(read_env_value "$file" "$key")"
+  if [ -n "$existing" ]; then
+    printf '%s' "$existing"
+    return
+  fi
+  openssl rand -base64 32 | tr -d '\n'
+}
+
+MEDUSA_ENV=/etc/darnozom-medusa.env
+DOMAIN="${DEPLOY_DOMAIN:-darnozom.com}"
+MEDUSA_HOST="${DEPLOY_MEDUSA_DOMAIN:-ecommerce.${DOMAIN}}"
+BETTER_AUTH_BRIDGE_SECRET="$(ensure_secret "${BETTER_AUTH_BRIDGE_SECRET:-}" "$ENV_FILE" BETTER_AUTH_BRIDGE_SECRET)"
+MEDUSA_JWT_SECRET="$(ensure_secret "${MEDUSA_JWT_SECRET:-}" "$MEDUSA_ENV" MEDUSA_JWT_SECRET)"
+MEDUSA_COOKIE_SECRET="$(ensure_secret "${MEDUSA_COOKIE_SECRET:-}" "$MEDUSA_ENV" MEDUSA_COOKIE_SECRET)"
+AUTH_MFA_ENCRYPTION_KEY="$(ensure_secret "${AUTH_MFA_ENCRYPTION_KEY:-}" "$MEDUSA_ENV" AUTH_MFA_ENCRYPTION_KEY)"
+
 # Local disk object store (Replit GCS sidecar is not available on the VPS).
 OBJECTS_DIR="${PRIVATE_OBJECT_DIR:-$ROOT/objects}"
 PUBLIC_OBJECTS="${PUBLIC_OBJECT_SEARCH_PATHS:-$OBJECTS_DIR/public}"
@@ -289,6 +319,9 @@ RESEND_API_KEY=${RESEND_API_KEY:-}
 OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
 PRIVATE_OBJECT_DIR=$OBJECTS_DIR
 PUBLIC_OBJECT_SEARCH_PATHS=$PUBLIC_OBJECTS
+MEDUSA_BACKEND_URL=http://127.0.0.1:9010
+MEDUSA_ADMIN_API_KEY=${MEDUSA_ADMIN_API_KEY:-}
+BETTER_AUTH_BRIDGE_SECRET=$BETTER_AUTH_BRIDGE_SECRET
 EOF
 chmod 600 "$ENV_FILE"
 umask 022
@@ -321,6 +354,87 @@ for i in $(seq 1 30); do
 done
 
 # ---------------------------------------------------------------------------
+# 6b. Medusa (ecommerce.$DOMAIN) — database, Redis, migrations, systemd
+# ---------------------------------------------------------------------------
+MEDUSA_DIR="$ROOT/medusa"
+MEDUSA_PORT=9010
+MEDUSA_DB_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@127.0.0.1:5432/medusa"
+
+log "Ensuring Postgres database 'medusa'"
+if ! docker exec darnozom-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT 1 FROM pg_database WHERE datname='medusa'" | grep -q 1; then
+  docker exec darnozom-db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 \
+    -c "CREATE DATABASE medusa OWNER ${POSTGRES_USER};"
+fi
+
+log "Starting Medusa Redis"
+docker compose --project-directory "$ROOT" -f "$DEPLOY_DIR/medusa/docker-compose.yml" up -d
+
+if [ ! -f "$MEDUSA_DIR/package.json" ]; then
+  echo "Medusa server build is missing at $MEDUSA_DIR (CI must upload apps/medusa/.medusa/server)." >&2
+  exit 1
+fi
+
+log "Writing $MEDUSA_ENV"
+umask 077
+cat > "$MEDUSA_ENV" <<EOF
+NODE_ENV=production
+PORT=$MEDUSA_PORT
+MEDUSA_DATABASE_URL=$MEDUSA_DB_URL
+MEDUSA_REDIS_URL=redis://127.0.0.1:6381
+MEDUSA_JWT_SECRET=$MEDUSA_JWT_SECRET
+MEDUSA_COOKIE_SECRET=$MEDUSA_COOKIE_SECRET
+MEDUSA_ADMIN_CORS=https://$MEDUSA_HOST
+MEDUSA_STORE_CORS=https://$DOMAIN,https://www.$DOMAIN
+AUTH_MFA_ENCRYPTION_KEY=$AUTH_MFA_ENCRYPTION_KEY
+BETTER_AUTH_BRIDGE_SECRET=$BETTER_AUTH_BRIDGE_SECRET
+PAYMOB_API_KEY=${PAYMOB_API_KEY:-}
+PAYMOB_HMAC_SECRET=${PAYMOB_HMAC_SECRET:-}
+PAYMOB_IFRAME_ID=${PAYMOB_IFRAME_ID:-}
+PAYMOB_INTEGRATION_ID=${PAYMOB_INTEGRATION_ID:-}
+PAYMOB_WALLET_INTEGRATION_ID=${PAYMOB_WALLET_INTEGRATION_ID:-}
+PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+PAYPAL_ENVIRONMENT=${PAYPAL_ENVIRONMENT:-live}
+LEMONSQUEEZY_API_KEY=${LEMONSQUEEZY_API_KEY:-}
+LEMONSQUEEZY_STORE_ID=${LEMONSQUEEZY_STORE_ID:-}
+LEMONSQUEEZY_WEBHOOK_SECRET=${LEMONSQUEEZY_WEBHOOK_SECRET:-}
+EOF
+chmod 600 "$MEDUSA_ENV"
+umask 022
+
+log "Installing Medusa runtime and migrating"
+(cd "$MEDUSA_DIR" && npm install --omit=dev --no-audit --no-fund)
+(
+  cd "$MEDUSA_DIR"
+  set -a
+  # shellcheck disable=SC1090
+  . "$MEDUSA_ENV"
+  set +a
+  npx medusa db:migrate
+)
+
+log "Installing systemd unit for Medusa"
+cp "$DEPLOY_DIR/darnozom-medusa.service" /etc/systemd/system/darnozom-medusa.service
+systemctl daemon-reload
+systemctl enable darnozom-medusa >/dev/null 2>&1 || true
+systemctl restart darnozom-medusa
+
+log "Waiting for Medusa /health"
+for i in $(seq 1 60); do
+  code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$MEDUSA_PORT/health" || true)
+  if [ "$code" = "200" ]; then
+    log "Medusa healthy after ${i}s"
+    break
+  fi
+  if [ "$i" -eq 60 ]; then
+    echo "Medusa did not become healthy within 60s (last HTTP $code)" >&2
+    journalctl -u darnozom-medusa -n 80 --no-pager >&2 || true
+    exit 1
+  fi
+  sleep 1
+done
+
+# ---------------------------------------------------------------------------
 # 7. TLS + nginx
 # ---------------------------------------------------------------------------
 chown -R www-data:www-data /var/www/darnozom || true
@@ -328,6 +442,7 @@ chmod +x "$DEPLOY_DIR/setup-ssl.sh"
 "$DEPLOY_DIR/setup-ssl.sh" \
   "$DEPLOY_DIR/nginx.conf" \
   "$DEPLOY_DIR/nginx.bootstrap.conf" \
-  "$DEPLOY_DIR/nginx.api.conf"
+  "$DEPLOY_DIR/nginx.api.conf" \
+  "$DEPLOY_DIR/nginx.medusa.conf"
 
 log "Deploy complete $(date -u +%Y-%m-%dT%H:%M:%SZ)"

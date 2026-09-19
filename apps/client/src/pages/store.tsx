@@ -11,7 +11,7 @@ import SiteNav from "@/components/site-nav";
 import ProductCard, { type ProductCardItem } from "@/components/store/product-card";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import { getMedusaClient } from "@/lib/medusa-client";
+import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -164,11 +164,12 @@ export default function StorePage() {
       setError(false);
       try {
         const sdk = getMedusaClient();
+        const regionId = await getStoreRegionId();
         // calculated_price is only populated when explicitly requested via
-        // `fields` — a bare list() call omits it, per the Medusa v2 store
-        // SDK docs ("How to retrieve a product variant's prices").
+        // `fields`, and Medusa rejects that request unless region_id is set.
         const { products: fetched } = await sdk.store.product.list({
           limit: 100,
+          region_id: regionId,
           fields: "*variants,*variants.calculated_price,*variants.metadata",
         });
         if (cancelled) return;

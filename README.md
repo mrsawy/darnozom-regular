@@ -37,7 +37,7 @@ cp apps/client/.env.example apps/client/.env   # client: VITE_* settings
 pnpm dev:db                   # start Postgres 16 in Docker
 pnpm db:push                  # create/sync the schema
 pnpm db:seed:users            # create the dev sign-in accounts
-pnpm dev:api                  # API on http://localhost:8080
+pnpm dev:api                  # API on http://localhost:8085
 pnpm dev:client               # SPA on http://localhost:5173
 ```
 

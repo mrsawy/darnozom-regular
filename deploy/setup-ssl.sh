@@ -12,16 +12,20 @@ set -euo pipefail
 DOMAIN="${DEPLOY_DOMAIN:-darnozom.com}"
 EMAIL="${DEPLOY_SSL_EMAIL:-info@darnozom.com}"
 API_DOMAIN="${DEPLOY_API_DOMAIN:-api.${DOMAIN}}"
+MEDUSA_DOMAIN="${DEPLOY_MEDUSA_DOMAIN:-ecommerce.${DOMAIN}}"
 WWW_DOMAIN="www.${DOMAIN}"
 
 SITE_SRC="${1:-deploy/nginx.conf}"
 BOOTSTRAP_SRC="${2:-deploy/nginx.bootstrap.conf}"
 API_SRC="${3:-deploy/nginx.api.conf}"
+MEDUSA_SRC="${4:-deploy/nginx.medusa.conf}"
 
 SITE_DEST="/etc/nginx/sites-available/darnozom"
 API_DEST="/etc/nginx/sites-available/darnozom-api"
+MEDUSA_DEST="/etc/nginx/sites-available/darnozom-medusa"
 CERT_PATH="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
 API_CERT_PATH="/etc/letsencrypt/live/${API_DOMAIN}/fullchain.pem"
+MEDUSA_CERT_PATH="/etc/letsencrypt/live/${MEDUSA_DOMAIN}/fullchain.pem"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -115,6 +119,40 @@ if [ -f "$API_CERT_PATH" ] && [ -f "$API_SRC" ]; then
   fi
 else
   echo "==> Skipping ${API_DOMAIN} server block (no certificate yet)"
+fi
+
+# --- Medusa subdomain (best effort) -----------------------------------------
+if [ ! -f "$MEDUSA_CERT_PATH" ]; then
+  echo "==> Requesting certificate for ${MEDUSA_DOMAIN}"
+  if certbot certonly \
+      --webroot \
+      -w /var/www/certbot \
+      -d "$MEDUSA_DOMAIN" \
+      --email "$EMAIL" \
+      --agree-tos \
+      --non-interactive \
+      --keep-until-expiring; then
+    echo "==> Certificate issued for ${MEDUSA_DOMAIN}"
+  else
+    echo "!!! Could not issue a certificate for ${MEDUSA_DOMAIN} (DNS not pointing here yet?)."
+    echo "!!! The main site is unaffected; re-run this deploy once DNS resolves."
+  fi
+fi
+
+if [ -f "$MEDUSA_CERT_PATH" ] && [ -f "$MEDUSA_SRC" ]; then
+  echo "==> Installing nginx config for ${MEDUSA_DOMAIN}"
+  cp "$MEDUSA_SRC" "$MEDUSA_DEST"
+  ln -sfn "$MEDUSA_DEST" /etc/nginx/sites-enabled/darnozom-medusa
+  if nginx -t; then
+    systemctl reload nginx
+    echo "==> https://${MEDUSA_DOMAIN} ready"
+  else
+    echo "!!! nginx rejected the ${MEDUSA_DOMAIN} config — reverting it and keeping the site up."
+    rm -f /etc/nginx/sites-enabled/darnozom-medusa
+    nginx -t && systemctl reload nginx
+  fi
+else
+  echo "==> Skipping ${MEDUSA_DOMAIN} server block (no certificate yet)"
 fi
 
 # Keep auto-renewal enabled

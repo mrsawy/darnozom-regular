@@ -2,6 +2,7 @@ import { Router, type Response } from "express";
 import { createHmac } from "crypto";
 import { requireAuth, type AuthRequest } from "../../middlewares/authMiddleware";
 import { logger } from "../../lib/logger";
+import { medusaAdminAuthHeader } from "../../lib/medusa-admin";
 
 export const medusaBridgeRouter = Router();
 
@@ -19,7 +20,7 @@ async function findOrCreateMedusaCustomer(userId: string, email: string, name: s
   const adminKey = process.env.MEDUSA_ADMIN_API_KEY;
   if (!backendUrl || !adminKey) throw new Error("Medusa backend not configured");
 
-  const headers = { Authorization: `Bearer ${adminKey}`, "Content-Type": "application/json" };
+  const headers = { Authorization: medusaAdminAuthHeader(), "Content-Type": "application/json" };
 
   const searchRes = await fetch(`${backendUrl}/admin/customers?q=${encodeURIComponent(email)}`, { headers });
   const searchBody = (await searchRes.json()) as { customers: Array<{ id: string; metadata?: Record<string, unknown> }> };

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import type { HttpTypes } from "@medusajs/types";
 import { adminFetch } from "../../../lib/admin-api";
+import { getMedusaClient } from "@/lib/medusa-client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Edit2, Trash2, Save, X, Star, Link as LinkIcon,
@@ -13,10 +15,10 @@ import { PageHeader, Toast, useToast } from "../layout";
 const API_BASE = "/api";
 
 type BookStatus = "available" | "coming_soon" | "out_of_stock";
-type BookCategory = "shariah" | "management" | "digital_transformation";
+type BookCategory = "shariah" | "management" | "digital_transformation" | "other";
 
 interface Book {
-  id: number;
+  id: string;
   title: string;
   author: string | null;
   description: string | null;
@@ -49,10 +51,56 @@ const CATEGORY_LABELS: Record<BookCategory, string> = {
   shariah: "الشريعة (Shariah)",
   management: "الإدارة (Management)",
   digital_transformation: "التحول الرقمي (Digital Transformation)",
+  other: "—",
 };
 const STATUS_LABELS: Record<BookStatus, string> = {
   available: "متاح", coming_soon: "قريبًا", out_of_stock: "نفذت الكمية",
 };
+
+const BOOK_CATEGORIES: BookCategory[] = ["shariah", "management", "digital_transformation"];
+
+function priceAmount(variant: HttpTypes.StoreProductVariant | undefined): string | null {
+  const amount = variant?.calculated_price?.calculated_amount;
+  return typeof amount === "number" ? String(amount) : null;
+}
+
+function mapMedusaProduct(product: HttpTypes.StoreProduct, fallbackCurrency?: string): Book {
+  const meta = (product.metadata ?? {}) as Record<string, unknown>;
+  const variants = product.variants ?? [];
+  const paper = variants.find((variant) => (variant.metadata as Record<string, unknown> | null)?.kind === "paper");
+  const digital = variants.find((variant) => (variant.metadata as Record<string, unknown> | null)?.kind === "digital");
+  const priced = variants.find((variant) => typeof variant.calculated_price?.calculated_amount === "number");
+  const rawCategory = typeof meta.category === "string" ? meta.category : "";
+  const category = BOOK_CATEGORIES.includes(rawCategory as BookCategory) ? (rawCategory as BookCategory) : "other";
+  const currency = (
+    paper?.calculated_price?.currency_code ||
+    digital?.calculated_price?.currency_code ||
+    priced?.calculated_price?.currency_code ||
+    fallbackCurrency ||
+    "egp"
+  ).toUpperCase();
+
+  return {
+    id: product.id,
+    title: product.title || "",
+    author: typeof meta.author === "string" ? meta.author : product.subtitle,
+    description: product.description,
+    coverImageUrl: product.thumbnail,
+    category,
+    price: priceAmount(priced),
+    currency,
+    status: "available",
+    isFeatured: meta.isFeatured === true,
+    buyLink: null,
+    externalUrl: null,
+    paperAvailable: Boolean(paper) || (!digital && Boolean(priced)),
+    paperPrice: priceAmount(paper) ?? (!digital ? priceAmount(priced) : null),
+    digitalAvailable: Boolean(digital),
+    digitalPrice: priceAmount(digital),
+    digitalFileUrl: null,
+    createdAt: product.created_at || "",
+  };
+}
 
 export default function BooksPage() {
   const [items, setItems] = useState<Book[]>([]);
@@ -60,7 +108,7 @@ export default function BooksPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Book | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -69,21 +117,52 @@ export default function BooksPage() {
   async function load() {
     setLoading(true);
     try {
-      const r = await adminFetch(`${API_BASE}/admin/books`, { credentials: "include" });
-      if (r.ok) setItems(await r.json());
-    } finally { setLoading(false); }
+      const sdk = getMedusaClient();
+      const { regions } = await sdk.store.region.list({ limit: 50 });
+      const region =
+        regions.find((item) => item.currency_code === "eur") ??
+        regions.find((item) => item.currency_code === "egp") ??
+        regions[0];
+      const { products } = await sdk.store.product.list({
+        limit: 100,
+        region_id: region?.id,
+        fields: "id,title,subtitle,description,thumbnail,metadata,created_at,*variants,*variants.calculated_price,*variants.metadata",
+      });
+      setItems(products.map((product) => mapMedusaProduct(product, region?.currency_code)));
+    } catch {
+      show("تعذر تحميل منتجات Medusa", "error");
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { load(); }, []);
 
   async function save(data: Omit<Book, "id" | "createdAt">) {
     setSaving(true);
     try {
-      const url = editing ? `${API_BASE}/books/${editing.id}` : `${API_BASE}/books`;
+      const medusaProduct = editing?.id.startsWith("prod_");
+      const url = medusaProduct
+        ? `${API_BASE}/admin/medusa/products/${editing!.id}`
+        : editing
+          ? `${API_BASE}/books/${editing.id}`
+          : `${API_BASE}/books`;
+      const payload = medusaProduct
+        ? {
+            title: data.title,
+            description: data.description,
+            author: data.author,
+            category: data.category,
+            isFeatured: data.isFeatured,
+            status: data.status,
+            coverImageUrl: data.coverImageUrl,
+          }
+        : data;
       const r = await adminFetch(url, {
-        method: editing ? "PUT" : "POST",
+        method: medusaProduct || !editing ? "POST" : "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
       if (!r.ok) {
         const err = await r.json().catch(() => ({}));
@@ -95,7 +174,7 @@ export default function BooksPage() {
     } finally { setSaving(false); }
   }
 
-  async function del(id: number) {
+  async function del(id: string) {
     const r = await adminFetch(`${API_BASE}/books/${id}`, { method: "DELETE", credentials: "include" });
     if (!r.ok) { show("فشل الحذف", "error"); return; }
     show("تم حذف الكتاب");
@@ -436,7 +515,7 @@ function BookForm({ initial, onSave, onCancel, saving }: {
         <div className="grid md:grid-cols-3 gap-3">
           <Field label="الفئة">
             <select value={form.category} onChange={e => set("category", e.target.value)} className="w-full border border-input bg-background px-3 py-2 text-sm rounded-none">
-              {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {Object.entries(CATEGORY_LABELS).filter(([k]) => k !== "other").map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </Field>
           <Field label="الحالة">

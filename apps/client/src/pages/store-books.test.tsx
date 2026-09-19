@@ -37,6 +37,7 @@ describe("StoreBooks page", () => {
         },
       },
     };
+    vi.spyOn(medusaClient, "getStoreRegionId").mockResolvedValue("reg_eg");
     vi.spyOn(medusaClient, "getMedusaClient").mockReturnValue(sdk as any);
 
     const queryClient = new QueryClient();
