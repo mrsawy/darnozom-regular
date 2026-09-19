@@ -173,28 +173,16 @@ export default function StoreCourseDetailPage() {
     const n = Number.parseFloat(cleaned);
     return Number.isFinite(n) ? n : 0;
   })();
-  const inCart = course ? cart.has("course", course.id) : false;
+  const inCart = course ? cart.items.some((item) => item.type === "course" && item.legacyProductId === course.id) : false;
   const canBuy = numericPrice > 0;
 
   function handleAddToCart() {
-    if (!course) return;
-    const result = cart.addItem({
-      type: "course",
-      productId: course.id,
-      title,
-      price: numericPrice,
-      currency: course.currency || "SAR",
-      imageUrl: course.thumbnailUrl ?? null,
-    });
-    if (!result.ok && result.reason === "currency_mismatch") {
-      const msg = isArabic
-        ? `لا يمكن إضافة منتج بعملة ${result.attempted} إلى سلة بعملة ${result.existing}. أكمل الطلب الحالي أولاً أو أفرغ السلة.`
-        : `Cannot add a ${result.attempted} item to a ${result.existing} cart. Please checkout or clear your cart first.`;
-      window.alert(msg);
-      return;
-    }
-    setJustAdded(true);
-    window.setTimeout(() => setJustAdded(false), 1400);
+    if (!course || inCart) return;
+    window.alert(
+      isArabic
+        ? "إضافة الدورات إلى السلة غير متاحة حالياً. السلة مخصصة للكتب عبر Medusa."
+        : "Adding courses to the cart is not available yet. The cart is for books.",
+    );
   }
 
   return (
