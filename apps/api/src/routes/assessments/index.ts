@@ -4,7 +4,7 @@ import { assessments, clients, users, proposals } from "@workspace/db";
 import { eq, and, isNull } from "drizzle-orm";
 import { openai } from "@workspace/ai-server";
 import type { AuthRequest } from "../../middlewares/authMiddleware";
-import { sendReportReadyNotification } from "../../lib/email";
+import { sendReportReadyNotification } from "../../lib/email/email";
 import {
   frameworksCatalogForPrompt,
   parseSelectedFrameworks,

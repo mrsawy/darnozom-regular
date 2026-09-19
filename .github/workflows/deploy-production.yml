@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
@@ -37,10 +37,23 @@ jobs:
         run: pnpm run typecheck
 
       - name: Build client
-        run: pnpm run build:client
+        env:
+          VITE_MEDUSA_BACKEND_URL: ${{ secrets.VITE_MEDUSA_BACKEND_URL }}
+          VITE_MEDUSA_PUBLISHABLE_KEY: ${{ secrets.VITE_MEDUSA_PUBLISHABLE_KEY }}
+        run: |
+          export VITE_MEDUSA_BACKEND_URL="${VITE_MEDUSA_BACKEND_URL:-https://ecommerce.darnozom.com}"
+          pnpm run build:client
 
       - name: Build API
         run: pnpm run build:api
+
+      - name: Build Medusa
+        env:
+          MEDUSA_JWT_SECRET: ci-build-placeholder
+          MEDUSA_COOKIE_SECRET: ci-build-placeholder
+          MEDUSA_DATABASE_URL: postgres://build:build@127.0.0.1:5432/medusa
+          MEDUSA_REDIS_URL: redis://127.0.0.1:6379
+        run: pnpm --filter medusa build
 
       - name: Stage API bundle
         # The esbuild bundle deliberately externalises a few packages that can't
@@ -97,6 +110,18 @@ jobs:
           target: /opt/darnozom
           overwrite: true
 
+      - name: Upload Medusa server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: 22
+          source: "apps/medusa/.medusa/server/"
+          target: /opt/darnozom/medusa
+          strip_components: 4
+          overwrite: true
+
       - name: Run deploy script
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -129,18 +154,26 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           PRIVATE_OBJECT_DIR: ${{ secrets.PRIVATE_OBJECT_DIR }}
           PUBLIC_OBJECT_SEARCH_PATHS: ${{ secrets.PUBLIC_OBJECT_SEARCH_PATHS }}
+          MEDUSA_JWT_SECRET: ${{ secrets.MEDUSA_JWT_SECRET }}
+          MEDUSA_COOKIE_SECRET: ${{ secrets.MEDUSA_COOKIE_SECRET }}
+          BETTER_AUTH_BRIDGE_SECRET: ${{ secrets.BETTER_AUTH_BRIDGE_SECRET }}
+          MEDUSA_ADMIN_API_KEY: ${{ secrets.MEDUSA_ADMIN_API_KEY }}
+          AUTH_MFA_ENCRYPTION_KEY: ${{ secrets.AUTH_MFA_ENCRYPTION_KEY }}
+          DEPLOY_MEDUSA_DOMAIN: ${{ secrets.DEPLOY_MEDUSA_DOMAIN }}
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: 22
-          envs: POSTGRES_PASSWORD,DEPLOY_DOMAIN,DEPLOY_API_DOMAIN,DEPLOY_SSL_EMAIL,PUBLIC_SITE_URL,BETTER_AUTH_SECRET,ADMIN_EMAILS,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,BOOKS_ADMIN_SECRET,AI_INTEGRATIONS_OPENAI_API_KEY,AI_INTEGRATIONS_OPENAI_BASE_URL,PAYMOB_API_KEY,PAYMOB_HMAC_SECRET,PAYMOB_IFRAME_ID,PAYMOB_INTEGRATION_ID,PAYMOB_WALLET_INTEGRATION_ID,PAYPAL_CLIENT_ID,PAYPAL_CLIENT_SECRET,PAYPAL_ENVIRONMENT,GOOGLE_CALENDAR_CLIENT_ID,GOOGLE_CALENDAR_CLIENT_SECRET,GOOGLE_CALENDAR_REFRESH_TOKEN,GOOGLE_CALENDAR_ID,RESEND_API_KEY,PRIVATE_OBJECT_DIR,PUBLIC_OBJECT_SEARCH_PATHS
+          envs: POSTGRES_PASSWORD,DEPLOY_DOMAIN,DEPLOY_API_DOMAIN,DEPLOY_MEDUSA_DOMAIN,DEPLOY_SSL_EMAIL,PUBLIC_SITE_URL,BETTER_AUTH_SECRET,ADMIN_EMAILS,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,BOOKS_ADMIN_SECRET,AI_INTEGRATIONS_OPENAI_API_KEY,AI_INTEGRATIONS_OPENAI_BASE_URL,PAYMOB_API_KEY,PAYMOB_HMAC_SECRET,PAYMOB_IFRAME_ID,PAYMOB_INTEGRATION_ID,PAYMOB_WALLET_INTEGRATION_ID,PAYPAL_CLIENT_ID,PAYPAL_CLIENT_SECRET,PAYPAL_ENVIRONMENT,GOOGLE_CALENDAR_CLIENT_ID,GOOGLE_CALENDAR_CLIENT_SECRET,GOOGLE_CALENDAR_REFRESH_TOKEN,GOOGLE_CALENDAR_ID,RESEND_API_KEY,PRIVATE_OBJECT_DIR,PUBLIC_OBJECT_SEARCH_PATHS,MEDUSA_JWT_SECRET,MEDUSA_COOKIE_SECRET,BETTER_AUTH_BRIDGE_SECRET,MEDUSA_ADMIN_API_KEY,AUTH_MFA_ENCRYPTION_KEY
           script: |
             set -euo pipefail
             export DEPLOY_DOMAIN="${DEPLOY_DOMAIN:-darnozom.com}"
             export DEPLOY_API_DOMAIN="${DEPLOY_API_DOMAIN:-api.darnozom.com}"
+            export DEPLOY_MEDUSA_DOMAIN="${DEPLOY_MEDUSA_DOMAIN:-ecommerce.darnozom.com}"
             export DEPLOY_SSL_EMAIL="${DEPLOY_SSL_EMAIL:-info@darnozom.com}"
-            chmod +x /opt/darnozom/deploy/deploy.sh
+            export PUBLIC_SITE_URL="${PUBLIC_SITE_URL:-https://darnozom.com}"
+            chmod +x /opt/darnozom/deploy/deploy.sh /opt/darnozom/deploy/setup-ssl.sh
             bash /opt/darnozom/deploy/deploy.sh
 
       - name: Smoke test
@@ -161,3 +194,7 @@ jobs:
             curl -s https://darnozom.com/api/healthz
             echo
             curl -s https://api.darnozom.com/api/healthz || echo "(api subdomain not live yet)"
+            echo
+            echo "--- medusa ---"
+            systemctl is-active darnozom-medusa || true
+            curl -s https://ecommerce.darnozom.com/health || echo "(ecommerce subdomain not live yet)"

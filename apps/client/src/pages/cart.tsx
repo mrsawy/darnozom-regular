@@ -83,7 +83,7 @@ export default function CartPage() {
   const { language } = useLanguage();
   const t = COPY[language];
   const isAr = language === "ar";
-  const { items, count, total, currency, removeItem, setQuantity, hasPaperItems } = useCart();
+  const { items, count, total, currency, removeItem, updateQuantity, hasPaperItems } = useCart();
   const Arrow = isAr ? ArrowLeft : ArrowRight;
 
   // Cart-side shipping preview: lets the customer see the shipping cost
@@ -178,17 +178,17 @@ export default function CartPage() {
                 </div>
 
                 {items.map((it) => {
-                  const lineTotal = it.price * it.quantity;
+                  const lineTotal = it.unitPrice * it.quantity;
                   return (
                     <div
-                      key={`${it.type}-${it.productId}-${it.format ?? "x"}`}
+                      key={it.lineItemId}
                       className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-4 border-b border-border last:border-b-0 items-center"
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         <div className="w-16 h-16 shrink-0 bg-muted/40 border border-border overflow-hidden">
-                          {it.imageUrl ? (
+                          {it.thumbnail ? (
                             <img
-                              src={it.imageUrl}
+                              src={it.thumbnail}
                               alt=""
                               className="w-full h-full object-cover"
                             />
@@ -209,7 +209,7 @@ export default function CartPage() {
                           </div>
                           <div className="font-bold text-primary line-clamp-2">{it.title}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
-                            {it.price.toFixed(2)} {it.currency}
+                            {it.unitPrice.toFixed(2)} {currency}
                           </div>
                         </div>
                       </div>
@@ -217,7 +217,7 @@ export default function CartPage() {
                       <div className="flex items-center justify-center gap-1 border border-border w-32 mx-auto md:mx-0">
                         <button
                           type="button"
-                          onClick={() => setQuantity(it.type, it.productId, it.quantity - 1, it.format ?? null)}
+                          onClick={() => updateQuantity(it.lineItemId, it.quantity - 1)}
                           disabled={it.quantity <= 1}
                           className="w-8 h-8 flex items-center justify-center hover:bg-muted/60 disabled:opacity-40"
                           aria-label="-"
@@ -230,13 +230,13 @@ export default function CartPage() {
                           max={99}
                           value={it.quantity}
                           onChange={(e) =>
-                            setQuantity(it.type, it.productId, Number(e.target.value), it.format ?? null)
+                            updateQuantity(it.lineItemId, Number(e.target.value))
                           }
                           className="w-12 h-8 text-center text-sm font-bold bg-transparent border-0 focus:outline-none"
                         />
                         <button
                           type="button"
-                          onClick={() => setQuantity(it.type, it.productId, it.quantity + 1, it.format ?? null)}
+                          onClick={() => updateQuantity(it.lineItemId, it.quantity + 1)}
                           className="w-8 h-8 flex items-center justify-center hover:bg-muted/60"
                           aria-label="+"
                         >
@@ -245,12 +245,12 @@ export default function CartPage() {
                       </div>
 
                       <div className="text-end w-28 font-bold text-primary">
-                        {lineTotal.toFixed(2)} {it.currency}
+                        {lineTotal.toFixed(2)} {currency}
                       </div>
 
                       <button
                         type="button"
-                        onClick={() => removeItem(it.type, it.productId, it.format ?? null)}
+                        onClick={() => removeItem(it.lineItemId)}
                         className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors mx-auto md:mx-0"
                         aria-label={t.remove}
                       >

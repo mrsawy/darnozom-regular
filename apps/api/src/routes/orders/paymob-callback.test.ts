@@ -29,13 +29,13 @@ const { paidNotificationsMock, adminSalesMock, autoCancelledMock } = vi.hoisted(
 );
 
 // Keep paid-order side effects (emails, entitlements) out of these tests.
-vi.mock("../../lib/orderPaidNotifications", () => ({
+vi.mock("../../lib/email/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: paidNotificationsMock,
 }));
 
 // Stub the email module so decline notifications can be asserted without
 // real sends (shared by the router and the reconcile lib).
-vi.mock("../../lib/email", () => ({
+vi.mock("../../lib/email/email", () => ({
   sendOrderPlacedConfirmation: vi.fn(async () => ({ ok: true })),
   sendOrderStatusUpdate: vi.fn(async () => ({ ok: true })),
   sendAdminSalesNotification: adminSalesMock,
@@ -66,7 +66,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
     res.status(403).json({ error: "Forbidden" }),
 }));
 
-vi.mock("../../lib/objectStorage", () => ({
+vi.mock("@workspace/object-store", () => ({
   ObjectStorageService: class {
     getPrivateObjectDir() {
       return "test-bucket/private";
@@ -79,7 +79,7 @@ vi.mock("../../lib/objectStorage", () => ({
 
 // Import AFTER env vars + mocks are in place. The Paymob lib is real.
 const { default: ordersRouter } = await import("./index");
-const { computePaymobWebhookHmac } = await import("../../lib/paymob");
+const { computePaymobWebhookHmac } = await import("@workspace/payment-gateways");
 
 function makeApp() {
   const app = express();

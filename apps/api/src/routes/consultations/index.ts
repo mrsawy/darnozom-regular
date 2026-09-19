@@ -10,7 +10,7 @@ import {
   deleteCalendarEvent,
   isGoogleCalendarConfigured,
 } from "../../lib/googleCalendar";
-import { sendBookingConfirmation } from "../../lib/consultationEmail";
+import { sendBookingConfirmation } from "../../lib/email/consultationEmail";
 
 const router = Router();
 

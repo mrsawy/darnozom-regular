@@ -1,10 +1,10 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedStoreApps } from "./lib/seedStoreApps";
-import { seedJobOpenings } from "./lib/seedJobOpenings";
-import { seedAdminUsers } from "./lib/seedAdminUsers";
-import { startPayPalReconciliationJob } from "./lib/reconcilePayPalOrders";
-import { startPaymobReconciliationJob } from "./lib/reconcilePaymobOrders";
+import { seedStoreApps } from "./lib/seed/seedStoreApps";
+import { seedJobOpenings } from "./lib/seed/seedJobOpenings";
+import { seedAdminUsers } from "./lib/seed/seedAdminUsers";
+import { startPayPalReconciliationJob } from "./lib/payments/reconcilePayPalOrders";
+import { startPaymobReconciliationJob } from "./lib/payments/reconcilePaymobOrders";
 
 const rawPort = process.env["PORT"];
 

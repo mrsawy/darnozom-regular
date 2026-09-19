@@ -3,7 +3,7 @@ import multer from "multer";
 import { randomUUID } from "crypto";
 import { db, conversations as conversationsTable, conversationAttachments } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
-import { ObjectStorageService, objectStorageClient } from "../../lib/objectStorage";
+import { ObjectStorageService, objectStorageClient } from "@workspace/object-store";
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import mammoth from "mammoth";
 import * as XLSX from "xlsx";

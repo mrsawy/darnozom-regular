@@ -18,23 +18,13 @@ import {
   openPrivateObjectStream,
   privateObjectExists,
   readPrivateObjectMeta,
-} from "../../lib/objectStore";
+} from "@workspace/object-store";
 import { computeFormats } from "../books";
-import { convertEgpToUsd } from "../../lib/currency";
+import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
   capturePayPalOrder,
   getPayPalClientConfig,
-} from "../../lib/paypal";
-import {
-  markPayPalOrderPaid,
-  reconcilePendingPayPalOrders,
-  markOrderPaymentFailed,
-  notifyAdminPaymentFailed,
-  notifyCustomerOrderCancelled,
-  expireStalePendingOrders,
-} from "../../lib/reconcilePayPalOrders";
-import {
   isPaymobConfigured,
   isPaymobWalletConfigured,
   createPaymobCheckout,
@@ -44,17 +34,25 @@ import {
   getPaymobTransactionStatus,
   verifyPaymobWebhookHmac,
   extractPaymobDeclineReason,
-} from "../../lib/paymob";
+} from "@workspace/payment-gateways";
+import {
+  markPayPalOrderPaid,
+  reconcilePendingPayPalOrders,
+  markOrderPaymentFailed,
+  notifyAdminPaymentFailed,
+  notifyCustomerOrderCancelled,
+  expireStalePendingOrders,
+} from "../../lib/payments/reconcilePayPalOrders";
 import {
   markPaymobOrderPaid,
   reconcilePendingPaymobOrders,
-} from "../../lib/reconcilePaymobOrders";
+} from "../../lib/payments/reconcilePaymobOrders";
 import {
   sendOrderPlacedConfirmation,
   sendOrderStatusUpdate,
   sendAdminSalesNotification,
-} from "../../lib/email";
-import { sendOrderPaidNotifications } from "../../lib/orderPaidNotifications";
+} from "../../lib/email/email";
+import { sendOrderPaidNotifications } from "../../lib/email/orderPaidNotifications";
 
 const router = Router();
 
@@ -851,9 +849,10 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
 
     // PayPal redirect: convert the authoritative EGP total to USD server-side
     // (never trust any client amount) and create a PayPal order.
-    let converted;
+    let converted: { usd: string; rate: number };
     try {
-      converted = await convertEgpToUsd(grandTotalEgp);
+      const rate = await fetchEgpToUsdRate();
+      converted = { usd: convertEgpToUsd(grandTotalEgp, rate), rate };
     } catch (err) {
       req.log.error({ err, orderId: order.id }, "EGP→USD conversion failed");
       // Mark the order failed so it isn't left dangling; refuse to charge.

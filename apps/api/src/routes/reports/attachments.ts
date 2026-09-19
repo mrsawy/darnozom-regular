@@ -4,7 +4,7 @@ import { db, reportAttachments, reports } from "@workspace/db";
 import { and, eq, isNull, desc } from "drizzle-orm";
 import { openai } from "@workspace/ai-server";
 import type { AuthRequest } from "../../middlewares/authMiddleware";
-import { ObjectStorageService } from "../../lib/objectStorage";
+import { ObjectStorageService } from "@workspace/object-store";
 import { extractTextFromFile, isSupportedAttachmentType } from "../../lib/extract";
 
 const router = Router();

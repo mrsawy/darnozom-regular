@@ -7,7 +7,8 @@ import multer from "multer";
 import { randomUUID } from "crypto";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import { scrapeBookUrl, BROWSER_HEADERS, DATA_IMAGE_RE, sniffImageMime } from "./scrapeUrl";
-import { savePrivateObject } from "../../lib/objectStore";
+import { savePrivateObject } from "@workspace/object-store";
+import { medusaAdmin } from "../../lib/medusa-admin";
 
 const router = Router();
 
@@ -108,7 +109,7 @@ async function loadCoverBytes(
   }
 }
 
-async function storeCover(
+export async function storeCover(
   imageUrl: string,
   refererUrl: string,
 ): Promise<string | null> {
@@ -488,8 +489,83 @@ router.post("/books", requireBooksAdmin, async (req, res) => {
   }
 });
 
+function publicCoverUrl(storedPath: string): string {
+  const base = (process.env.PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  if (base && storedPath.startsWith("/")) return `${base}${storedPath}`;
+  return storedPath;
+}
+
+/** Download an external cover onto this server. Already-local paths are kept. */
+async function coverOnThisServer(cover: string): Promise<string> {
+  if (cover.startsWith("/api/storage/objects/")) return publicCoverUrl(cover);
+  if (!/^https?:\/\//i.test(cover)) return publicCoverUrl(cover);
+  const stored = await storeCover(cover, cover);
+  if (!stored) {
+    throw new Error("Could not store the image on this server");
+  }
+  return publicCoverUrl(stored);
+}
+
+router.post("/admin/medusa/products/:id", requireBooksAdmin, async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    if (!id.startsWith("prod_")) {
+      return res.status(400).json({ error: "Not a Medusa product" });
+    }
+    const body = req.body as {
+      title?: string;
+      description?: string | null;
+      author?: string | null;
+      category?: string;
+      isFeatured?: boolean;
+      status?: string;
+      coverImageUrl?: string | null;
+    };
+
+    let thumbnail: string | null | undefined;
+    if (body.coverImageUrl) {
+      thumbnail = await coverOnThisServer(String(body.coverImageUrl));
+    } else if (body.coverImageUrl === null || body.coverImageUrl === "") {
+      thumbnail = null;
+    }
+
+    const current = await medusaAdmin<{ product: { metadata?: Record<string, unknown> | null } }>(
+      `/admin/products/${id}?fields=id,metadata`,
+    );
+    const metadata = { ...(current.product.metadata || {}) };
+    if (body.author !== undefined) metadata.author = body.author || null;
+    if (body.category) metadata.category = body.category;
+    if (body.isFeatured !== undefined) metadata.isFeatured = Boolean(body.isFeatured);
+
+    const status = body.status === "available" ? "published" : body.status === "coming_soon" || body.status === "out_of_stock" ? "draft" : undefined;
+
+    await medusaAdmin(`/admin/products/${id}`, {
+      method: "POST",
+      body: JSON.stringify({
+        ...(body.title ? { title: body.title } : {}),
+        ...(body.description !== undefined ? { description: body.description || "" } : {}),
+        ...(body.author !== undefined ? { subtitle: body.author || "" } : {}),
+        ...(thumbnail !== undefined ? { thumbnail } : {}),
+        ...(status ? { status } : {}),
+        metadata,
+      }),
+    });
+
+    return res.json({ thumbnail: thumbnail ?? null });
+  } catch (err) {
+    console.error(err);
+    const message = err instanceof Error ? err.message : "Failed to update Medusa product";
+    return res.status(500).json({ error: message });
+  }
+});
+
 router.put("/books/:id", requireBooksAdmin, async (req, res) => {
   try {
+    if (!/^\d+$/.test(String(req.params.id))) {
+      return res.status(400).json({
+        error: "This product is stored in Medusa. Save it again so the cover is written there.",
+      });
+    }
     const id = parseInt(String(req.params.id));
     const body = req.body as Record<string, unknown>;
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { contactMessages } from "@workspace/db";
-import { sendContactNotification } from "../../lib/email";
+import { sendContactNotification } from "../../lib/email/email";
 import type { Request, Response } from "express";
 
 const router = Router();

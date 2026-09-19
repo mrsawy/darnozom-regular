@@ -4,10 +4,10 @@ import { Link } from "wouter";
 import { ShoppingCart, ExternalLink, Star, Plus, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/language-context";
-import { useCart, type CartItemType, type CartItemFormat } from "@/lib/cart-context";
+import { useCart } from "@/lib/cart-context";
 
 export interface ProductCardItem {
-  id: number;
+  id: string;
   type: "book" | "course" | "app";
   title: string;
   subtitle?: string | null;
@@ -27,6 +27,10 @@ export interface ProductCardItem {
   singleFormatPrice?: number | null;
   /** "starting from" prefix when multiple formats with different prices exist. */
   pricePrefix?: string | null;
+  /** Medusa variant id to buy directly from the card (single-format items only). */
+  variantId?: string | null;
+  /** Whether this item is already in the cart (best-effort, by variant id). */
+  inCart?: boolean;
 }
 
 interface Props {
@@ -56,31 +60,17 @@ export default function ProductCard({ item }: Props) {
   // detail page; the card only links there instead of adding directly.
   const isMultiFormatBook =
     item.type === "book" && !!item.paperAvailable && !!item.digitalAvailable;
-  const cardFormat: CartItemFormat | null =
-    item.type === "book"
-      ? item.paperAvailable
-        ? "paper"
-        : item.digitalAvailable
-          ? "digital"
-          : null
-      : null;
-  const canBuyNow = !isMultiFormatBook && numericPrice > 0 && (item.type !== "book" || !!cardFormat);
-  const inCart = cart.has(item.type as CartItemType, item.id, cardFormat);
+  const canBuyNow = !isMultiFormatBook && numericPrice > 0 && !!item.variantId;
+  const inCart = !!item.inCart;
 
-  function handleAddToCart() {
-    const result = cart.addItem({
-      type: item.type as CartItemType,
-      productId: item.id,
-      format: cardFormat,
-      title: item.title,
-      price: numericPrice,
-      currency: item.currency || "EGP",
-      imageUrl: item.imageUrl ?? null,
-    });
-    if (!result.ok && result.reason === "currency_mismatch") {
+  async function handleAddToCart() {
+    if (!item.variantId) return;
+    try {
+      await cart.addItem(item.variantId, 1);
+    } catch {
       const msg = isArabic
-        ? `لا يمكن إضافة منتج بعملة ${result.attempted} إلى سلة بعملة ${result.existing}. أكمل الطلب الحالي أولاً أو أفرغ السلة.`
-        : `Cannot add a ${result.attempted} item to a ${result.existing} cart. Please checkout or clear your cart first.`;
+        ? "تعذّرت إضافة المنتج إلى السلة. حاول مرة أخرى."
+        : "Could not add this item to your cart. Please try again.";
       window.alert(msg);
       return;
     }

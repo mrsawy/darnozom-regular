@@ -20,7 +20,7 @@ import {
   getBootstrapAdminEmails,
   type AdminAuthRequest,
 } from "../../middlewares/adminAuth";
-import { savePrivateObject } from "../../lib/objectStore";
+import { savePrivateObject } from "@workspace/object-store";
 
 const router = Router();
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);

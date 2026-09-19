@@ -25,7 +25,7 @@ process.env.RESEND_API_KEY = process.env.RESEND_API_KEY || "test-resend-key";
 // Per-test-controllable PayPal capture result.
 const { captureMock } = vi.hoisted(() => ({ captureMock: vi.fn() }));
 
-vi.mock("../../lib/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   capturePayPalOrder: captureMock,
   createPayPalOrder: vi.fn(),
 }));
@@ -53,7 +53,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
     res.status(403).json({ error: "Forbidden" }),
 }));
 
-vi.mock("../../lib/objectStorage", () => {
+vi.mock("@workspace/object-store", () => {
   const file = {
     exists: vi.fn(async () => [true]),
     getMetadata: vi.fn(async () => [{ size: 3 }]),
@@ -74,8 +74,8 @@ vi.mock("../../lib/objectStorage", () => {
 // Keep the real email module (so orderReceiptHtml runs and produces real
 // reader links) but wrap sendOrderReceipt in a spy for direct call-count and
 // argument assertions.
-vi.mock("../../lib/email", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../lib/email")>();
+vi.mock("../../lib/email/email", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../lib/email/email")>();
   return {
     ...actual,
     sendOrderReceipt: vi.fn(actual.sendOrderReceipt),
@@ -83,7 +83,7 @@ vi.mock("../../lib/email", async (importOriginal) => {
 });
 
 // Import mocked pieces + the router AFTER the mocks are registered.
-const { sendOrderReceipt } = await import("../../lib/email");
+const { sendOrderReceipt } = await import("../../lib/email/email");
 const { default: ordersRouter } = await import("./index");
 
 // ---------------------------------------------------------------------------

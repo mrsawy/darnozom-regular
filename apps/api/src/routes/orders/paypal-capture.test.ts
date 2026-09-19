@@ -18,7 +18,7 @@ const STRANGER = `${TEST_USER_PREFIX}stranger`;
 // Shared, per-test-controllable PayPal capture result.
 const { captureMock } = vi.hoisted(() => ({ captureMock: vi.fn() }));
 
-vi.mock("../../lib/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   capturePayPalOrder: captureMock,
   createPayPalOrder: vi.fn(),
 }));
@@ -49,14 +49,25 @@ vi.mock("../../middlewares/adminAuth", () => ({
   ) => res.status(403).json({ error: "Forbidden" }),
 }));
 
-// Stub object storage so the digital-file route resolves without real GCS.
-vi.mock("../../lib/objectStorage", () => {
+// Stub the GCS-facing pieces of object storage so the digital-file route
+// resolves without real GCS, while keeping the real local-disk functions
+// (isLocalObjectStorage / privateObjectExists / readPrivateObjectMeta /
+// openPrivateObjectStream) from @workspace/object-store — this route runs
+// in local mode in tests (OBJECT_STORAGE_BACKEND=local) and exercises those
+// directly against PRIVATE_OBJECT_DIR.
+vi.mock("@workspace/object-store", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@workspace/object-store")>();
   const file = {
     exists: vi.fn(async () => [true]),
     getMetadata: vi.fn(async () => [{ size: 3 }]),
     createReadStream: vi.fn(() => Readable.from([Buffer.from("pdf")])),
   };
   return {
+    ...actual,
+    isLocalObjectStorage: () => false,
+    privateObjectExists: vi.fn(async () => true),
+    readPrivateObjectMeta: vi.fn(async () => ({ contentType: "application/pdf", size: 3 })),
+    openPrivateObjectStream: vi.fn(() => Readable.from([Buffer.from("pdf")])),
     ObjectStorageService: class {
       getPrivateObjectDir() {
         return "test-bucket/private";

@@ -9,6 +9,8 @@
   "references": [
     { "path": "../../packages/db" },
     { "path": "../../packages/api-zod" },
-    { "path": "../../packages/ai-server" }
+    { "path": "../../packages/ai-server" },
+    { "path": "../../packages/object-store" },
+    { "path": "../../packages/payment-gateways" }
   ]
 }

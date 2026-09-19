@@ -24,6 +24,7 @@ const {
   redirectCreateMock,
   captureMock,
   statusMock,
+  rateMock,
   convertMock,
   configMock,
   adminSalesMock,
@@ -36,6 +37,7 @@ const {
   redirectCreateMock: vi.fn(),
   captureMock: vi.fn(),
   statusMock: vi.fn(),
+  rateMock: vi.fn(),
   convertMock: vi.fn(),
   configMock: vi.fn(),
   adminSalesMock: vi.fn(),
@@ -46,14 +48,11 @@ const {
   autoCancelledMock: vi.fn(),
 }));
 
-vi.mock("../../lib/paypal", () => ({
+vi.mock("@workspace/payment-gateways", () => ({
   createPayPalOrder: redirectCreateMock,
   capturePayPalOrder: captureMock,
   getPayPalOrderStatus: statusMock,
   getPayPalClientConfig: configMock,
-}));
-
-vi.mock("../../lib/paymob", () => ({
   isPaymobConfigured: vi.fn(() => false),
   isPaymobWalletConfigured: vi.fn(() => false),
   createPaymobCheckout: vi.fn(),
@@ -62,22 +61,20 @@ vi.mock("../../lib/paymob", () => ({
   createPaymobWalletRedirectForExistingOrder: vi.fn(),
   getPaymobTransactionStatus: vi.fn(),
   verifyPaymobWebhookHmac: vi.fn(),
+  fetchEgpToUsdRate: rateMock,
+  convertEgpToUsd: convertMock,
 }));
 
 // The cleanup-stuck route runs the Paymob reconciler too — stub it so no
 // Paymob code paths execute in these tests.
-vi.mock("../../lib/reconcilePaymobOrders", () => ({
+vi.mock("../../lib/payments/reconcilePaymobOrders", () => ({
   markPaymobOrderPaid: vi.fn(),
   reconcilePendingPaymobOrders: paymobReconcileMock,
 }));
 
-vi.mock("../../lib/currency", () => ({
-  convertEgpToUsd: convertMock,
-}));
-
 // Keep all email side effects out of these tests (the reconcile lib and the
 // orders router share this module, so both get the stub).
-vi.mock("../../lib/email", () => ({
+vi.mock("../../lib/email/email", () => ({
   sendOrderPlacedConfirmation: placedConfirmationMock,
   sendOrderStatusUpdate: statusUpdateMock,
   sendAdminSalesNotification: adminSalesMock,
@@ -85,7 +82,7 @@ vi.mock("../../lib/email", () => ({
   sendOrderAutoCancelledEmail: autoCancelledMock,
 }));
 
-vi.mock("../../lib/orderPaidNotifications", () => ({
+vi.mock("../../lib/email/orderPaidNotifications", () => ({
   sendOrderPaidNotifications: paidNotificationsMock,
 }));
 
@@ -122,7 +119,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
   },
 }));
 
-vi.mock("../../lib/objectStorage", () => ({
+vi.mock("@workspace/object-store", () => ({
   ObjectStorageService: class {
     getPrivateObjectDir() {
       return "test-bucket/private";
@@ -136,7 +133,7 @@ vi.mock("../../lib/objectStorage", () => ({
 // Import the router (and the real reconcile lib) only AFTER mocks register.
 const { default: ordersRouter } = await import("./index");
 const { expireStalePendingOrders, markOrderPaymentFailed } = await import(
-  "../../lib/reconcilePayPalOrders"
+  "../../lib/payments/reconcilePayPalOrders"
 );
 
 function makeApp() {
@@ -220,7 +217,8 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  convertMock.mockResolvedValue({ usd: "3.25", rate: 0.0325 });
+  rateMock.mockResolvedValue(0.0325);
+  convertMock.mockReturnValue("3.25");
   redirectCreateMock.mockResolvedValue({
     id: `PP-NEW-${Math.random().toString(36).slice(2)}`,
     approveUrl: "https://paypal.example/approve",

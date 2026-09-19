@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useRoute } from "wouter";
 import { motion } from "framer-motion";
+import type { HttpTypes } from "@medusajs/types";
 import {
   ChevronLeft,
   BookOpen,
@@ -19,8 +20,11 @@ import SiteNav from "@/components/site-nav";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { useCart } from "@/lib/cart-context";
-import type { Book, BookEditionFormat } from "@/lib/store-types";
+import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { SiteFooter } from "@/components/site-footer";
+
+type StoreProduct = HttpTypes.StoreProduct;
+type BookEditionFormat = "paper" | "digital";
 
 const T = {
   ar: {
@@ -109,11 +113,12 @@ export default function StoreBookDetailPage() {
   const [, params] = useRoute("/services/store/books/:id");
   const id = params?.id;
 
-  const [book, setBook] = useState<Book | null>(null);
+  const [book, setBook] = useState<StoreProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [justAdded, setJustAdded] = useState(false);
+  const [addError, setAddError] = useState(false);
   const cart = useCart();
 
   useEffect(() => {
@@ -121,24 +126,28 @@ export default function StoreBookDetailPage() {
     let cancelled = false;
     setLoading(true);
     setError(false);
-    fetch(`/api/books/${id}`)
-      .then(async (r) => {
+    const sdk = getMedusaClient();
+    getStoreRegionId()
+      .then((regionId) =>
+        sdk.store.product.retrieve(id, {
+          region_id: regionId,
+          fields: "*variants,*variants.calculated_price,*variants.metadata",
+        }),
+      )
+      .then(({ product }) => {
         if (cancelled) return;
-        // A 404 is a genuine "not found"; any other non-ok status is a
-        // load failure that should surface a retry instead of "not found".
-        if (r.status === 404) {
-          setBook(null);
-          return;
-        }
-        if (!r.ok) {
-          setError(true);
-          return;
-        }
-        const data = await r.json();
-        if (!cancelled) setBook(data);
+        setBook(product);
       })
-      .catch(() => {
-        if (!cancelled) setError(true);
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        // A 404 is a genuine "not found"; any other failure is a load
+        // failure that should surface a retry instead of "not found".
+        const status = (err as { status?: number } | null)?.status;
+        if (status === 404) {
+          setBook(null);
+        } else {
+          setError(true);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -148,24 +157,18 @@ export default function StoreBookDetailPage() {
     };
   }, [id, reloadKey]);
 
-  const title = book ? (isArabic ? book.title : book.titleEn || book.title) : "";
-  const description = book
-    ? isArabic
-      ? book.description
-      : book.descriptionEn || book.description
-    : "";
-  const externalLink = book?.buyLink || book?.externalUrl;
+  const meta = (book?.metadata || {}) as Record<string, unknown>;
+  const title = book?.title || "";
+  const description = book?.description || "";
+  const externalLink = (meta.buyLink as string) || (meta.externalUrl as string) || undefined;
 
-  function parsePriceStr(raw: string | null | undefined): number {
-    if (!raw) return 0;
-    const cleaned = String(raw).replace(/[^\d.]/g, "");
-    const n = Number.parseFloat(cleaned);
-    return Number.isFinite(n) ? n : 0;
-  }
-  const paperPrice = parsePriceStr(book?.paperPrice ?? book?.price);
-  const digitalPrice = parsePriceStr(book?.digitalPrice ?? book?.price);
-  const paperOk = !!book?.paperAvailable && paperPrice > 0;
-  const digitalOk = !!book?.digitalAvailable && digitalPrice > 0;
+  const variants = book?.variants || [];
+  const paperVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "paper");
+  const digitalVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "digital");
+  const paperPrice = typeof paperVariant?.calculated_price?.calculated_amount === "number" ? paperVariant.calculated_price.calculated_amount : 0;
+  const digitalPrice = typeof digitalVariant?.calculated_price?.calculated_amount === "number" ? digitalVariant.calculated_price.calculated_amount : 0;
+  const paperOk = !!paperVariant && paperPrice > 0;
+  const digitalOk = !!digitalVariant && digitalPrice > 0;
 
   // Default the selected format to whichever one is available.
   const [selectedFormat, setSelectedFormat] = useState<BookEditionFormat | null>(null);
@@ -173,32 +176,23 @@ export default function StoreBookDetailPage() {
     if (!book) return;
     if (paperOk && !digitalOk) setSelectedFormat("paper");
     else if (digitalOk && !paperOk) setSelectedFormat("digital");
-    else if (paperOk && digitalOk) setSelectedFormat((prev) => prev ?? "paper");
+    else if (paperOk && digitalOk) setSelectedFormat((prev: BookEditionFormat | null) => prev ?? "paper");
     else setSelectedFormat(null);
   }, [book, paperOk, digitalOk]);
 
   const activePrice =
     selectedFormat === "digital" ? digitalPrice : selectedFormat === "paper" ? paperPrice : 0;
-  const inCart = book && selectedFormat ? cart.has("book", book.id, selectedFormat) : false;
-  const canBuy = !!selectedFormat && activePrice > 0;
+  const selectedVariant = selectedFormat === "digital" ? digitalVariant : selectedFormat === "paper" ? paperVariant : undefined;
+  const inCart = selectedVariant ? !!cart.cart?.items?.some((li) => li.variant_id === selectedVariant.id) : false;
+  const canBuy = !!selectedFormat && activePrice > 0 && !!selectedVariant;
 
-  function handleAddToCart() {
-    if (!book || !selectedFormat) return;
-    const price = selectedFormat === "digital" ? digitalPrice : paperPrice;
-    const result = cart.addItem({
-      type: "book",
-      productId: book.id,
-      format: selectedFormat,
-      title,
-      price,
-      currency: book.currency || "EGP",
-      imageUrl: book.coverImageUrl ?? null,
-    });
-    if (!result.ok && result.reason === "currency_mismatch") {
-      const msg = isArabic
-        ? `لا يمكن إضافة منتج بعملة ${result.attempted} إلى سلة بعملة ${result.existing}. أكمل الطلب الحالي أولاً أو أفرغ السلة.`
-        : `Cannot add a ${result.attempted} item to a ${result.existing} cart. Please checkout or clear your cart first.`;
-      window.alert(msg);
+  async function handleAddToCart() {
+    if (!selectedVariant) return;
+    setAddError(false);
+    try {
+      await cart.addItem(selectedVariant.id, 1);
+    } catch {
+      setAddError(true);
       return;
     }
     setJustAdded(true);
@@ -292,9 +286,9 @@ export default function StoreBookDetailPage() {
 
                     {/* Cover */}
                     <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/10 border border-white/5 shadow-2xl shadow-black/40 transition-transform duration-700 group-hover:scale-[1.02]">
-                      {book.coverImageUrl ? (
+                      {book.thumbnail ? (
                         <img
-                          src={book.coverImageUrl}
+                          src={book.thumbnail}
                           alt={title}
                           className="w-full h-full object-cover"
                         />
@@ -305,12 +299,12 @@ export default function StoreBookDetailPage() {
                       )}
                       {/* Top badges */}
                       <div className="absolute top-4 inset-x-4 flex items-start justify-between gap-2 pointer-events-none">
-                        {book.isNewRelease && (
+                        {!!meta.isNewRelease && (
                           <span className="bg-emerald-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-emerald-500/30 inline-flex items-center gap-1">
                             <Sparkles className="w-3 h-3" /> {t.new}
                           </span>
                         )}
-                        {book.isFeatured && (
+                        {!!meta.isFeatured && (
                           <span className="bg-secondary text-secondary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-secondary/30 inline-flex items-center gap-1 ms-auto">
                             <Star className="w-3 h-3 fill-current" /> {t.featured}
                           </span>
@@ -326,12 +320,14 @@ export default function StoreBookDetailPage() {
                 {/* Info */}
                 <div className="min-w-0">
                   {/* Category pill */}
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 mb-5">
-                    <BookOpen className="w-3.5 h-3.5 text-secondary" />
-                    <span className="text-xs font-medium text-secondary uppercase tracking-wide">
-                      {t.cats[book.category]}
-                    </span>
-                  </div>
+                  {typeof meta.category === "string" && meta.category in t.cats && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 mb-5">
+                      <BookOpen className="w-3.5 h-3.5 text-secondary" />
+                      <span className="text-xs font-medium text-secondary uppercase tracking-wide">
+                        {t.cats[meta.category as keyof typeof t.cats]}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Title */}
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight">
@@ -339,18 +335,18 @@ export default function StoreBookDetailPage() {
                   </h1>
 
                   {/* Author */}
-                  {book.author && (
+                  {typeof meta.author === "string" && meta.author && (
                     <p className="text-lg text-muted-foreground mb-6">
                       <span className="text-sm uppercase tracking-wider me-2 opacity-60">
                         {t.by}
                       </span>
-                      <span className="font-medium text-foreground/90">{book.author}</span>
+                      <span className="font-medium text-foreground/90">{meta.author as string}</span>
                     </p>
                   )}
 
                   {/* Status indicator */}
                   <div className="flex items-center gap-2 mb-8">
-                    {book.status === "available" ? (
+                    {paperOk || digitalOk ? (
                       <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400">
                         <span className="relative flex h-2 w-2">
                           <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
@@ -359,14 +355,8 @@ export default function StoreBookDetailPage() {
                         {t.available}
                       </span>
                     ) : (
-                      <span
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
-                          book.status === "coming_soon"
-                            ? "bg-secondary/15 text-secondary/70 border border-secondary/30"
-                            : "bg-red-500/15 text-red-400 border border-red-500/30"
-                        }`}
-                      >
-                        {book.status === "coming_soon" ? t.soon : t.outOfStock}
+                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30">
+                        {t.outOfStock}
                       </span>
                     )}
                   </div>
@@ -385,7 +375,7 @@ export default function StoreBookDetailPage() {
                             label={t.paper}
                             description={t.paperDesc}
                             price={paperPrice}
-                            currency={book.currency || "EGP"}
+                            currency="EGP"
                             available={paperOk}
                             disabledLabel={t.notAvailable}
                             selected={selectedFormat === "paper"}
@@ -396,7 +386,7 @@ export default function StoreBookDetailPage() {
                             label={t.digital}
                             description={t.digitalDesc}
                             price={digitalPrice}
-                            currency={book.currency || "EGP"}
+                            currency="EGP"
                             available={digitalOk}
                             disabledLabel={t.notAvailable}
                             selected={selectedFormat === "digital"}
@@ -410,7 +400,7 @@ export default function StoreBookDetailPage() {
                     )}
 
                     <div className="flex flex-col sm:flex-row gap-3">
-                      {book.status === "available" && canBuy && (
+                      {canBuy && (
                         <Button
                           onClick={handleAddToCart}
                           size="lg"
@@ -431,6 +421,11 @@ export default function StoreBookDetailPage() {
                             <><ShoppingCart className="w-5 h-5" /> {t.addToCart}</>
                           )}
                         </Button>
+                      )}
+                      {addError && (
+                        <p className="text-xs text-red-500 self-center">
+                          {isArabic ? "تعذّرت إضافة المنتج إلى السلة. حاول مرة أخرى." : "Could not add this item to your cart. Please try again."}
+                        </p>
                       )}
                       {externalLink && (
                         <Button
@@ -492,19 +487,21 @@ export default function StoreBookDetailPage() {
                               ? t.paper
                               : digitalOk
                                 ? t.digital
-                                : t.formats[book.format]
+                                : t.notAvailable
                         }
                       />
-                      <DetailRow
-                        icon={Globe}
-                        label={t.language}
-                        value={t.languages[book.language]}
-                      />
-                      {book.pages && (
-                        <DetailRow icon={FileText} label={t.pages} value={book.pages} />
+                      {typeof meta.language === "string" && meta.language in t.languages && (
+                        <DetailRow
+                          icon={Globe}
+                          label={t.language}
+                          value={t.languages[meta.language as keyof typeof t.languages]}
+                        />
                       )}
-                      {book.isbn && (
-                        <DetailRow icon={Hash} label={t.isbn} value={book.isbn} />
+                      {typeof meta.pages === "number" && (
+                        <DetailRow icon={FileText} label={t.pages} value={String(meta.pages)} />
+                      )}
+                      {typeof meta.isbn === "string" && meta.isbn && (
+                        <DetailRow icon={Hash} label={t.isbn} value={meta.isbn} />
                       )}
                     </div>
                   </div>

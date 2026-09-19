@@ -10,8 +10,8 @@ import {
   openPrivateObjectStream,
   privateObjectExists,
   readPrivateObjectMeta,
-} from "../../lib/objectStore";
-import { sendJobApplicationNotification, PLATFORM_URL } from "../../lib/email";
+} from "@workspace/object-store";
+import { sendJobApplicationNotification, PLATFORM_URL } from "../../lib/email/email";
 
 const router = Router();
 

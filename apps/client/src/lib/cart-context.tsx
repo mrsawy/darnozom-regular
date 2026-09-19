@@ -1,225 +1,299 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
-  useMemo,
   useState,
+  useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
+import type { HttpTypes } from "@medusajs/types";
+import type { ClientHeaders } from "@medusajs/js-sdk";
+import { getMedusaClient, getMedusaCustomerToken } from "./medusa-client";
 
-const STORAGE_KEY = "darnozom-cart-v1";
+const CART_ID_STORAGE_KEY = "medusa_cart_id";
 
-export type CartItemType = "book" | "course" | "app";
-export type CartItemFormat = "paper" | "digital";
+// Expansion fields to ensure variant/product metadata is populated on line items.
+// +field syntax adds to defaults. We need variant.metadata.kind for format
+// detection and product.metadata.legacyBookId for hybrid Express order submission.
+const CART_RETRIEVE_FIELDS =
+  "+items,+items.variant,+items.variant.metadata,+items.product,+items.product.metadata";
 
+/**
+ * A normalised cart line item for consumption by cart.tsx and checkout.tsx.
+ * Derived from the Medusa StoreCart line items with extra fields extracted
+ * from variant/product metadata.
+ */
 export interface CartItem {
-  type: CartItemType;
-  productId: number;
-  /** Edition format. Required for books, omitted for courses/apps. */
-  format?: CartItemFormat | null;
+  /** Medusa line item ID — used for remove / update quantity calls. */
+  lineItemId: string;
+  /** Product or line-item title. */
   title: string;
-  price: number;
-  currency: string;
-  imageUrl: string | null;
+  /** Quantity ordered. */
   quantity: number;
+  /** Per-unit price in major currency units (EGP, not piasters). */
+  unitPrice: number;
+  /** Line total (unitPrice × quantity). */
+  total: number;
+  /** Product thumbnail URL (may be null). */
+  thumbnail: string | null;
+  /** Medusa product ID (UUID). */
+  productId: string | null;
+  /** Medusa variant ID (UUID). */
+  variantId: string | null;
+  /** Legacy numeric book ID from product.metadata — used for Express order submission. */
+  legacyProductId: number | null;
+  /** "paper" | "digital" — from variant.metadata.kind. */
+  format: string | null;
+  /** Product type — always "book" for the current store. */
+  type: string;
 }
 
-export type AddItemResult =
-  | { ok: true }
-  | { ok: false; reason: "currency_mismatch"; existing: string; attempted: string };
-
 interface CartContextValue {
+  /** The raw Medusa StoreCart object. */
+  cart: HttpTypes.StoreCart | null;
+  /** Whether the cart is currently loading. */
+  isLoading: boolean;
+
+  // ── Computed helpers ──────────────────────────────────────────────────
+  /** Normalised line items for display. */
   items: CartItem[];
+  /** Total number of items (sum of quantities). */
   count: number;
-  /** Sum of line items (no shipping). */
-  subtotal: number;
-  /** Alias retained for backward compatibility. */
+  /** Cart total in major currency units. */
   total: number;
+  /** Cart subtotal in major currency units. */
+  subtotal: number;
+  /** Uppercased currency code (e.g. "EGP"). */
   currency: string;
-  /** True when at least one paper book is in the cart (= shipping is required). */
+  /** True if any line item has a non-digital variant. */
   hasPaperItems: boolean;
-  /** True when at least one digital book is in the cart (= PayPal required). */
+  /** True if any line item has a digital variant. */
   hasDigitalItems: boolean;
-  addItem: (item: Omit<CartItem, "quantity">, qty?: number) => AddItemResult;
-  removeItem: (type: CartItemType, productId: number, format?: CartItemFormat | null) => void;
-  setQuantity: (
-    type: CartItemType,
-    productId: number,
-    qty: number,
-    format?: CartItemFormat | null,
-  ) => void;
+
+  // ── Mutators ──────────────────────────────────────────────────────────
+  addItem: (variantId: string, quantity: number) => Promise<void>;
+  removeItem: (lineItemId: string) => Promise<void>;
+  updateQuantity: (lineItemId: string, quantity: number) => Promise<void>;
+  /** Clears the cart (removes ID from localStorage, resets state). */
   clear: () => void;
-  has: (type: CartItemType, productId: number, format?: CartItemFormat | null) => boolean;
+  /** Re-fetches the cart from Medusa (e.g. after navigation back to cart). */
+  refreshCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-function sameLine(a: { type: CartItemType; productId: number; format?: CartItemFormat | null }, b: { type: CartItemType; productId: number; format?: CartItemFormat | null }) {
-  return a.type === b.type && a.productId === b.productId && (a.format ?? null) === (b.format ?? null);
+// ── Helpers ───────────────────────────────────────────────────────────────
+
+function getVariantKind(
+  item: HttpTypes.StoreCartLineItem,
+): string | null {
+  const meta = (item as any).variant?.metadata as
+    | Record<string, unknown>
+    | undefined;
+  return typeof meta?.kind === "string" ? meta.kind : null;
 }
 
-function readStorage(): CartItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (it: unknown): it is CartItem =>
-          !!it &&
-          typeof it === "object" &&
-          ["book", "course", "app"].includes((it as CartItem).type) &&
-          typeof (it as CartItem).productId === "number" &&
-          typeof (it as CartItem).quantity === "number",
-      )
-      .map((it) => ({
-        ...it,
-        format: it.format === "paper" || it.format === "digital" ? it.format : null,
-      }));
-  } catch {
-    return [];
+function getLegacyBookId(
+  item: HttpTypes.StoreCartLineItem,
+): number | null {
+  const meta = (item as any).product?.metadata as
+    | Record<string, unknown>
+    | undefined;
+  const raw = meta?.legacyBookId;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string") {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
   }
+  return null;
 }
+
+function mapLineItems(cart: HttpTypes.StoreCart | null): CartItem[] {
+  if (!cart?.items) return [];
+  return cart.items.map((li) => {
+    const kind = getVariantKind(li);
+    return {
+      lineItemId: li.id,
+      title: li.title || li.product_title || "",
+      quantity: li.quantity,
+      unitPrice: li.unit_price ?? 0,
+      total: (li.unit_price ?? 0) * li.quantity,
+      thumbnail: li.thumbnail || null,
+      productId: li.product_id || null,
+      variantId: li.variant_id || null,
+      legacyProductId: getLegacyBookId(li),
+      format: kind,
+      type: "book",
+    };
+  });
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(() => readStorage());
+  const [cart, setCart] = useState<HttpTypes.StoreCart | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore
+  const authHeaders = useCallback((): ClientHeaders => {
+    const token = getMedusaCustomerToken();
+    const headers: ClientHeaders = {};
+    if (token) {
+      headers.authorization = `Bearer ${token}`;
     }
-  }, [items]);
-
-  // Sync between tabs.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setItems(readStorage());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return headers;
   }, []);
 
+  // Retrieve or create cart on mount.
+  useEffect(() => {
+    const sdk = getMedusaClient();
+    const existingCartId = localStorage.getItem(CART_ID_STORAGE_KEY);
+
+    (async () => {
+      try {
+        if (existingCartId) {
+          const { cart: existing } = await sdk.store.cart.retrieve(
+            existingCartId,
+            { fields: CART_RETRIEVE_FIELDS },
+            authHeaders(),
+          );
+          setCart(existing);
+        } else {
+          const { cart: created } = await sdk.store.cart.create(
+            { region_id: undefined, currency_code: "egp" },
+            {},
+            authHeaders(),
+          );
+          localStorage.setItem(CART_ID_STORAGE_KEY, created.id);
+          setCart(created);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [authHeaders]);
+
+  const refreshCart = useCallback(async () => {
+    const cartId = localStorage.getItem(CART_ID_STORAGE_KEY);
+    if (!cartId) return;
+    const sdk = getMedusaClient();
+    const { cart: refreshed } = await sdk.store.cart.retrieve(
+      cartId,
+      { fields: CART_RETRIEVE_FIELDS },
+      authHeaders(),
+    );
+    setCart(refreshed);
+  }, [authHeaders]);
+
   const addItem = useCallback(
-    (item: Omit<CartItem, "quantity">, qty: number = 1): AddItemResult => {
-      const incoming = (item.currency || "EGP").toUpperCase();
-      const normalized: Omit<CartItem, "quantity"> = {
-        ...item,
-        format: item.format === "paper" || item.format === "digital" ? item.format : null,
-      };
-      let outcome: AddItemResult = { ok: true };
-      setItems((prev) => {
-        const existingCurrency = prev.length
-          ? (prev[0].currency || "EGP").toUpperCase()
-          : "";
-        if (existingCurrency && existingCurrency !== incoming) {
-          outcome = {
-            ok: false,
-            reason: "currency_mismatch",
-            existing: existingCurrency,
-            attempted: incoming,
-          };
-          return prev;
-        }
-        const idx = prev.findIndex((p) => sameLine(p, normalized));
-        if (idx >= 0) {
-          const next = prev.slice();
-          next[idx] = {
-            ...next[idx],
-            quantity: Math.min(99, next[idx].quantity + qty),
-          };
-          return next;
-        }
-        return [
-          ...prev,
-          {
-            ...normalized,
-            currency: incoming,
-            quantity: Math.max(1, Math.min(99, qty)),
-          },
-        ];
-      });
-      return outcome;
+    async (variantId: string, quantity: number) => {
+      if (!cart) return;
+      const sdk = getMedusaClient();
+      const { cart: updated } = await sdk.store.cart.createLineItem(
+        cart.id,
+        { variant_id: variantId, quantity },
+        {},
+        authHeaders(),
+      );
+      setCart(updated);
     },
-    [],
+    [cart, authHeaders],
   );
 
   const removeItem = useCallback(
-    (type: CartItemType, productId: number, format: CartItemFormat | null = null) => {
-      setItems((prev) => prev.filter((p) => !sameLine(p, { type, productId, format })));
+    async (lineItemId: string) => {
+      if (!cart) return;
+      const sdk = getMedusaClient();
+      await sdk.store.cart.deleteLineItem(cart.id, lineItemId, {}, authHeaders());
+      const { cart: refreshed } = await sdk.store.cart.retrieve(
+        cart.id,
+        { fields: CART_RETRIEVE_FIELDS },
+        authHeaders(),
+      );
+      setCart(refreshed);
     },
-    [],
+    [cart, authHeaders],
   );
 
-  const setQuantity = useCallback(
-    (type: CartItemType, productId: number, qty: number, format: CartItemFormat | null = null) => {
-      setItems((prev) => {
-        const next = prev.slice();
-        const idx = next.findIndex((p) => sameLine(p, { type, productId, format }));
-        if (idx < 0) return prev;
-        const clamped = Math.max(1, Math.min(99, Math.floor(qty) || 1));
-        next[idx] = { ...next[idx], quantity: clamped };
-        return next;
-      });
+  const updateQuantity = useCallback(
+    async (lineItemId: string, quantity: number) => {
+      if (!cart) return;
+      const sdk = getMedusaClient();
+      const { cart: updated } = await sdk.store.cart.updateLineItem(
+        cart.id,
+        lineItemId,
+        { quantity },
+        {},
+        authHeaders(),
+      );
+      setCart(updated);
     },
-    [],
+    [cart, authHeaders],
   );
 
-  const clear = useCallback(() => setItems([]), []);
+  const clear = useCallback(() => {
+    try {
+      localStorage.removeItem(CART_ID_STORAGE_KEY);
+    } catch {
+      // localStorage unavailable — non-fatal.
+    }
+    setCart(null);
+  }, []);
 
-  const has = useCallback(
-    (type: CartItemType, productId: number, format: CartItemFormat | null = null) =>
-      items.some((p) => sameLine(p, { type, productId, format })),
+  // ── Computed values ─────────────────────────────────────────────────
+
+  const items = useMemo(() => mapLineItems(cart), [cart]);
+
+  const count = useMemo(
+    () => items.reduce((sum, i) => sum + i.quantity, 0),
     [items],
   );
 
-  const { count, subtotal, currency, hasPaperItems, hasDigitalItems } = useMemo(() => {
-    let c = 0;
-    let t = 0;
-    let cur = "EGP";
-    let paper = false;
-    let digital = false;
-    for (const it of items) {
-      c += it.quantity;
-      t += it.price * it.quantity;
-      if (it.currency) cur = it.currency;
-      if (it.type === "book" && it.format === "paper") paper = true;
-      if (it.type === "book" && it.format === "digital") digital = true;
-    }
-    return { count: c, subtotal: t, currency: cur, hasPaperItems: paper, hasDigitalItems: digital };
-  }, [items]);
+  const total = useMemo(() => cart?.total ?? 0, [cart]);
 
-  const value = useMemo<CartContextValue>(
-    () => ({
-      items,
-      count,
-      subtotal,
-      total: subtotal,
-      currency,
-      hasPaperItems,
-      hasDigitalItems,
-      addItem,
-      removeItem,
-      setQuantity,
-      clear,
-      has,
-    }),
-    [items, count, subtotal, currency, hasPaperItems, hasDigitalItems, addItem, removeItem, setQuantity, clear, has],
+  const subtotal = useMemo(() => cart?.subtotal ?? 0, [cart]);
+
+  const currency = useMemo(
+    () => (cart?.currency_code ?? "egp").toUpperCase(),
+    [cart],
   );
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  const hasPaperItems = useMemo(
+    () => items.some((i) => i.format !== "digital"),
+    [items],
+  );
+
+  const hasDigitalItems = useMemo(
+    () => items.some((i) => i.format === "digital"),
+    [items],
+  );
+
+  return (
+    <CartContext.Provider
+      value={{
+        cart,
+        isLoading,
+        items,
+        count,
+        total,
+        subtotal,
+        currency,
+        hasPaperItems,
+        hasDigitalItems,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clear,
+        refreshCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
 }
 
 export function useCart(): CartContextValue {
   const ctx = useContext(CartContext);
-  if (!ctx) {
-    throw new Error("useCart must be used within <CartProvider>");
-  }
+  if (!ctx) throw new Error("useCart must be used within a CartProvider");
   return ctx;
 }
