@@ -53,7 +53,9 @@ jobs:
           MEDUSA_COOKIE_SECRET: ci-build-placeholder
           MEDUSA_DATABASE_URL: postgres://build:build@127.0.0.1:5432/medusa
           MEDUSA_REDIS_URL: redis://127.0.0.1:6379
-        run: pnpm --filter medusa build
+        run: |
+          pnpm --filter medusa build
+          node apps/medusa/scripts/stage-runtime-packages.mjs
 
       - name: Stage API bundle
         # The esbuild bundle deliberately externalises a few packages that can't
