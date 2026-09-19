@@ -403,6 +403,9 @@ chmod 600 "$MEDUSA_ENV"
 umask 022
 
 log "Installing Medusa runtime and migrating"
+# package.json here is the medusa build output, rewritten by
+# apps/medusa/scripts/stage-runtime-packages.mjs so @workspace/* is file:./vendor
+# instead of pnpm's workspace:* protocol, which npm cannot install.
 (cd "$MEDUSA_DIR" && npm install --omit=dev --no-audit --no-fund)
 (
   cd "$MEDUSA_DIR"
