@@ -120,25 +120,17 @@ export default function StoreCoursesPage() {
     return Number.isFinite(n) ? n : 0;
   }
 
+  function courseInCart(id: number) {
+    return cart.items.some((item) => item.type === "course" && item.legacyProductId === id);
+  }
+
   function handleAddCourseToCart(c: StoreCourse) {
-    const numericPrice = parsePrice(c.price);
-    const result = cart.addItem({
-      type: "course",
-      productId: c.id,
-      title: isArabic ? c.titleAr : (c.titleEn || c.titleAr),
-      price: numericPrice,
-      currency: c.currency || "SAR",
-      imageUrl: c.thumbnailUrl ?? null,
-    });
-    if (!result.ok && result.reason === "currency_mismatch") {
-      const msg = isArabic
-        ? `لا يمكن إضافة منتج بعملة ${result.attempted} إلى سلة بعملة ${result.existing}. أكمل الطلب الحالي أولاً أو أفرغ السلة.`
-        : `Cannot add a ${result.attempted} item to a ${result.existing} cart. Please checkout or clear your cart first.`;
-      window.alert(msg);
-      return;
-    }
-    setJustAddedId(c.id);
-    window.setTimeout(() => setJustAddedId(prev => (prev === c.id ? null : prev)), 1400);
+    if (courseInCart(c.id)) return;
+    window.alert(
+      isArabic
+        ? "إضافة الدورات إلى السلة غير متاحة حالياً. السلة مخصصة للكتب عبر Medusa."
+        : "Adding courses to the cart is not available yet. The cart is for books.",
+    );
   }
 
   return (
@@ -249,7 +241,7 @@ export default function StoreCoursesPage() {
                         {c.price ? <>{c.price} {c.currency || "SAR"}</> : "—"}
                       </div>
                       {parsePrice(c.price) > 0 && (() => {
-                        const inCart = cart.has("course", c.id);
+                        const inCart = courseInCart(c.id);
                         const justAdded = justAddedId === c.id;
                         return (
                           <Button
