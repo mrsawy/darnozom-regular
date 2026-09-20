@@ -10,14 +10,18 @@ import {
 import type { HttpTypes } from "@medusajs/types";
 import type { ClientHeaders } from "@medusajs/js-sdk";
 import { getMedusaClient, getMedusaCustomerToken } from "./medusa-client";
+import { variantKind } from "./book-variants";
 
 const CART_ID_STORAGE_KEY = "medusa_cart_id";
 
 // Expansion fields to ensure variant/product metadata is populated on line items.
-// +field syntax adds to defaults. We need variant.metadata.kind for format
-// detection and product.metadata.legacyBookId for hybrid Express order submission.
+// +field syntax adds to defaults. We need variant.metadata.kind and
+// variant.options for format detection (see variantKind in book-variants.ts —
+// a variant created by hand in Medusa Admin has no metadata.kind and is
+// matched by its option value instead) and product.metadata.legacyBookId for
+// hybrid Express order submission.
 const CART_RETRIEVE_FIELDS =
-  "+items,+items.variant,+items.variant.metadata,+items.product,+items.product.metadata";
+  "+items,+items.variant,+items.variant.metadata,+items.variant.options,+items.product,+items.product.metadata";
 
 /**
  * A normalised cart line item for consumption by cart.tsx and checkout.tsx.
@@ -85,15 +89,6 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function getVariantKind(
-  item: HttpTypes.StoreCartLineItem,
-): string | null {
-  const meta = (item as any).variant?.metadata as
-    | Record<string, unknown>
-    | undefined;
-  return typeof meta?.kind === "string" ? meta.kind : null;
-}
-
 function getLegacyBookId(
   item: HttpTypes.StoreCartLineItem,
 ): number | null {
@@ -112,7 +107,7 @@ function getLegacyBookId(
 function mapLineItems(cart: HttpTypes.StoreCart | null): CartItem[] {
   if (!cart?.items) return [];
   return cart.items.map((li) => {
-    const kind = getVariantKind(li);
+    const kind = variantKind(li.variant);
     return {
       lineItemId: li.id,
       title: li.title || li.product_title || "",
