@@ -410,7 +410,7 @@ log "Installing Medusa runtime and migrating"
 (
   cd "$MEDUSA_DIR"
   rm -rf node_modules package-lock.json
-  npm install --omit=dev --no-audit --no-fund
+  npm install --omit=dev --legacy-peer-deps --no-audit --no-fund
   mkdir -p node_modules/@workspace
   for pkg in db object-store payment-gateways; do
     if [ ! -d "vendor/$pkg" ]; then

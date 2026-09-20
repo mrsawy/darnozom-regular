@@ -6,9 +6,9 @@
 // triggers an npm arborist crash (`Cannot read properties of null (reading
 // 'edgesOut')`) on the VPS. So this script:
 //   1. Bundles each workspace package into vendor/<name>/index.js
-//   2. Removes @workspace/* from package.json dependencies
-//   3. Hoists their real npm deps onto the root package.json
-//   4. Leaves vendor/ in place for deploy.sh to copy into node_modules/@workspace
+//   2. Rewrites package.json from the source app package (no workspace:/file:)
+//   3. Hoists only the real npm deps those vendor bundles need at runtime
+//   4. Leaves vendor/ for deploy.sh to copy into node_modules/@workspace
 
 import { createRequire } from "node:module";
 import fs from "node:fs";
@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const serverDir = path.join(repoRoot, "apps/medusa/.medusa/server");
+const sourcePkgPath = path.join(repoRoot, "apps/medusa/package.json");
 const require = createRequire(path.join(repoRoot, "apps/api/package.json"));
 const esbuild = require("esbuild");
 
@@ -25,11 +26,10 @@ const packages = [
     name: "@workspace/db",
     dir: "db",
     entry: "packages/db/src/index.ts",
-    dependencies: {
-      "drizzle-orm": "^0.45.1",
-      "drizzle-zod": "^0.8.3",
-      pg: "^8.20.0",
-    },
+    // Only used by one-off migrate-books/shipping scripts, not medusa start.
+    // Do not hoist drizzle-orm: its optional react-native peers break npm's
+    // peer resolution against Medusa's react@18.
+    dependencies: {},
   },
   {
     name: "@workspace/object-store",
@@ -85,25 +85,26 @@ for (const pkg of packages) {
   );
 }
 
-const pkgPath = path.join(serverDir, "package.json");
-const built = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+const source = JSON.parse(fs.readFileSync(sourcePkgPath, "utf8"));
+const workspaceNames = new Set(packages.map((p) => p.name));
+const dependencies = {};
 
+for (const [name, version] of Object.entries(source.dependencies ?? {})) {
+  if (workspaceNames.has(name) || String(version).startsWith("workspace:")) continue;
+  dependencies[name] = version;
+}
 for (const pkg of packages) {
-  if (!built.dependencies?.[pkg.name]) {
-    console.error(`Built package.json is missing ${pkg.name}`);
-    process.exit(1);
-  }
-  delete built.dependencies[pkg.name];
-  Object.assign(built.dependencies, pkg.dependencies);
+  Object.assign(dependencies, pkg.dependencies);
 }
 
-// Runtime install only needs production deps + start. Dropping packageManager
-// (pnpm) and the monorepo's test/build tooling avoids npm resolving noise.
-delete built.packageManager;
-delete built.devDependencies;
-built.scripts = {
-  start: "medusa start",
+const runtime = {
+  name: source.name,
+  version: source.version,
+  private: true,
+  scripts: { start: "medusa start" },
+  dependencies,
+  engines: source.engines,
 };
 
-fs.writeFileSync(pkgPath, JSON.stringify(built, null, 2) + "\n");
+fs.writeFileSync(path.join(serverDir, "package.json"), JSON.stringify(runtime, null, 2) + "\n");
 console.log("Staged Medusa vendor packages (no workspace:/file: deps).");
