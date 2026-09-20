@@ -11,6 +11,7 @@ import { AdminFab } from "@/components/store/admin-fab";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { getBookVariantInfo } from "@/lib/book-variants";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -88,7 +89,8 @@ export default function StoreBooksPage() {
         const { products: fetched } = await sdk.store.product.list({
           limit: 100,
           region_id: regionId,
-          fields: "*variants,*variants.calculated_price,*variants.metadata",
+          fields:
+            "*variants,*variants.calculated_price,*variants.metadata,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
         });
         if (cancelled) return;
         setProducts(fetched);
@@ -109,13 +111,10 @@ export default function StoreBooksPage() {
   }, [search, category, reloadKey]);
 
   function variantInfo(p: StoreProduct) {
-    const variants = p.variants || [];
-    const paperVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "paper");
-    const digitalVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "digital");
-    const paperPrice = typeof paperVariant?.calculated_price?.calculated_amount === "number" ? paperVariant.calculated_price.calculated_amount : 0;
-    const digitalPrice = typeof digitalVariant?.calculated_price?.calculated_amount === "number" ? digitalVariant.calculated_price.calculated_amount : 0;
-    const paperAvailable = !!paperVariant && paperPrice > 0;
-    const digitalAvailable = !!digitalVariant && digitalPrice > 0;
+    const { paperVariant, digitalVariant, paperPrice, digitalPrice, paperInStock, digitalInStock } =
+      getBookVariantInfo(p);
+    const paperAvailable = !!paperVariant && paperInStock;
+    const digitalAvailable = !!digitalVariant && digitalInStock;
     return { paperVariant, digitalVariant, paperPrice, digitalPrice, paperAvailable, digitalAvailable };
   }
 

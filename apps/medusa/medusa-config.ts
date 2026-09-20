@@ -42,6 +42,32 @@ module.exports = defineConfig({
       resolve: './src/modules/city-shipping',
     },
     {
+      key: Modules.FILE,
+      resolve: '@medusajs/file',
+      options: {
+        providers: [
+          {
+            resolve: '@medusajs/file-local',
+            id: 'local',
+            options: {
+              // Every deploy re-uploads a fresh apps/medusa build and runs
+              // `rm -rf node_modules` in that directory (see deploy/deploy.sh),
+              // so the provider's default `<cwd>/static` would lose every
+              // uploaded product image on the next deploy. MEDUSA_UPLOAD_DIR
+              // points outside the deploy dir instead, mirroring the
+              // PRIVATE_OBJECT_DIR pattern already used for digital-product
+              // files. Falls back to `<cwd>/static` for local dev, where
+              // there's no redeploy wiping it out.
+              upload_dir: process.env.MEDUSA_UPLOAD_DIR || undefined,
+              backend_url:
+                process.env.MEDUSA_UPLOAD_BACKEND_URL ||
+                `${process.env.MEDUSA_BACKEND_URL || 'http://localhost:9010'}/static`,
+            },
+          },
+        ],
+      },
+    },
+    {
       key: Modules.PAYMENT,
       resolve: '@medusajs/payment',
       options: {

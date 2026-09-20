@@ -21,6 +21,7 @@ import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { useCart } from "@/lib/cart-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { getBookVariantInfo } from "@/lib/book-variants";
 import { SiteFooter } from "@/components/site-footer";
 
 type StoreProduct = HttpTypes.StoreProduct;
@@ -131,7 +132,8 @@ export default function StoreBookDetailPage() {
       .then((regionId) =>
         sdk.store.product.retrieve(id, {
           region_id: regionId,
-          fields: "*variants,*variants.calculated_price,*variants.metadata",
+          fields:
+            "*variants,*variants.calculated_price,*variants.metadata,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
         }),
       )
       .then(({ product }) => {
@@ -162,13 +164,11 @@ export default function StoreBookDetailPage() {
   const description = book?.description || "";
   const externalLink = (meta.buyLink as string) || (meta.externalUrl as string) || undefined;
 
-  const variants = book?.variants || [];
-  const paperVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "paper");
-  const digitalVariant = variants.find((v) => (v.metadata as Record<string, unknown> | undefined)?.kind === "digital");
-  const paperPrice = typeof paperVariant?.calculated_price?.calculated_amount === "number" ? paperVariant.calculated_price.calculated_amount : 0;
-  const digitalPrice = typeof digitalVariant?.calculated_price?.calculated_amount === "number" ? digitalVariant.calculated_price.calculated_amount : 0;
-  const paperOk = !!paperVariant && paperPrice > 0;
-  const digitalOk = !!digitalVariant && digitalPrice > 0;
+  const { paperVariant, digitalVariant, paperPrice, digitalPrice, paperInStock, digitalInStock } = book
+    ? getBookVariantInfo(book)
+    : { paperVariant: undefined, digitalVariant: undefined, paperPrice: 0, digitalPrice: 0, paperInStock: false, digitalInStock: false };
+  const paperOk = !!paperVariant && paperInStock;
+  const digitalOk = !!digitalVariant && digitalInStock;
 
   // Default the selected format to whichever one is available.
   const [selectedFormat, setSelectedFormat] = useState<BookEditionFormat | null>(null);
