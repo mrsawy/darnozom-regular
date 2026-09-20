@@ -2,9 +2,13 @@
 //
 // `medusa build` copies apps/medusa/package.json into .medusa/server, including
 // `@workspace/*` dependencies pinned to `workspace:*`. The deploy host runs
-// npm, which rejects that pnpm-only protocol. This script bundles those
-// packages (they are TypeScript, so Node cannot load the source as published)
-// and points the built package.json at `file:` copies npm can install.
+// npm, which rejects that pnpm-only protocol. Using `file:./vendor/...` instead
+// triggers an npm arborist crash (`Cannot read properties of null (reading
+// 'edgesOut')`) on the VPS. So this script:
+//   1. Bundles each workspace package into vendor/<name>/index.js
+//   2. Removes @workspace/* from package.json dependencies
+//   3. Hoists their real npm deps onto the root package.json
+//   4. Leaves vendor/ in place for deploy.sh to copy into node_modules/@workspace
 
 import { createRequire } from "node:module";
 import fs from "node:fs";
@@ -25,7 +29,6 @@ const packages = [
       "drizzle-orm": "^0.45.1",
       "drizzle-zod": "^0.8.3",
       pg: "^8.20.0",
-      zod: "^3.25.76",
     },
   },
   {
@@ -72,11 +75,9 @@ for (const pkg of packages) {
       {
         name: pkg.name,
         version: "0.0.0",
-        private: true,
         type: "module",
         main: "./index.js",
         exports: { ".": "./index.js" },
-        dependencies: pkg.dependencies,
       },
       null,
       2,
@@ -86,13 +87,23 @@ for (const pkg of packages) {
 
 const pkgPath = path.join(serverDir, "package.json");
 const built = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+
 for (const pkg of packages) {
   if (!built.dependencies?.[pkg.name]) {
     console.error(`Built package.json is missing ${pkg.name}`);
     process.exit(1);
   }
-  built.dependencies[pkg.name] = `file:./vendor/${pkg.dir}`;
+  delete built.dependencies[pkg.name];
+  Object.assign(built.dependencies, pkg.dependencies);
 }
+
+// Runtime install only needs production deps + start. Dropping packageManager
+// (pnpm) and the monorepo's test/build tooling avoids npm resolving noise.
 delete built.packageManager;
+delete built.devDependencies;
+built.scripts = {
+  start: "medusa start",
+};
+
 fs.writeFileSync(pkgPath, JSON.stringify(built, null, 2) + "\n");
-console.log("Staged Medusa workspace packages for npm install.");
+console.log("Staged Medusa vendor packages (no workspace:/file: deps).");

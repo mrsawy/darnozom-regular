@@ -403,10 +403,24 @@ chmod 600 "$MEDUSA_ENV"
 umask 022
 
 log "Installing Medusa runtime and migrating"
-# package.json here is the medusa build output, rewritten by
-# apps/medusa/scripts/stage-runtime-packages.mjs so @workspace/* is file:./vendor
-# instead of pnpm's workspace:* protocol, which npm cannot install.
-(cd "$MEDUSA_DIR" && npm install --omit=dev --no-audit --no-fund)
+# stage-runtime-packages.mjs removes @workspace/* from package.json and leaves
+# bundled copies under vendor/. npm cannot install workspace:* or (reliably)
+# file: deps here, so we install published packages then drop the vendor
+# packages into node_modules/@workspace by hand.
+(
+  cd "$MEDUSA_DIR"
+  rm -rf node_modules package-lock.json
+  npm install --omit=dev --no-audit --no-fund
+  mkdir -p node_modules/@workspace
+  for pkg in db object-store payment-gateways; do
+    if [ ! -d "vendor/$pkg" ]; then
+      echo "Missing Medusa vendor package: vendor/$pkg" >&2
+      exit 1
+    fi
+    rm -rf "node_modules/@workspace/$pkg"
+    cp -a "vendor/$pkg" "node_modules/@workspace/$pkg"
+  done
+)
 (
   cd "$MEDUSA_DIR"
   set -a
