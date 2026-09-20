@@ -374,6 +374,15 @@ if [ ! -f "$MEDUSA_DIR/package.json" ]; then
   exit 1
 fi
 
+# Product image uploads (Admin > Products > Media) go through the local file
+# provider (see apps/medusa/medusa-config.ts). Its dir must live outside
+# $MEDUSA_DIR: that directory is `rm -rf`'d and reinstalled fresh on every
+# deploy below, so uploads stored under the app's own `static/` would vanish
+# on the very next deploy. Same persistent-outside-the-app-dir pattern as
+# PRIVATE_OBJECT_DIR/OBJECTS_DIR above.
+MEDUSA_UPLOAD_DIR="$ROOT/medusa-uploads"
+mkdir -p "$MEDUSA_UPLOAD_DIR"
+
 log "Writing $MEDUSA_ENV"
 umask 077
 cat > "$MEDUSA_ENV" <<EOF
@@ -385,6 +394,8 @@ MEDUSA_JWT_SECRET=$MEDUSA_JWT_SECRET
 MEDUSA_COOKIE_SECRET=$MEDUSA_COOKIE_SECRET
 MEDUSA_ADMIN_CORS=https://$MEDUSA_HOST
 MEDUSA_STORE_CORS=https://$DOMAIN,https://www.$DOMAIN
+MEDUSA_BACKEND_URL=https://$MEDUSA_HOST
+MEDUSA_UPLOAD_DIR=$MEDUSA_UPLOAD_DIR
 AUTH_MFA_ENCRYPTION_KEY=$AUTH_MFA_ENCRYPTION_KEY
 BETTER_AUTH_BRIDGE_SECRET=$BETTER_AUTH_BRIDGE_SECRET
 PAYMOB_API_KEY=${PAYMOB_API_KEY:-}

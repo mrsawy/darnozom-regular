@@ -56,8 +56,10 @@ function buildVariants(book: BookRow) {
     variants.push({
       title: "Paper",
       sku: `book-${book.id}-paper`,
+      // Medusa v2 stores prices as decimal major units (10 means 10.00 EGP),
+      // unlike v1's cents-based amounts — no *100 scaling here.
       prices: [
-        { amount: Math.round(Number(book.paperPrice) * 100), currency_code: currencyCode(book.currency) },
+        { amount: Number(book.paperPrice), currency_code: currencyCode(book.currency) },
       ],
       metadata: { kind: "paper" },
     });
@@ -68,7 +70,7 @@ function buildVariants(book: BookRow) {
       title: "Digital",
       sku: `book-${book.id}-digital`,
       prices: [
-        { amount: Math.round(Number(book.digitalPrice) * 100), currency_code: currencyCode(book.currency) },
+        { amount: Number(book.digitalPrice), currency_code: currencyCode(book.currency) },
       ],
       metadata: { kind: "digital" },
     });

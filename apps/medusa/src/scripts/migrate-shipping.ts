@@ -26,7 +26,10 @@ export async function migrateShipping(deps: MigrateShippingDeps): Promise<number
   const rows = await deps.shippingDb.select().from();
   const input: CityRateInput[] = rows.map((r) => ({
     city: r.city,
-    price: Math.round(Number(r.price) * 100),
+    // Decimal major units (50 means 50.00 EGP) — see city-rate.ts model
+    // comment. Source rows are already decimal strings (e.g. "50.00"), same
+    // convention as the Express shippingRates table this reads from.
+    price: Number(r.price),
     currency: r.currency.toLowerCase(),
     isDefault: r.isDefault,
   }));

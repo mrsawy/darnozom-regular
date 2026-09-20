@@ -19,9 +19,11 @@ describe("migrateShipping", () => {
     const count = await migrateShipping({ shippingDb: shippingDb as any, cityShippingService });
 
     expect(count).toBe(2);
+    // Decimal major units (50 means 50.00 EGP) — matches the source rows'
+    // own convention, no ×100 scaling. See city-rate.ts model comment.
     expect(addCityRates).toHaveBeenCalledWith([
-      { city: "Cairo", price: 5000, currency: "egp", isDefault: false },
-      { city: "Other", price: 8000, currency: "egp", isDefault: true },
+      { city: "Cairo", price: 50, currency: "egp", isDefault: false },
+      { city: "Other", price: 80, currency: "egp", isDefault: true },
     ]);
   });
 });
