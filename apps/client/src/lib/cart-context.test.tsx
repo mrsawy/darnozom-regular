@@ -222,4 +222,41 @@ describe("CartProvider / useCart", () => {
     expect(localStorage.getItem("medusa_cart_id")).toBeNull();
     expect(screen.getByTestId("count").textContent).toBe("0");
   });
+
+  // Regression: checkout rejected an order with "Book items must specify a
+  // format (paper or digital)" for a product created by hand in Medusa
+  // Admin — its variant has no metadata.kind (only migrate-books.ts sets
+  // that), just an option value ("ورقي"). mapLineItems must fall back to
+  // the same option-value matching book-variants.ts already does for the
+  // product pages, or `format` silently stays null all the way to checkout.
+  it("detects format from the variant's option value when metadata.kind is absent (hand-created Admin product)", async () => {
+    localStorage.setItem("medusa_cart_id", "cart_1");
+    const handCreatedLineItem = {
+      id: "li_hand_created",
+      title: "كتاب الرحيق المختوم",
+      quantity: 1,
+      unit_price: 600,
+      thumbnail: null,
+      variant_id: "variant_hand_created",
+      product_id: "prod_hand_created",
+      product_title: "كتاب الرحيق المختوم",
+      variant: { metadata: {}, options: [{ value: "ورقي" }], title: "ورقي" },
+      product: { metadata: {} },
+    };
+    const sdk = makeSdk(
+      { cart: fakeCartEmpty },
+      { cart: { ...fakeCartWithItems, items: [handCreatedLineItem] } },
+    );
+    vi.spyOn(medusaClient, "getMedusaClient").mockReturnValue(sdk as any);
+
+    render(
+      <CartProvider>
+        <TestConsumer />
+      </CartProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+    expect(screen.getByTestId("li_hand_created-format").textContent).toBe("paper");
+    expect(screen.getByTestId("has-paper").textContent).toBe("true");
+  });
 });
