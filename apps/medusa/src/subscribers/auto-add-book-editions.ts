@@ -14,14 +14,28 @@ import {
  * (a "ptyp_..." id from Admin > Settings > Product Types) rather than
  * hardcoded here or matched by the type's title, which could be renamed.
  *
- * Fires on both product.created and product.updated — a product's type can
- * be set after creation, and the type itself could be assigned later too.
+ * Fires on product.created only, deliberately not product.updated. The
+ * option/variant creation this subscriber does itself goes through
+ * createAndLinkProductOptionsToProductWorkflow, which emits its own
+ * product.updated when it finishes — if this subscriber also listened for
+ * product.updated, that self-triggered event races the original
+ * invocation: read-your-own-writes isn't guaranteed between concurrent
+ * query.graph calls, so the second invocation can see the product as not
+ * having a "Format" option yet (the first invocation's write hasn't landed
+ * from its point of view) and attempt to create a second one, which fails
+ * with "Product option with title: Format, already exists." — reproduced
+ * directly via src/scripts/debug-book-subscriber.ts during development.
+ * product.created-only avoids the self-trigger entirely. The tradeoff: a
+ * product whose type is set to Book *after* creation (rather than at
+ * creation time) won't get auto-added editions — re-saving the product
+ * with a trivial edit re-fires product.updated, which isn't handled, so
+ * for now that case needs the admin to add paper/digital variants by hand,
+ * same as before this subscriber existed.
+ *
  * Idempotent: does nothing if the product already has any variant carrying
- * metadata.kind "paper" or "digital" (covers both a rerun of this
- * subscriber's own work — it creates variants with that metadata, and its
- * own edit goes through createAndLinkProductOptionsToProductWorkflow, which
- * re-emits product.updated, so without this guard it would loop — and a
- * book variant an admin already added by hand).
+ * metadata.kind "paper" or "digital" — covers a genuinely duplicate
+ * product.created delivery, and a book variant an admin already added by
+ * hand before the type was assigned.
  */
 
 interface ProductVariantLike {
@@ -82,7 +96,18 @@ export default async function autoAddBookEditionsHandler({
       await createAndLinkProductOptionsToProductWorkflow(container).run({
         input: {
           product_id: product.id,
-          add: [{ title: FORMAT_OPTION_TITLE, values: [PAPER_VALUE, DIGITAL_VALUE] }],
+          // is_exclusive: true is required here. Unlike options created as
+          // part of product creation itself (where Medusa's product module
+          // defaults is_exclusive to true), this workflow's create-option
+          // path leaves it unset, which the DB defaults to false — and a
+          // non-exclusive option's title must be globally unique across
+          // every product in the store (IDX_product_option_global_title_unique).
+          // Without this, the first Book product to get a "Format" option
+          // succeeds and silently becomes a shared, non-exclusive option;
+          // every subsequent Book product then fails with "Product option
+          // with title: Format, already exists." Reproduced directly via
+          // src/scripts/debug-book-subscriber.ts during development.
+          add: [{ title: FORMAT_OPTION_TITLE, values: [PAPER_VALUE, DIGITAL_VALUE], is_exclusive: true }],
         },
       });
     } else if (needsPaperValue || needsDigitalValue) {
@@ -105,6 +130,21 @@ export default async function autoAddBookEditionsHandler({
       });
     }
 
+    // A variant must specify a value for every option on the product, not
+    // just the one this subscriber added — e.g. Admin's "Create Product"
+    // form, when you don't touch Options at all, gives the product a
+    // "Default option"/"Default option value" pair by default, and Medusa
+    // rejects a variant that only names "Format" with "Product has N option
+    // values but there were 1 provided ... for the variant" (reproduced via
+    // src/scripts/debug-book-subscriber.ts). Carry every other option's
+    // first value through unchanged.
+    const otherOptionValues = Object.fromEntries(
+      (product.options ?? [])
+        .filter((o) => o.title.trim().toLowerCase() !== FORMAT_OPTION_TITLE.toLowerCase())
+        .map((o) => [o.title, o.values?.[0]?.value])
+        .filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+    );
+
     await createProductVariantsWorkflow(container).run({
       input: {
         product_variants: [
@@ -112,14 +152,14 @@ export default async function autoAddBookEditionsHandler({
             product_id: product.id,
             title: "Paper",
             sku: `${product.id}-paper`,
-            options: { [FORMAT_OPTION_TITLE]: PAPER_VALUE },
+            options: { ...otherOptionValues, [FORMAT_OPTION_TITLE]: PAPER_VALUE },
             metadata: { kind: "paper" },
           },
           {
             product_id: product.id,
             title: "Digital",
             sku: `${product.id}-digital`,
-            options: { [FORMAT_OPTION_TITLE]: DIGITAL_VALUE },
+            options: { ...otherOptionValues, [FORMAT_OPTION_TITLE]: DIGITAL_VALUE },
             metadata: { kind: "digital" },
           },
         ],
@@ -132,12 +172,12 @@ export default async function autoAddBookEditionsHandler({
     // add paper/digital variants manually if this doesn't fire.
     logger.error(
       `auto-add-book-editions: failed for product ${event.data.id}: ${
-        err instanceof Error ? err.message : String(err)
+        err instanceof Error ? err.stack || err.message : JSON.stringify(err)
       }`,
     );
   }
 }
 
 export const config: SubscriberConfig = {
-  event: ["product.created", "product.updated"],
+  event: "product.created",
 };

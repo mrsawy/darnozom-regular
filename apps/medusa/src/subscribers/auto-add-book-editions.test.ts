@@ -57,7 +57,7 @@ describe("auto-add-book-editions subscriber", () => {
     expect(createVariantsRunMock).not.toHaveBeenCalled();
   });
 
-  it("creates a Format option and paper/digital variants for a fresh Book-type product", async () => {
+  it("creates an exclusive Format option and paper/digital variants for a fresh Book-type product", async () => {
     const { container } = makeContainer({
       id: "prod_1",
       type_id: BOOK_TYPE_ID,
@@ -67,10 +67,15 @@ describe("auto-add-book-editions subscriber", () => {
 
     await autoAddBookEditionsHandler({ event: { data: { id: "prod_1" } }, container: container as any });
 
+    // is_exclusive: true matters — without it the option defaults to
+    // globally shared (is_exclusive: false in the DB), and the second Book
+    // product ever created fails with "Product option with title: Format,
+    // already exists." (IDX_product_option_global_title_unique). Reproduced
+    // against a real local Medusa instance before this fix.
     expect(createOptionsRunMock).toHaveBeenCalledWith({
       input: {
         product_id: "prod_1",
-        add: [{ title: "Format", values: ["Paper", "Digital"] }],
+        add: [{ title: "Format", values: ["Paper", "Digital"], is_exclusive: true }],
       },
     });
     expect(createVariantsRunMock).toHaveBeenCalledWith({
@@ -90,6 +95,34 @@ describe("auto-add-book-editions subscriber", () => {
             options: { Format: "Digital" },
             metadata: { kind: "digital" },
           },
+        ],
+      },
+    });
+  });
+
+  it("carries every other existing option's value onto the new variants (e.g. Admin's default option)", async () => {
+    const { container } = makeContainer({
+      id: "prod_1",
+      type_id: BOOK_TYPE_ID,
+      // Admin's "Create Product" form gives every product this pair by
+      // default when Options is left untouched — a variant that only names
+      // "Format" and omits it is rejected with "Product has N option values
+      // but there were 1 provided ... for the variant".
+      options: [{ id: "opt_default", title: "Default option", values: [{ value: "Default option value" }] }],
+      variants: [],
+    });
+
+    await autoAddBookEditionsHandler({ event: { data: { id: "prod_1" } }, container: container as any });
+
+    expect(createVariantsRunMock).toHaveBeenCalledWith({
+      input: {
+        product_variants: [
+          expect.objectContaining({
+            options: { "Default option": "Default option value", Format: "Paper" },
+          }),
+          expect.objectContaining({
+            options: { "Default option": "Default option value", Format: "Digital" },
+          }),
         ],
       },
     });
