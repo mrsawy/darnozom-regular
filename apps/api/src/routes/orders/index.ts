@@ -22,6 +22,7 @@ import {
 import { computeFormats } from "../books";
 import { fetchBookProduct, variantPrice, variantInStock, variantKind } from "../../lib/medusa-book-variants";
 import { syncMedusaCustomer } from "../../lib/medusa-customer-sync";
+import { syncMedusaOrder } from "../../lib/medusa-order-sync";
 import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
@@ -123,6 +124,8 @@ interface ResolvedProduct {
   currency: string;
   imageUrl: string | null;
   digitalFileUrl?: string | null;
+  /** Medusa variant id when resolved from a Medusa product (for order sync). */
+  variantId?: string | null;
 }
 
 async function lookupBookProduct(
@@ -214,6 +217,7 @@ async function lookupBookProduct(
     // save()). Until that exists, a Medusa digital book resolves to no file
     // and purchase.ts's digitalFileUrlSnapshot stays null for it.
     digitalFileUrl: null,
+    variantId: variant.id,
   };
 }
 
@@ -496,6 +500,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
       imageUrl: string | null;
       format: Format | null;
       digitalFileUrl: string | null;
+      variantId: string | null;
     }> = [];
     let total = 0;
     let totalCount = 0;
@@ -536,6 +541,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         imageUrl: p.imageUrl,
         format: it.format ?? null,
         digitalFileUrl: p.digitalFileUrl ?? null,
+        variantId: p.variantId ?? it.variantId ?? null,
       });
     }
 
@@ -660,6 +666,30 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
       await syncMedusaCustomer({ email, fullName, phone });
     } catch (err) {
       req.log.error({ err, orderId: order.id }, "medusa customer sync failed");
+    }
+
+    // Mirror this order into Medusa Admin > Orders (draft → convert). Same
+    // best-effort posture as customer sync: never block the Express order.
+    try {
+      await syncMedusaOrder({
+        darnozomOrderId: order.id,
+        email,
+        fullName,
+        phone,
+        address,
+        city: shippingCity ?? city,
+        currencyCode: currency,
+        shippingTotal,
+        paymentMethod,
+        items: resolved.map((r) => ({
+          title: r.productTitle,
+          quantity: r.quantity,
+          unitPrice: r.unitPrice,
+          variantId: r.variantId,
+        })),
+      });
+    } catch (err) {
+      req.log.error({ err, orderId: order.id }, "medusa order sync failed");
     }
 
     // Dedupe: this new order supersedes the user's older *online-payment*

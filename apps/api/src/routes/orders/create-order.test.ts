@@ -193,6 +193,12 @@ function mockMedusaProduct(opts: {
     // find-vs-create behavior directly.
     if (path.startsWith("/admin/customers?")) return { customers: [] };
     if (path === "/admin/customers") return { customer: { id: "cus_test", email: "buyer@example.com" } };
+    // Order sync (syncMedusaOrder) — best-effort; return minimal stubs so
+    // create-order tests aren't noisy when the sync path fires.
+    if (path.startsWith("/admin/regions")) return { regions: [{ id: "reg_test" }] };
+    if (path.startsWith("/admin/sales-channels")) return { sales_channels: [{ id: "sc_test" }] };
+    if (path === "/admin/draft-orders") return { draft_order: { id: "order_synced" } };
+    if (path.includes("/convert-to-order")) return { order: { id: "order_synced" } };
     throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
   });
 }
