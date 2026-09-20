@@ -20,7 +20,7 @@ import {
   readPrivateObjectMeta,
 } from "@workspace/object-store";
 import { computeFormats } from "../books";
-import { fetchBookProduct, variantPrice, variantInStock } from "../../lib/medusa-book-variants";
+import { fetchBookProduct, variantPrice, variantInStock, variantKind } from "../../lib/medusa-book-variants";
 import { syncMedusaCustomer } from "../../lib/medusa-customer-sync";
 import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
@@ -93,6 +93,12 @@ interface IncomingItem {
   productId: number | string;
   quantity: number;
   format?: Format | null;
+  // The exact Medusa variant the shopper picked — needed once a book has
+  // more than one paper (or digital) edition, since "format" alone can no
+  // longer tell them apart. Optional: legacy/test callers that only send
+  // format still resolve to the first in-stock variant of that format
+  // (see lookupBookProduct).
+  variantId?: string | null;
 }
 
 // order_items.product_id is a text column so it can hold both Medusa string
@@ -123,6 +129,7 @@ async function lookupBookProduct(
   productId: number | string,
   format: Format | null,
   currency: string,
+  variantId?: string | null,
 ): Promise<ResolvedProduct | { error: string } | null> {
   // Numeric id: pre-Medusa legacy book, resolved against the old `books`
   // table for back-compat. Everything the live storefront sends is a
@@ -170,20 +177,23 @@ async function lookupBookProduct(
     };
   }
 
-  // Medusa-native book: resolve paper/digital variant the same way the
-  // storefront's product pages do (see apps/api/src/lib/medusa-book-variants.ts
-  // and its client-side twin, apps/client/src/lib/book-variants.ts), then
-  // read price and stock straight off the matched variant. No dependency on
-  // the legacy `books` table at all — any product creatable via
-  // /admin/books (Medusa-native) is now orderable, whether or not it was
-  // ever migrated from the old table.
+  // Medusa-native book: resolve the exact variant the shopper picked (a
+  // book can have more than one paper — or digital — edition, e.g. two
+  // paper tiers; "format" alone can't distinguish between them). Falls back
+  // to the first in-stock variant of that format when no variantId is sent
+  // (legacy/test callers, or a client older than this change).
   const product = await fetchBookProduct(productId);
   if (!product) return null;
   const fmt = format ?? "paper";
-  const variant = fmt === "paper" ? product.paperVariant : product.digitalVariant;
+  const sameFormatVariants = product.variants.filter((v) => variantKind(v) === fmt);
+  const variant = variantId
+    ? sameFormatVariants.find((v) => v.id === variantId)
+    : (sameFormatVariants.find((v) => variantInStock(v)) ?? sameFormatVariants[0]);
   if (!variant) {
     return {
-      error: `${fmt === "paper" ? "Paper" : "Digital"} edition is not available for "${product.title}"`,
+      error: variantId
+        ? `The selected edition is no longer available for "${product.title}"`
+        : `${fmt === "paper" ? "Paper" : "Digital"} edition is not available for "${product.title}"`,
     };
   }
   if (!variantInStock(variant)) {
@@ -211,6 +221,7 @@ async function lookupProduct(
   productType: ProductType,
   productId: number | string,
   format: Format | null,
+  variantId?: string | null,
 ): Promise<ResolvedProduct | { error: string } | null> {
   if (productType === "book") {
     // Medusa variant prices are looked up by currency code, unlike the
@@ -220,7 +231,7 @@ async function lookupProduct(
     // and orders/index.ts's own online-payment EGP check further down), so
     // resolve against EGP; a genuinely mixed-currency cart still gets
     // rejected below exactly as it does today.
-    return lookupBookProduct(productId, format, "EGP");
+    return lookupBookProduct(productId, format, "EGP", variantId);
   }
   // Courses and apps are still legacy Drizzle rows with numeric ids — a
   // string (Medusa) id here is a client bug, not a valid lookup.
@@ -438,12 +449,20 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         }
         format = f;
       }
-      const key = `${productType}#${productId}#${format ?? ""}`;
+      // The exact variant, when the client sends one (see IncomingItem) — a
+      // book with more than one edition per format needs this to know which
+      // one was actually picked. Absent for course/app and for any client
+      // predating this field.
+      const variantId =
+        productType === "book" && typeof r.variantId === "string" && r.variantId.trim()
+          ? r.variantId.trim()
+          : null;
+      const key = `${productType}#${productId}#${format ?? ""}#${variantId ?? ""}`;
       const existing = itemMap.get(key);
       if (existing) {
         existing.quantity = Math.min(99, existing.quantity + quantity);
       } else {
-        itemMap.set(key, { productType, productId, quantity, format });
+        itemMap.set(key, { productType, productId, quantity, format, variantId });
       }
     }
     const items: IncomingItem[] = Array.from(itemMap.values());
@@ -470,7 +489,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
     let hasDigital = false;
 
     for (const it of items) {
-      const p = await lookupProduct(it.productType, it.productId, it.format ?? null);
+      const p = await lookupProduct(it.productType, it.productId, it.format ?? null, it.variantId);
       if (!p) {
         return res
           .status(404)

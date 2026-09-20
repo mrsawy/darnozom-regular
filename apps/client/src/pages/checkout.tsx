@@ -431,6 +431,10 @@ export default function CheckoutPage() {
             productId: it.legacyProductId ?? it.productId,
             quantity: it.quantity,
             format: it.format ?? undefined,
+            // The exact Medusa variant in the cart — lets the server tell
+            // apart multiple editions of the same format (e.g. two paper
+            // editions). See orders/index.ts's lookupBookProduct.
+            variantId: it.variantId ?? undefined,
           })),
         }),
       });

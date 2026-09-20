@@ -164,27 +164,37 @@ export default function StoreBookDetailPage() {
   const description = book?.description || "";
   const externalLink = (meta.buyLink as string) || (meta.externalUrl as string) || undefined;
 
-  const { paperVariant, digitalVariant, paperPrice, digitalPrice, paperInStock, digitalInStock } = book
+  const { paperEditions, digitalEditions } = book
     ? getBookVariantInfo(book)
-    : { paperVariant: undefined, digitalVariant: undefined, paperPrice: 0, digitalPrice: 0, paperInStock: false, digitalInStock: false };
-  const paperOk = !!paperVariant && paperInStock;
-  const digitalOk = !!digitalVariant && digitalInStock;
+    : { paperEditions: [], digitalEditions: [] };
+  const paperOk = paperEditions.some((e) => e.inStock);
+  const digitalOk = digitalEditions.some((e) => e.inStock);
 
-  // Default the selected format to whichever one is available.
-  const [selectedFormat, setSelectedFormat] = useState<BookEditionFormat | null>(null);
+  // Selection is by exact variant id, not just "paper"/"digital" — a book
+  // can have more than one edition per format (e.g. two paper tiers), and
+  // each is added to the cart / ordered as its own distinct variant.
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   useEffect(() => {
     if (!book) return;
-    if (paperOk && !digitalOk) setSelectedFormat("paper");
-    else if (digitalOk && !paperOk) setSelectedFormat("digital");
-    else if (paperOk && digitalOk) setSelectedFormat((prev: BookEditionFormat | null) => prev ?? "paper");
-    else setSelectedFormat(null);
-  }, [book, paperOk, digitalOk]);
+    setSelectedVariantId((prev) => {
+      if (prev && [...paperEditions, ...digitalEditions].some((e) => e.variant.id === prev)) return prev;
+      const firstInStock =
+        [...paperEditions, ...digitalEditions].find((e) => e.inStock) ??
+        paperEditions[0] ??
+        digitalEditions[0];
+      return firstInStock?.variant.id ?? null;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book]);
 
-  const activePrice =
-    selectedFormat === "digital" ? digitalPrice : selectedFormat === "paper" ? paperPrice : 0;
-  const selectedVariant = selectedFormat === "digital" ? digitalVariant : selectedFormat === "paper" ? paperVariant : undefined;
+  const selectedEdition = [...paperEditions, ...digitalEditions].find(
+    (e) => e.variant.id === selectedVariantId,
+  );
+  const selectedFormat: BookEditionFormat | null = selectedEdition?.kind ?? null;
+  const activePrice = selectedEdition?.price ?? 0;
+  const selectedVariant = selectedEdition?.variant;
   const inCart = selectedVariant ? !!cart.cart?.items?.some((li) => li.variant_id === selectedVariant.id) : false;
-  const canBuy = !!selectedFormat && activePrice > 0 && !!selectedVariant;
+  const canBuy = !!selectedEdition && activePrice > 0 && selectedEdition.inStock;
 
   async function handleAddToCart() {
     if (!selectedVariant) return;
@@ -363,35 +373,48 @@ export default function StoreBookDetailPage() {
 
                   {/* Purchase panel */}
                   <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-6 mb-10">
-                    {/* Format selector */}
-                    {(paperOk || digitalOk) && (
+                    {/* Edition selector — every paper/digital variant the
+                        product actually has, not just one of each. A book
+                        can carry more than one edition per format (e.g. two
+                        paper tiers); all of them must be choosable. */}
+                    {(paperEditions.length > 0 || digitalEditions.length > 0) && (
                       <div className="mb-5">
                         <div className="text-xs font-semibold text-secondary mb-3 uppercase tracking-[0.15em]">
                           {t.chooseEdition}
                         </div>
                         <div className="grid sm:grid-cols-2 gap-3">
-                          <FormatOption
-                            id="paper"
-                            label={t.paper}
-                            description={t.paperDesc}
-                            price={paperPrice}
-                            currency="EGP"
-                            available={paperOk}
-                            disabledLabel={t.notAvailable}
-                            selected={selectedFormat === "paper"}
-                            onSelect={() => paperOk && setSelectedFormat("paper")}
-                          />
-                          <FormatOption
-                            id="digital"
-                            label={t.digital}
-                            description={t.digitalDesc}
-                            price={digitalPrice}
-                            currency="EGP"
-                            available={digitalOk}
-                            disabledLabel={t.notAvailable}
-                            selected={selectedFormat === "digital"}
-                            onSelect={() => digitalOk && setSelectedFormat("digital")}
-                          />
+                          {paperEditions.map((edition) => (
+                            <FormatOption
+                              key={edition.variant.id}
+                              id={edition.variant.id}
+                              label={
+                                paperEditions.length > 1 ? `${t.paper} — ${edition.label}` : t.paper
+                              }
+                              description={t.paperDesc}
+                              price={edition.price}
+                              currency="EGP"
+                              available={edition.inStock}
+                              disabledLabel={t.notAvailable}
+                              selected={selectedVariantId === edition.variant.id}
+                              onSelect={() => edition.inStock && setSelectedVariantId(edition.variant.id)}
+                            />
+                          ))}
+                          {digitalEditions.map((edition) => (
+                            <FormatOption
+                              key={edition.variant.id}
+                              id={edition.variant.id}
+                              label={
+                                digitalEditions.length > 1 ? `${t.digital} — ${edition.label}` : t.digital
+                              }
+                              description={t.digitalDesc}
+                              price={edition.price}
+                              currency="EGP"
+                              available={edition.inStock}
+                              disabledLabel={t.notAvailable}
+                              selected={selectedVariantId === edition.variant.id}
+                              onSelect={() => edition.inStock && setSelectedVariantId(edition.variant.id)}
+                            />
+                          ))}
                         </div>
                         {selectedFormat === "paper" && (
                           <p className="mt-3 text-xs text-muted-foreground">{t.paperShipping}</p>

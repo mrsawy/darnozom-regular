@@ -111,11 +111,39 @@ export default function StoreBooksPage() {
   }, [search, category, reloadKey]);
 
   function variantInfo(p: StoreProduct) {
-    const { paperVariant, digitalVariant, paperPrice, digitalPrice, paperInStock, digitalInStock } =
-      getBookVariantInfo(p);
-    const paperAvailable = !!paperVariant && paperInStock;
-    const digitalAvailable = !!digitalVariant && digitalInStock;
-    return { paperVariant, digitalVariant, paperPrice, digitalPrice, paperAvailable, digitalAvailable };
+    const { paperEditions, digitalEditions } = getBookVariantInfo(p);
+    const paperInStockEditions = paperEditions.filter((e) => e.inStock);
+    const digitalInStockEditions = digitalEditions.filter((e) => e.inStock);
+    const paperAvailable = paperInStockEditions.length > 0;
+    const digitalAvailable = digitalInStockEditions.length > 0;
+    // Lowest price within each format, across every in-stock edition — not
+    // just the first one — so a card never advertises a higher "from" price
+    // than what's actually purchasable.
+    const paperPrice = paperInStockEditions.length
+      ? Math.min(...paperInStockEditions.map((e) => e.price))
+      : 0;
+    const digitalPrice = digitalInStockEditions.length
+      ? Math.min(...digitalInStockEditions.map((e) => e.price))
+      : 0;
+    // A single, unambiguous purchasable edition overall — only then can the
+    // card's own "add to cart" button add a specific variant directly.
+    // Multiple editions (whether across formats or within one) send the
+    // shopper to the product page to choose, same as before for
+    // paper+digital both being available.
+    const allInStock = [...paperInStockEditions, ...digitalInStockEditions];
+    const singleEdition = allInStock.length === 1 ? allInStock[0] : undefined;
+    // Whether the lowest price shown is really "the" price or just the
+    // cheapest of several — a card must say "from" whenever more than one
+    // purchasable edition exists, not only when both formats are present.
+    const hasMultipleEditions = allInStock.length > 1;
+    return {
+      paperAvailable,
+      digitalAvailable,
+      paperPrice,
+      digitalPrice,
+      singleVariant: singleEdition?.variant,
+      hasMultipleEditions,
+    };
   }
 
   const filtered = products.filter((p) => {
@@ -139,7 +167,8 @@ export default function StoreBooksPage() {
 
   const items: ProductCardItem[] = filtered.map((p) => {
     const meta = (p.metadata || {}) as Record<string, unknown>;
-    const { paperVariant, digitalVariant, paperPrice, digitalPrice, paperAvailable, digitalAvailable } = variantInfo(p);
+    const { paperPrice, digitalPrice, paperAvailable, digitalAvailable, singleVariant, hasMultipleEditions } =
+      variantInfo(p);
     const hasBoth = paperAvailable && digitalAvailable;
     const lowest = hasBoth
       ? Math.min(paperPrice, digitalPrice)
@@ -148,11 +177,6 @@ export default function StoreBooksPage() {
         : digitalAvailable
           ? digitalPrice
           : 0;
-    const singleVariant = paperAvailable && !digitalAvailable
-      ? paperVariant
-      : digitalAvailable && !paperAvailable
-        ? digitalVariant
-        : undefined;
     return {
       id: p.id,
       type: "book" as const,
@@ -169,7 +193,7 @@ export default function StoreBooksPage() {
       paperAvailable,
       digitalAvailable,
       singleFormatPrice: hasBoth ? null : lowest,
-      pricePrefix: hasBoth && paperPrice !== digitalPrice ? (isArabic ? "يبدأ من" : "from") : null,
+      pricePrefix: hasMultipleEditions ? (isArabic ? "يبدأ من" : "from") : null,
       variantId: singleVariant?.id ?? null,
       inCart: singleVariant ? !!cart.cart?.items?.some((li) => li.variant_id === singleVariant.id) : false,
     };

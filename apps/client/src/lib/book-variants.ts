@@ -53,15 +53,44 @@ export function variantKind(variant: StoreProductVariant | undefined | null): Bo
     if (PAPER_OPTION_VALUES.has(value)) return "paper";
     if (DIGITAL_OPTION_VALUES.has(value)) return "digital";
   }
+  // Exact match failed — e.g. a labeled edition like "نسخة ورقية فاخرة" or
+  // "Paper - Deluxe" that contains a known word but isn't equal to it. Try
+  // substring matching before giving up: it's what actually distinguishes a
+  // classifiable variant from a genuinely unrelated option ("Large", "Blue").
+  for (const value of optionValues) {
+    for (const p of PAPER_OPTION_VALUES) if (value.includes(p)) return "paper";
+    for (const d of DIGITAL_OPTION_VALUES) if (value.includes(d)) return "digital";
+  }
   return null;
 }
 
+export interface BookEdition {
+  variant: StoreProductVariant;
+  kind: BookEditionKind;
+  /** A human label for this specific edition when a product has more than
+   * one paper (or digital) variant — e.g. "Paper — Deluxe" vs "Paper —
+   * Standard". Falls back to the variant's own title/option value, since
+   * that's the only thing distinguishing two variants of the same kind. */
+  label: string;
+  price: number;
+  inStock: boolean;
+}
+
 export interface BookVariantInfo {
+  /** Every paper-kind variant on the product, in variant order. A product
+   * can have more than one (e.g. two paper editions) — the storefront must
+   * let the shopper choose among all of them, not just the first match. */
+  paperEditions: BookEdition[];
+  /** Every digital-kind variant on the product. */
+  digitalEditions: BookEdition[];
+  // Back-compat single-variant conveniences (first paper/digital match) for
+  // callers that only care "is there a paper edition at all" — e.g. filters,
+  // list-page lowest-price sorting. New UI should use *Editions above to
+  // show every variant instead of picking just one.
   paperVariant?: StoreProductVariant;
   digitalVariant?: StoreProductVariant;
   paperPrice: number;
   digitalPrice: number;
-  /** Whether the edition can be purchased at all — independent of price. */
   paperInStock: boolean;
   digitalInStock: boolean;
 }
@@ -88,11 +117,37 @@ function isInStock(variant: StoreProductVariant | undefined): boolean {
   return variant.inventory_quantity > 0;
 }
 
+function editionLabel(variant: StoreProductVariant): string {
+  const optionValue = (variant.options ?? [])
+    .map((o) => (o as { value?: unknown }).value)
+    .find((v): v is string => typeof v === "string" && v.trim().length > 0);
+  return (optionValue ?? variant.title ?? "").trim() || variant.id;
+}
+
 export function getBookVariantInfo(product: StoreProduct): BookVariantInfo {
   const variants = product.variants || [];
-  const paperVariant = variants.find((v) => variantKind(v) === "paper");
-  const digitalVariant = variants.find((v) => variantKind(v) === "digital");
+  const editions: BookEdition[] = variants
+    .map((v) => {
+      const kind = variantKind(v);
+      if (!kind) return null;
+      return {
+        variant: v,
+        kind,
+        label: editionLabel(v),
+        price: amountOf(v),
+        inStock: isInStock(v),
+      };
+    })
+    .filter((e): e is BookEdition => e !== null);
+
+  const paperEditions = editions.filter((e) => e.kind === "paper");
+  const digitalEditions = editions.filter((e) => e.kind === "digital");
+  const paperVariant = paperEditions[0]?.variant;
+  const digitalVariant = digitalEditions[0]?.variant;
+
   return {
+    paperEditions,
+    digitalEditions,
     paperVariant,
     digitalVariant,
     paperPrice: amountOf(paperVariant),

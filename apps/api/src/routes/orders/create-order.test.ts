@@ -617,3 +617,127 @@ describe("POST /store/orders — Medusa-native book (no legacy books row)", () =
     expect(res.status).toBe(404);
   });
 });
+
+// Regression coverage for a product with more than one edition of the same
+// format (e.g. two paper editions) — "format" alone can't tell them apart,
+// so checkout must send the exact variantId and the server must resolve
+// that specific variant, not just "any paper variant".
+describe("POST /store/orders — multiple editions of the same format", () => {
+  function mockMultiEditionProduct() {
+    medusaAdminMock.mockImplementation(async (path: string) => {
+      if (path.startsWith("/admin/products/prod_multi_edition")) {
+        return {
+          product: {
+            id: "prod_multi_edition",
+            title: "Multi-Edition Book",
+            status: "published",
+            thumbnail: null,
+            metadata: {},
+            variants: [
+              {
+                id: "variant_paper_standard",
+                title: "Paper — Standard",
+                metadata: { kind: "paper" },
+                options: [{ value: "Standard" }],
+                prices: [{ currency_code: "egp", amount: 100 }],
+                manage_inventory: false,
+                allow_backorder: false,
+                inventory_quantity: null,
+              },
+              {
+                id: "variant_paper_deluxe",
+                title: "Paper — Deluxe",
+                metadata: { kind: "paper" },
+                options: [{ value: "Deluxe" }],
+                prices: [{ currency_code: "egp", amount: 250 }],
+                manage_inventory: false,
+                allow_backorder: false,
+                inventory_quantity: null,
+              },
+            ],
+          },
+        };
+      }
+      if (path.startsWith("/admin/customers?")) return { customers: [] };
+      if (path === "/admin/customers") return { customer: { id: "cus_test" } };
+      throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
+    });
+  }
+
+  it("resolves the exact variant sent, not just the first matching format", async () => {
+    mockMultiEditionProduct();
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          {
+            productType: "book",
+            productId: "prod_multi_edition",
+            variantId: "variant_paper_deluxe",
+            quantity: 1,
+            format: "paper",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const items = await getItems(res.body.id);
+    // Deluxe (250.00), not Standard (100.00) — proves variantId, not just
+    // format, drove the resolution.
+    expect(items[0].unitPrice).toBe("250.00");
+  });
+
+  it("falls back to the first in-stock variant of that format when no variantId is sent (back-compat)", async () => {
+    mockMultiEditionProduct();
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: "prod_multi_edition", quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const items = await getItems(res.body.id);
+    expect(items[0].unitPrice).toBe("100.00");
+  });
+
+  it("errors clearly when the requested variantId no longer matches the product", async () => {
+    mockMultiEditionProduct();
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "cash_on_delivery",
+        items: [
+          {
+            productType: "book",
+            productId: "prod_multi_edition",
+            variantId: "variant_does_not_exist",
+            quantity: 1,
+            format: "paper",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/no longer available/i);
+  });
+});

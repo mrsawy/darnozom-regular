@@ -96,4 +96,56 @@ describe("getBookVariantInfo", () => {
     expect(info.digitalPrice).toBe(0);
     expect(info.digitalInStock).toBe(true);
   });
+
+  it("returns every paper/digital variant, not just one of each, when a product has multiple editions", () => {
+    const p = product([
+      {
+        id: "variant_paper_standard",
+        title: "Standard",
+        metadata: { kind: "paper" },
+        options: [{ value: "Standard" }],
+        calculated_price: { calculated_amount: 100 },
+        manage_inventory: false,
+      },
+      {
+        id: "variant_paper_deluxe",
+        title: "Deluxe",
+        metadata: { kind: "paper" },
+        options: [{ value: "Deluxe" }],
+        calculated_price: { calculated_amount: 250 },
+        manage_inventory: false,
+      },
+      {
+        id: "variant_digital",
+        title: "Digital",
+        metadata: { kind: "digital" },
+        options: [{ value: "Digital" }],
+        calculated_price: { calculated_amount: 60 },
+        manage_inventory: false,
+      },
+    ]);
+
+    const info = getBookVariantInfo(p);
+    expect(info.paperEditions).toHaveLength(2);
+    expect(info.paperEditions.map((e) => e.variant.id)).toEqual([
+      "variant_paper_standard",
+      "variant_paper_deluxe",
+    ]);
+    expect(info.paperEditions.map((e) => e.label)).toEqual(["Standard", "Deluxe"]);
+    expect(info.paperEditions.map((e) => e.price)).toEqual([100, 250]);
+    expect(info.digitalEditions).toHaveLength(1);
+    expect(info.digitalEditions[0].variant.id).toBe("variant_digital");
+
+    // Back-compat single-variant fields still point at the first match.
+    expect(info.paperVariant?.id).toBe("variant_paper_standard");
+    expect(info.paperPrice).toBe(100);
+  });
+
+  it("classifies a labeled edition by substring when it isn't an exact option-value match", () => {
+    // e.g. "نسخة ورقية فاخرة" (a real edition name) contains "ورقية" but
+    // isn't equal to it — must still resolve to "paper".
+    expect(variantKind({ options: [{ value: "نسخة ورقية فاخرة" }] } as any)).toBe("paper");
+    expect(variantKind({ options: [{ value: "Paper - Deluxe Edition" }] } as any)).toBe("paper");
+    expect(variantKind({ options: [{ value: "Digital - PDF Download" }] } as any)).toBe("digital");
+  });
 });

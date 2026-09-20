@@ -47,6 +47,14 @@ export function variantKind(variant: MedusaVariantLike | null | undefined): Book
     if (PAPER_OPTION_VALUES.has(value)) return "paper";
     if (DIGITAL_OPTION_VALUES.has(value)) return "digital";
   }
+  // Exact match failed — e.g. a labeled edition like "نسخة ورقية فاخرة" or
+  // "Paper - Deluxe" that contains a known word but isn't equal to it.
+  // Mirrors the same fallback in the client-side twin, book-variants.ts —
+  // keep both in sync.
+  for (const value of optionValues) {
+    for (const p of PAPER_OPTION_VALUES) if (value.includes(p)) return "paper";
+    for (const d of DIGITAL_OPTION_VALUES) if (value.includes(d)) return "digital";
+  }
   return null;
 }
 
@@ -79,6 +87,13 @@ export interface ResolvedBookProduct {
   productId: string;
   title: string;
   thumbnail: string | null;
+  /** Every paper/digital-kind variant on the product — a book can have more
+   * than one edition per kind (e.g. two paper editions), and checkout must
+   * be able to resolve the exact one the shopper picked, not just "paper in
+   * general". See variants below for the id-based lookup. */
+  variants: MedusaAdminVariant[];
+  // Back-compat single-variant conveniences (first paper/digital match) —
+  // used only when no variantId is supplied (legacy/test callers).
   paperVariant?: MedusaAdminVariant;
   digitalVariant?: MedusaAdminVariant;
 }
@@ -115,6 +130,7 @@ export async function fetchBookProduct(productId: string): Promise<ResolvedBookP
     productId: product.id,
     title: product.title,
     thumbnail: product.thumbnail,
+    variants,
     paperVariant,
     digitalVariant,
   };
