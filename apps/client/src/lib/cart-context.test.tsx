@@ -184,7 +184,7 @@ describe("CartProvider / useCart", () => {
     expect(screen.getByTestId("li_paper-type").textContent).toBe("book");
   });
 
-  it("addItem calls createLineItem and updates cart", async () => {
+  it("addItem calls createLineItem then re-retrieves with expand fields", async () => {
     const sdk = makeSdk();
     vi.spyOn(medusaClient, "getMedusaClient").mockReturnValue(sdk as any);
 
@@ -199,6 +199,9 @@ describe("CartProvider / useCart", () => {
 
     await waitFor(() => expect(screen.getByTestId("items-count").textContent).toBe("2"));
     expect(sdk.store.cart.createLineItem).toHaveBeenCalled();
+    // Must re-retrieve after createLineItem so format/options are expanded —
+    // otherwise checkout gets format: null.
+    expect(sdk.store.cart.retrieve).toHaveBeenCalled();
   });
 
   it("clear() removes cart ID from localStorage and resets state", async () => {

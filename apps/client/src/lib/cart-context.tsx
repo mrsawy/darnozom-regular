@@ -180,19 +180,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(refreshed);
   }, [authHeaders]);
 
+  // createLineItem / updateLineItem responses omit expanded
+  // variant.options + variant.metadata by default. Without a follow-up
+  // retrieve with CART_RETRIEVE_FIELDS, mapLineItems gets format: null and
+  // checkout rejects with "Book items must specify a format".
+  const retrieveExpanded = useCallback(
+    async (cartId: string) => {
+      const sdk = getMedusaClient();
+      const { cart: refreshed } = await sdk.store.cart.retrieve(
+        cartId,
+        { fields: CART_RETRIEVE_FIELDS },
+        authHeaders(),
+      );
+      setCart(refreshed);
+    },
+    [authHeaders],
+  );
+
   const addItem = useCallback(
     async (variantId: string, quantity: number) => {
       if (!cart) return;
       const sdk = getMedusaClient();
-      const { cart: updated } = await sdk.store.cart.createLineItem(
+      await sdk.store.cart.createLineItem(
         cart.id,
         { variant_id: variantId, quantity },
         {},
         authHeaders(),
       );
-      setCart(updated);
+      await retrieveExpanded(cart.id);
     },
-    [cart, authHeaders],
+    [cart, authHeaders, retrieveExpanded],
   );
 
   const removeItem = useCallback(
@@ -200,30 +217,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!cart) return;
       const sdk = getMedusaClient();
       await sdk.store.cart.deleteLineItem(cart.id, lineItemId, {}, authHeaders());
-      const { cart: refreshed } = await sdk.store.cart.retrieve(
-        cart.id,
-        { fields: CART_RETRIEVE_FIELDS },
-        authHeaders(),
-      );
-      setCart(refreshed);
+      await retrieveExpanded(cart.id);
     },
-    [cart, authHeaders],
+    [cart, authHeaders, retrieveExpanded],
   );
 
   const updateQuantity = useCallback(
     async (lineItemId: string, quantity: number) => {
       if (!cart) return;
       const sdk = getMedusaClient();
-      const { cart: updated } = await sdk.store.cart.updateLineItem(
+      await sdk.store.cart.updateLineItem(
         cart.id,
         lineItemId,
         { quantity },
         {},
         authHeaders(),
       );
-      setCart(updated);
+      await retrieveExpanded(cart.id);
     },
-    [cart, authHeaders],
+    [cart, authHeaders, retrieveExpanded],
   );
 
   const clear = useCallback(() => {

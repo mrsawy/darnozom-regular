@@ -578,6 +578,35 @@ describe("POST /store/orders — Medusa-native book (no legacy books row)", () =
     expect(items[0].unitPrice).toBe("50.00");
   });
 
+  it("derives format from variantId when the client omits format (cart expand miss)", async () => {
+    mockMedusaProduct({ id: "prod_format_derive", title: "Derive Format Book", paperPrice: 75 });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          {
+            productType: "book",
+            productId: "prod_format_derive",
+            quantity: 1,
+            // format deliberately omitted — what the buggy cart path sent
+            variantId: "prod_format_derive-variant-paper",
+          },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const items = await getItems(res.body.id);
+    expect(items[0].format).toBe("paper");
+    expect(items[0].unitPrice).toBe("75.00");
+  });
+
   it("rejects an out-of-stock Medusa variant", async () => {
     mockMedusaProduct({ id: "prod_out_of_stock", paperPrice: 100, paperInStock: false });
 

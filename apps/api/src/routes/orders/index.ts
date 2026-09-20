@@ -434,21 +434,6 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
       if (typeof productId === "number" ? productId <= 0 : !productId) {
         return res.status(400).json({ error: "Invalid productId" });
       }
-      // Format only applies to books. For course/app the field is ignored
-      // and persisted as null so the digital-file delivery endpoint can
-      // never be tricked into resolving a non-book line as a digital
-      // book purchase.
-      let format: Format | null = null;
-      if (productType === "book") {
-        if (r.format === undefined || r.format === null || r.format === "") {
-          return res.status(400).json({ error: "Book items must specify a format (paper or digital)" });
-        }
-        const f = String(r.format);
-        if (f !== "paper" && f !== "digital") {
-          return res.status(400).json({ error: `Invalid format: ${f}` });
-        }
-        format = f;
-      }
       // The exact variant, when the client sends one (see IncomingItem) — a
       // book with more than one edition per format needs this to know which
       // one was actually picked. Absent for course/app and for any client
@@ -457,6 +442,36 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         productType === "book" && typeof r.variantId === "string" && r.variantId.trim()
           ? r.variantId.trim()
           : null;
+
+      // Format only applies to books. For course/app the field is ignored
+      // and persisted as null so the digital-file delivery endpoint can
+      // never be tricked into resolving a non-book line as a digital
+      // book purchase.
+      //
+      // Defense in depth: the storefront sometimes fails to stamp format on
+      // the cart line (createLineItem responses omit variant.metadata /
+      // options). When format is missing but variantId is present, derive
+      // it from the Medusa variant instead of rejecting the order.
+      let format: Format | null = null;
+      if (productType === "book") {
+        const rawFormat =
+          r.format === undefined || r.format === null || r.format === ""
+            ? null
+            : String(r.format);
+        if (rawFormat === "paper" || rawFormat === "digital") {
+          format = rawFormat;
+        } else if (variantId && typeof productId === "string") {
+          const product = await fetchBookProduct(productId);
+          const variant = product?.variants.find((v) => v.id === variantId);
+          const derived = variantKind(variant);
+          if (derived) format = derived;
+        }
+        if (!format) {
+          return res
+            .status(400)
+            .json({ error: "Book items must specify a format (paper or digital)" });
+        }
+      }
       const key = `${productType}#${productId}#${format ?? ""}#${variantId ?? ""}`;
       const existing = itemMap.get(key);
       if (existing) {
