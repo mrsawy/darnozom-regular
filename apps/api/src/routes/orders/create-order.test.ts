@@ -38,10 +38,11 @@ const SHIPPING_PRICE = 50;
 // unavailable"); convertMock receives the real EGP amount and rate the route
 // computed and returns the USD string synchronously, same as the real
 // convertEgpToUsd.
-const { createMock, rateMock, convertMock } = vi.hoisted(() => ({
+const { createMock, rateMock, convertMock, medusaAdminMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
   rateMock: vi.fn(),
   convertMock: vi.fn(),
+  medusaAdminMock: vi.fn(),
 }));
 
 vi.mock("@workspace/payment-gateways", () => ({
@@ -49,6 +50,14 @@ vi.mock("@workspace/payment-gateways", () => ({
   capturePayPalOrder: vi.fn(),
   fetchEgpToUsdRate: rateMock,
   convertEgpToUsd: convertMock,
+}));
+
+// Medusa-native books (lookupBookProduct) resolve through the Admin API
+// instead of the legacy `books` table — mock the HTTP boundary the same way
+// PayPal/exchange-rate are mocked above. seedMedusaProduct below is the
+// counterpart to seedBook for these tests.
+vi.mock("../../lib/medusa-admin", () => ({
+  medusaAdmin: medusaAdminMock,
 }));
 
 // Stub auth: trust an `x-test-user` header instead of a session. Absent → 401.
@@ -127,6 +136,61 @@ async function seedBook(overrides: Partial<NewBook> = {}): Promise<number> {
   return row.id;
 }
 
+// Builds a fake Medusa Admin API product response and wires medusaAdminMock
+// to return it for any /admin/products/:id request, matching the shape
+// lib/medusa-book-variants.ts's fetchBookProduct expects. Mirrors how
+// migrate-books.ts (and a hand-created Admin product) shape variants: one
+// option ("Format"/"الحالة"), paper/digital priced in EGP.
+function mockMedusaProduct(opts: {
+  id: string;
+  title?: string;
+  paperPrice?: number;
+  digitalPrice?: number;
+  paperInStock?: boolean;
+  digitalInStock?: boolean;
+}) {
+  const variants = [];
+  if (opts.paperPrice !== undefined) {
+    variants.push({
+      id: `${opts.id}-variant-paper`,
+      title: "Paper",
+      metadata: { kind: "paper" },
+      options: [{ value: "Paper" }],
+      prices: [{ currency_code: "egp", amount: opts.paperPrice }],
+      manage_inventory: opts.paperInStock === false,
+      allow_backorder: false,
+      inventory_quantity: opts.paperInStock === false ? 0 : null,
+    });
+  }
+  if (opts.digitalPrice !== undefined) {
+    variants.push({
+      id: `${opts.id}-variant-digital`,
+      title: "Digital",
+      metadata: { kind: "digital" },
+      options: [{ value: "Digital" }],
+      prices: [{ currency_code: "egp", amount: opts.digitalPrice }],
+      manage_inventory: opts.digitalInStock === false,
+      allow_backorder: false,
+      inventory_quantity: opts.digitalInStock === false ? 0 : null,
+    });
+  }
+  medusaAdminMock.mockImplementation(async (path: string) => {
+    if (path.startsWith(`/admin/products/${opts.id}`)) {
+      return {
+        product: {
+          id: opts.id,
+          title: opts.title ?? "Test Medusa Book",
+          status: "published",
+          thumbnail: null,
+          metadata: {},
+          variants,
+        },
+      };
+    }
+    throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
+  });
+}
+
 async function getOrder(id: number) {
   const [row] = await db.select().from(orders).where(eq(orders.id, id));
   return row;
@@ -172,6 +236,7 @@ afterEach(async () => {
   createMock.mockReset();
   rateMock.mockReset();
   convertMock.mockReset();
+  medusaAdminMock.mockReset();
 });
 
 afterAll(async () => {
@@ -417,5 +482,130 @@ describe("POST /store/orders — shipping only for paper items", () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/shipping is not available/i);
     expect(createMock).not.toHaveBeenCalled();
+  });
+});
+
+// Regression coverage for the bug reported against كتاب الرحيق المختوم: a
+// book created directly in Medusa Admin (no legacyBookId, variants matched
+// by option value, not migrate-books.ts's metadata.kind) was un-orderable
+// because lookupProduct only ever queried the legacy `books` table by
+// integer id. These exercise lookupBookProduct's Medusa branch directly,
+// the same way the real checkout path (cart-context.tsx's
+// legacyProductId ?? productId) now always sends a "prod_..." id for books.
+describe("POST /store/orders — Medusa-native book (no legacy books row)", () => {
+  it("orders a paper book resolved entirely from the Medusa Admin API", async () => {
+    mockMedusaProduct({ id: "prod_test_reheeq", title: "كتاب الرحيق المختوم", paperPrice: 600 });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: "prod_test_reheeq", quantity: 3, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const order = await getOrder(res.body.id);
+    // 600.00 * 3 = 1800.00 + 50.00 shipping.
+    expect(order.totalAmount).toBe("1850.00");
+    expect(order.currency).toBe("EGP");
+
+    const items = await getItems(order.id);
+    expect(items).toHaveLength(1);
+    expect(items[0].productId).toBe("prod_test_reheeq");
+    expect(items[0].unitPrice).toBe("600.00");
+    expect(items[0].productTitle).toBe("كتاب الرحيق المختوم");
+  });
+
+  it("matches a variant by option value when metadata.kind is absent (hand-created Admin product)", async () => {
+    medusaAdminMock.mockImplementation(async (path: string) => {
+      if (path.startsWith("/admin/products/prod_hand_created")) {
+        return {
+          product: {
+            id: "prod_hand_created",
+            title: "يدوي الإنشاء",
+            status: "published",
+            thumbnail: null,
+            metadata: {},
+            variants: [
+              {
+                id: "variant_paper",
+                title: "ورقي",
+                metadata: {},
+                options: [{ value: "ورقي" }],
+                prices: [{ currency_code: "egp", amount: 50 }],
+                manage_inventory: true,
+                allow_backorder: false,
+                inventory_quantity: 20,
+              },
+            ],
+          },
+        };
+      }
+      throw new Error(`Unexpected medusaAdmin call: ${path}`);
+    });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: "prod_hand_created", quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const items = await getItems(res.body.id);
+    expect(items[0].unitPrice).toBe("50.00");
+  });
+
+  it("rejects an out-of-stock Medusa variant", async () => {
+    mockMedusaProduct({ id: "prod_out_of_stock", paperPrice: 100, paperInStock: false });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        address: "123 Test St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: "prod_out_of_stock", quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/out of stock/i);
+  });
+
+  it("404s when the Medusa product doesn't exist", async () => {
+    medusaAdminMock.mockRejectedValue(new Error("Medusa admin GET /admin/products/prod_missing failed (404): not found"));
+
+    const res = await request(app)
+      .post("/store/orders")
+      .set("x-test-user", OWNER)
+      .send({
+        fullName: "Test Buyer",
+        phone: "0100000000",
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: "prod_missing", quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(404);
   });
 });

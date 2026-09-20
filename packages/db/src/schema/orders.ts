@@ -94,7 +94,13 @@ export const orderItems = pgTable("order_items", {
     .notNull()
     .references(() => orders.id, { onDelete: "cascade" }),
   productType: orderItemTypeEnum("product_type").notNull(),
-  productId: integer("product_id").notNull(),
+  // Books are Medusa-native products (string ids, e.g. "prod_01H..."); a
+  // numeric-looking string here is a pre-Medusa legacy book id, resolved
+  // against the (retained, for back-compat) `books` table — see
+  // lookupBookProduct in apps/api/src/routes/orders/index.ts. Courses and
+  // apps still use their own legacy numeric ids, stored as the decimal
+  // string form of that number.
+  productId: text("product_id").notNull(),
   productTitle: varchar("product_title", { length: 500 }).notNull(),
   imageUrl: varchar("image_url", { length: 1000 }),
   quantity: integer("quantity").notNull().default(1),

@@ -156,7 +156,7 @@ async function seedItem(
     .values({
       orderId,
       productType: "book",
-      productId: format === "digital" ? 991001 : 991002,
+      productId: format === "digital" ? "991001" : "991002",
       productTitle: format === "digital" ? "Digital Book" : "Paper Book",
       quantity: 1,
       unitPrice: "100.00",

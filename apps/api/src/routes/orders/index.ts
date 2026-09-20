@@ -20,6 +20,7 @@ import {
   readPrivateObjectMeta,
 } from "@workspace/object-store";
 import { computeFormats } from "../books";
+import { fetchBookProduct, variantPrice, variantInStock } from "../../lib/medusa-book-variants";
 import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
@@ -80,11 +81,26 @@ function sanitizeAbsoluteUrl(raw: unknown): string | null {
   return trimmed;
 }
 
+// Books are now Medusa-native products (string ids, e.g. "prod_01H...").
+// Courses and apps still live in the legacy Drizzle tables (numeric ids).
+// A numeric-looking book id is still accepted and resolved against the old
+// `books` table — see lookupProduct's book branch — for any pre-existing
+// integrations/back-compat, but the live storefront only ever sends Medusa
+// product ids for books (see apps/client/src/lib/cart-context.tsx).
 interface IncomingItem {
   productType: ProductType;
-  productId: number;
+  productId: number | string;
   quantity: number;
   format?: Format | null;
+}
+
+// order_items.product_id is a text column so it can hold both Medusa string
+// ids ("prod_01H...") and legacy numeric book/course/app ids (stored as
+// their decimal string form). This distinguishes the two on read-back.
+function legacyNumericProductId(productId: string): number | null {
+  if (!/^\d+$/.test(productId)) return null;
+  const n = Number(productId);
+  return Number.isFinite(n) ? n : null;
 }
 
 function parsePrice(raw: string | null | undefined): number {
@@ -102,12 +118,15 @@ interface ResolvedProduct {
   digitalFileUrl?: string | null;
 }
 
-async function lookupProduct(
-  productType: ProductType,
-  productId: number,
+async function lookupBookProduct(
+  productId: number | string,
   format: Format | null,
+  currency: string,
 ): Promise<ResolvedProduct | { error: string } | null> {
-  if (productType === "book") {
+  // Numeric id: pre-Medusa legacy book, resolved against the old `books`
+  // table for back-compat. Everything the live storefront sends is a
+  // Medusa string id ("prod_...") and goes through the branch below.
+  if (typeof productId === "number") {
     const [b] = await db
       .select()
       .from(books)
@@ -149,6 +168,62 @@ async function lookupProduct(
       digitalFileUrl: b.digitalFileUrl,
     };
   }
+
+  // Medusa-native book: resolve paper/digital variant the same way the
+  // storefront's product pages do (see apps/api/src/lib/medusa-book-variants.ts
+  // and its client-side twin, apps/client/src/lib/book-variants.ts), then
+  // read price and stock straight off the matched variant. No dependency on
+  // the legacy `books` table at all — any product creatable via
+  // /admin/books (Medusa-native) is now orderable, whether or not it was
+  // ever migrated from the old table.
+  const product = await fetchBookProduct(productId);
+  if (!product) return null;
+  const fmt = format ?? "paper";
+  const variant = fmt === "paper" ? product.paperVariant : product.digitalVariant;
+  if (!variant) {
+    return {
+      error: `${fmt === "paper" ? "Paper" : "Digital"} edition is not available for "${product.title}"`,
+    };
+  }
+  if (!variantInStock(variant)) {
+    return { error: `"${product.title}" is out of stock` };
+  }
+  const price = variantPrice(variant, currency);
+  if (price == null) {
+    return { error: `No ${currency} price is set for "${product.title}"` };
+  }
+  return {
+    title: product.title,
+    price,
+    currency,
+    imageUrl: product.thumbnail,
+    // Digital file delivery for Medusa-native books is a separate,
+    // not-yet-built piece (the admin UI currently drops the uploaded PDF
+    // when saving a Medusa product — see apps/client/src/pages/admin/store/books.tsx
+    // save()). Until that exists, a Medusa digital book resolves to no file
+    // and purchase.ts's digitalFileUrlSnapshot stays null for it.
+    digitalFileUrl: null,
+  };
+}
+
+async function lookupProduct(
+  productType: ProductType,
+  productId: number | string,
+  format: Format | null,
+): Promise<ResolvedProduct | { error: string } | null> {
+  if (productType === "book") {
+    // Medusa variant prices are looked up by currency code, unlike the
+    // legacy tables below (which each declare their own `currency` column
+    // and let the caller's mixed-currency check catch mismatches after the
+    // fact). The whole storefront is EGP-only in practice (see checkout.tsx
+    // and orders/index.ts's own online-payment EGP check further down), so
+    // resolve against EGP; a genuinely mixed-currency cart still gets
+    // rejected below exactly as it does today.
+    return lookupBookProduct(productId, format, "EGP");
+  }
+  // Courses and apps are still legacy Drizzle rows with numeric ids — a
+  // string (Medusa) id here is a client bug, not a valid lookup.
+  if (typeof productId !== "number") return null;
   if (productType === "course") {
     const [c] = await db
       .select({
@@ -325,19 +400,26 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
     for (const raw of itemsRaw) {
       const r = raw as Record<string, unknown>;
       const productType = String(r.productType || "") as ProductType;
-      const productIdNum = Number(r.productId);
-      const productId = Number.isFinite(productIdNum)
-        ? Math.trunc(productIdNum)
-        : 0;
+      if (!["book", "course", "app"].includes(productType)) {
+        return res.status(400).json({ error: `Invalid productType: ${productType}` });
+      }
+      // Books: a Medusa product id ("prod_...", the live storefront's only
+      // shape) is kept as-is. Courses/apps, and any numeric-looking book id
+      // (pre-Medusa legacy rows — see lookupBookProduct), are coerced to a
+      // positive integer exactly as before.
+      let productId: number | string;
+      if (productType === "book" && typeof r.productId === "string" && r.productId.startsWith("prod_")) {
+        productId = r.productId;
+      } else {
+        const productIdNum = Number(r.productId);
+        productId = Number.isFinite(productIdNum) ? Math.trunc(productIdNum) : 0;
+      }
       const quantityNum = Number(r.quantity ?? 1);
       const quantity = Math.max(
         1,
         Math.min(99, Number.isFinite(quantityNum) ? Math.trunc(quantityNum) : 1),
       );
-      if (!["book", "course", "app"].includes(productType)) {
-        return res.status(400).json({ error: `Invalid productType: ${productType}` });
-      }
-      if (!productId || productId <= 0) {
+      if (typeof productId === "number" ? productId <= 0 : !productId) {
         return res.status(400).json({ error: "Invalid productId" });
       }
       // Format only applies to books. For course/app the field is ignored
@@ -371,7 +453,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
     // Resolve products (with current prices) — never trust client-side price.
     const resolved: Array<{
       productType: ProductType;
-      productId: number;
+      productId: number | string;
       productTitle: string;
       quantity: number;
       unitPrice: number;
@@ -491,7 +573,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         resolved.map((r) => ({
           orderId: order.id,
           productType: r.productType,
-          productId: r.productId,
+          productId: String(r.productId),
           productTitle: r.productTitle,
           imageUrl: r.imageUrl ?? undefined,
           quantity: r.quantity,
@@ -540,7 +622,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
     // COD orders are never auto-cancelled — they may already be in
     // fulfillment. Best-effort: a dedupe failure must not block the order.
     try {
-      const itemKey = (items: { productType: string; productId: number; format: string | null; quantity: number }[]) =>
+      const itemKey = (items: { productType: string; productId: number | string; format: string | null; quantity: number }[]) =>
         items
           .map((it) => `${it.productType}#${it.productId}#${it.format ?? ""}#${it.quantity}`)
           .sort()
@@ -1666,10 +1748,14 @@ router.get(
       }
 
       // Prefer the snapshot taken at purchase. Fall back to the current book
-      // record (in case legacy orders predate snapshots).
+      // record (in case legacy orders predate snapshots) — only meaningful
+      // for a numeric legacy productId; Medusa-native books (string
+      // "prod_..." ids) always rely on the snapshot, since they were never
+      // in the `books` table to begin with (see lookupBookProduct).
       let internalUrl = item.digitalFileUrlSnapshot;
-      if (!internalUrl) {
-        const [b] = await db.select().from(books).where(eq(books.id, item.productId));
+      const legacyId = legacyNumericProductId(item.productId);
+      if (!internalUrl && legacyId !== null) {
+        const [b] = await db.select().from(books).where(eq(books.id, legacyId));
         internalUrl = b?.digitalFileUrl ?? null;
       }
       if (!internalUrl || !internalUrl.startsWith("internal://book-pdfs/")) {
@@ -1746,8 +1832,9 @@ router.head(
       if (item.format !== "digital") return res.status(400).end();
 
       let internalUrl = item.digitalFileUrlSnapshot;
-      if (!internalUrl) {
-        const [b] = await db.select().from(books).where(eq(books.id, item.productId));
+      const legacyId = legacyNumericProductId(item.productId);
+      if (!internalUrl && legacyId !== null) {
+        const [b] = await db.select().from(books).where(eq(books.id, legacyId));
         internalUrl = b?.digitalFileUrl ?? null;
       }
       if (!internalUrl || !internalUrl.startsWith("internal://book-pdfs/")) {
