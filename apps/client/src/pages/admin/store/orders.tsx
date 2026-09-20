@@ -24,7 +24,9 @@ interface OrderItem {
   id: number;
   orderId: number;
   productType: "book" | "course" | "app";
-  productId: number;
+  // Medusa product id ("prod_...") for books, decimal string of the legacy
+  // numeric id for courses/apps and pre-Medusa books.
+  productId: string;
   productTitle: string;
   imageUrl: string | null;
   unitPrice: string;

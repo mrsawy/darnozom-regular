@@ -124,7 +124,7 @@ async function seedDigitalItem(orderId: number): Promise<number> {
     .values({
       orderId,
       productType: "book",
-      productId: 999999,
+      productId: "999999",
       productTitle: "Test Digital Book",
       quantity: 1,
       unitPrice: "100.00",
