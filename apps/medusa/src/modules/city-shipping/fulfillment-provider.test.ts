@@ -34,7 +34,10 @@ describe("CityShippingFulfillmentProvider", () => {
   });
 
   it("calculatePrice returns the looked-up rate for the cart's city", async () => {
-    const getRateForCity = vi.fn().mockResolvedValue({ city: "Cairo", price: 5000, currency: "egp" });
+    // Decimal major units (50 means 50.00 EGP) — city_rate.price and
+    // calculated_amount both use Medusa v2's Money convention, no ×100
+    // scaling. See city-rate.ts model comment.
+    const getRateForCity = vi.fn().mockResolvedValue({ city: "Cairo", price: 50, currency: "egp" });
     getModuleInstanceMock.mockReturnValue({ cityShipping: { getRateForCity } });
 
     const provider = new CityShippingFulfillmentProvider();
@@ -44,7 +47,7 @@ describe("CityShippingFulfillmentProvider", () => {
       { shipping_address: { city: "Cairo" } } as any,
     );
 
-    expect(result).toEqual({ calculated_amount: 5000, is_calculated_price_tax_inclusive: false });
+    expect(result).toEqual({ calculated_amount: 50, is_calculated_price_tax_inclusive: false });
     expect(getRateForCity).toHaveBeenCalledWith("Cairo");
     expect(getModuleInstanceMock).toHaveBeenCalledWith("cityShipping");
   });

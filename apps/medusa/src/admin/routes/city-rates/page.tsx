@@ -32,7 +32,9 @@ const CityRatesPage = () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         city: newCity,
-        price: Math.round(Number(newPrice) * 100),
+        // Decimal major units (50 means 50.00 EGP) — see city-rate.ts model
+        // comment. Round to cents so float input doesn't drift.
+        price: Math.round(Number(newPrice) * 100) / 100,
         currency: "egp",
         isDefault: false,
       }),
@@ -57,7 +59,7 @@ const CityRatesPage = () => {
           {rates.map((r) => (
             <Table.Row key={r.id}>
               <Table.Cell>{r.city}</Table.Cell>
-              <Table.Cell>{(r.price / 100).toFixed(2)}</Table.Cell>
+              <Table.Cell>{r.price.toFixed(2)}</Table.Cell>
               <Table.Cell>{r.is_default ? "Yes" : ""}</Table.Cell>
             </Table.Row>
           ))}
