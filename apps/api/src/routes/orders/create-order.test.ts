@@ -149,7 +149,7 @@ function mockMedusaProduct(opts: {
   paperInStock?: boolean;
   digitalInStock?: boolean;
 }) {
-  const variants = [];
+  const variants: Array<Record<string, unknown>> = [];
   if (opts.paperPrice !== undefined) {
     variants.push({
       id: `${opts.id}-variant-paper`,
@@ -187,6 +187,12 @@ function mockMedusaProduct(opts: {
         },
       };
     }
+    // Order creation also fires a best-effort Medusa customer sync
+    // (syncMedusaCustomer) — respond as "no existing customer, created one"
+    // so it succeeds quietly here; medusa-customer-sync.test.ts covers its
+    // find-vs-create behavior directly.
+    if (path.startsWith("/admin/customers?")) return { customers: [] };
+    if (path === "/admin/customers") return { customer: { id: "cus_test", email: "buyer@example.com" } };
     throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
   });
 }
@@ -548,6 +554,8 @@ describe("POST /store/orders — Medusa-native book (no legacy books row)", () =
           },
         };
       }
+      if (path.startsWith("/admin/customers?")) return { customers: [] };
+      if (path === "/admin/customers") return { customer: { id: "cus_test", email: "buyer@example.com" } };
       throw new Error(`Unexpected medusaAdmin call: ${path}`);
     });
 

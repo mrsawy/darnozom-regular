@@ -21,6 +21,7 @@ import {
 } from "@workspace/object-store";
 import { computeFormats } from "../books";
 import { fetchBookProduct, variantPrice, variantInStock } from "../../lib/medusa-book-variants";
+import { syncMedusaCustomer } from "../../lib/medusa-customer-sync";
 import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
@@ -613,6 +614,18 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         });
     } catch (err) {
       req.log.error({ err, orderId: order.id }, "checkout profile upsert failed");
+    }
+
+    // Keep Medusa's own Customer record (Admin > Customers) in sync with
+    // this buyer. Medusa carts/orders are never associated with a customer
+    // otherwise (see medusa-customer-sync.ts) — without this, Medusa
+    // Admin's Customers page shows nothing real while every actual order
+    // lives only in this app's own Orders admin. Best-effort, same posture
+    // as the checkoutProfiles upsert above: never block a real order.
+    try {
+      await syncMedusaCustomer({ email, fullName, phone });
+    } catch (err) {
+      req.log.error({ err, orderId: order.id }, "medusa customer sync failed");
     }
 
     // Dedupe: this new order supersedes the user's older *online-payment*
