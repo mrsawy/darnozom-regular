@@ -13,7 +13,7 @@ const HIGHLIGHTS = [
     en: { title: "Darnozom Academy", desc: "Specialized training programs and professional diplomas in Islamic, management and leadership systems — to develop talent and empower organizations.", cta: "Visit Academy" },
   },
   {
-    href: "/services/store",
+    href: "/services/store/books",
     icon: ShoppingBag,
     ar: { title: "متجر الكتب", desc: "كتب متخصصة، دورات تدريبية، وتطبيقات رقمية جاهزة من إصدارات دار نظم — في مكان واحد متكامل.", cta: "زيارة المتجر" },
     en: { title: "Book Store", desc: "Specialized books, training courses, and ready digital apps from Darnozom — all in one integrated marketplace.", cta: "Visit Store" },

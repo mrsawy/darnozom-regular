@@ -14,7 +14,7 @@ export interface SearchResult {
 
 function serviceHref(slug: string): string {
   if (slug === "academy") return "/academy";
-  if (slug === "store") return "/services/store";
+  if (slug === "store") return "/services/store/books";
   return `/services/${slug}`;
 }
 

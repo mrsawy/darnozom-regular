@@ -104,7 +104,7 @@ export default function SearchSection() {
         title: book.title,
         desc: book.description || (isArabic ? "كتاب إصدار دار نظم" : "DarNozom publication"),
         category: "book" as const,
-        href: "/services/store",
+        href: "/services/store/books",
         resultType: "book" as const,
       }));
 

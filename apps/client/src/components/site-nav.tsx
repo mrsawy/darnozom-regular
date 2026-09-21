@@ -132,14 +132,14 @@ export const NAV_ITEMS: NavItem[] = [
       { labelAr: "البحث والتطوير", labelEn: "Research & Development", href: "/services/research" },
       { labelAr: "النشر", labelEn: "Publishing", href: "/services/publishing" },
       { labelAr: "الأكاديمية", labelEn: "Academy", href: "/academy" },
-      { labelAr: "متجر الكتب", labelEn: "Book Store", href: "/services/store" },
+      { labelAr: "متجر الكتب", labelEn: "Book Store", href: "/services/store/books" },
     ],
   },
   {
     key: "book-store",
     labelAr: "متجر الكتب",
     labelEn: "Book Store",
-    href: "/services/store",
+    href: "/services/store/books",
   },
   {
     key: "case-studies",

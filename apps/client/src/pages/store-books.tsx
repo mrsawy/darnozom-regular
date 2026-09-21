@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import type { HttpTypes } from "@medusajs/types";
-import { Search, ChevronLeft, BookOpen, X } from "lucide-react";
+import { Search, BookOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SiteNav from "@/components/site-nav";
@@ -209,9 +209,6 @@ export default function StoreBooksPage() {
       <SiteNav />
       <section className="pt-28 pb-8 px-4">
         <div className="container mx-auto max-w-6xl">
-          <Link href="/services/store" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-secondary mb-4">
-            <ChevronLeft className={`w-4 h-4 ${isArabic ? "rotate-180" : ""}`} /> {t.back}
-          </Link>
           <div className="flex items-start gap-4 mb-6">
             <div className="w-14 h-14 rounded-2xl bg-blue-500/20 flex items-center justify-center flex-shrink-0">
               <BookOpen className="w-7 h-7 text-blue-400" />
