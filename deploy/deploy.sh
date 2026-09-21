@@ -412,7 +412,8 @@ LEMONSQUEEZY_STORE_ID=${LEMONSQUEEZY_STORE_ID:-}
 LEMONSQUEEZY_WEBHOOK_SECRET=${LEMONSQUEEZY_WEBHOOK_SECRET:-}
 MEDUSA_BOOK_PRODUCT_TYPE_ID=${MEDUSA_BOOK_PRODUCT_TYPE_ID:-}
 RESEND_API_KEY=${RESEND_API_KEY:-}
-RESEND_FROM_EMAIL='${RESEND_FROM_EMAIL:-Darnozom Consulting <noreply@darnozom.com>}'
+# Keep this free of shell metacharacters (< >); medusa-config.ts adds the display name.
+RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@darnozom.com}
 EOF
 chmod 600 "$MEDUSA_ENV"
 umask 022
