@@ -57,37 +57,27 @@ export type StorePaymentMethod =
   | "wallet"
   | "cash_on_delivery";
 
-const PROVIDER_TO_METHOD: Record<string, StorePaymentMethod> = {
-  "paypal-egp": "paypal",
-  "paymob-card": "card",
-  "paymob-wallet": "wallet",
-  cod: "cash_on_delivery",
-};
-
 /**
- * Asks Medusa which payment providers apply to this cart / destination.
- * Maps provider ids to the Express checkout paymentMethod union.
+ * Payment methods enabled on the cart's Medusa region
+ * (Admin → Settings → Regions → Payment Providers).
  */
-export async function fetchAvailablePaymentMethods(input: {
-  cartId: string;
-  countryCode?: string | null;
-}): Promise<StorePaymentMethod[]> {
-  const base =
-    import.meta.env.VITE_MEDUSA_BACKEND_URL || "http://localhost:9010";
-  const key = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY;
-  const params = new URLSearchParams({ cart_id: input.cartId });
-  if (input.countryCode) params.set("country_code", input.countryCode);
-  const res = await fetch(
-    `${base.replace(/\/$/, "")}/store/available-payment-providers?${params}`,
-    {
-      headers: key ? { "x-publishable-api-key": key } : undefined,
-    },
-  );
-  if (!res.ok) throw new Error(`available-payment-providers failed (${res.status})`);
-  const body = (await res.json()) as { providerIds?: string[] };
-  const methods = (body.providerIds ?? [])
-    .map((id) => PROVIDER_TO_METHOD[id])
-    .filter((m): m is StorePaymentMethod => !!m);
-  // De-dupe while preserving order
+export async function fetchAvailablePaymentMethods(
+  regionId: string,
+): Promise<StorePaymentMethod[]> {
+  const { payment_providers } = await getMedusaClient().store.payment.listPaymentProviders({
+    region_id: regionId,
+  });
+  const methods = (payment_providers ?? [])
+    .map((provider) => checkoutMethodFromRawId(provider.id))
+    .filter((method): method is StorePaymentMethod => !!method);
   return [...new Set(methods)];
+}
+
+function checkoutMethodFromRawId(providerId: string): StorePaymentMethod | null {
+  const id = providerId.toLowerCase();
+  if (id.includes("paymob-wallet")) return "wallet";
+  if (id.includes("paymob-card")) return "card";
+  if (id.includes("paypal")) return "paypal";
+  if (/(^|[_-])cod($|[_-])/.test(id)) return "cash_on_delivery";
+  return null;
 }

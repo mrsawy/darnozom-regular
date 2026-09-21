@@ -94,6 +94,11 @@ function makeSdk(
 ) {
   return {
     store: {
+      region: {
+        list: vi.fn().mockResolvedValue({
+          regions: [{ id: "reg_eg", currency_code: "egp" }],
+        }),
+      },
       cart: {
         create: vi.fn().mockResolvedValue(createResult),
         retrieve: vi.fn().mockResolvedValue(retrieveResult),
@@ -109,6 +114,7 @@ describe("CartProvider / useCart", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.restoreAllMocks();
+    vi.spyOn(medusaClient, "getStoreRegionId").mockResolvedValue("reg_eg");
   });
 
   it("creates a cart on mount when no cart ID is stored", async () => {

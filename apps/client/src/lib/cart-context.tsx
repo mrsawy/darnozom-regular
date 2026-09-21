@@ -9,7 +9,7 @@ import {
 } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import type { ClientHeaders } from "@medusajs/js-sdk";
-import { getMedusaClient, getMedusaCustomerToken } from "./medusa-client";
+import { getMedusaClient, getMedusaCustomerToken, getStoreRegionId } from "./medusa-client";
 import { variantKind } from "./book-variants";
 
 const CART_ID_STORAGE_KEY = "medusa_cart_id";
@@ -154,8 +154,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
           );
           setCart(existing);
         } else {
+          const regionId = await getStoreRegionId();
           const { cart: created } = await sdk.store.cart.create(
-            { region_id: undefined, currency_code: "egp" },
+            { region_id: regionId, currency_code: "egp" },
             {},
             authHeaders(),
           );

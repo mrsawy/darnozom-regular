@@ -1,16 +1,14 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
+import { checkoutMethodsFromProviderIds } from "../../../lib/region-payment-methods";
 
 /**
- * Returns payment provider ids appropriate for the cart's region / destination.
- *
- * Preference order for "Egypt domestic" detection:
- * 1. Explicit ?country_code= query (storefront checkout)
- * 2. cart.shipping_address.country_code
- * 3. cart.region.currency_code === "egp" (storefront always uses EGP region)
+ * Payment methods for checkout = the providers enabled on the cart's Medusa
+ * region (Admin → Settings → Regions), not a fixed list.
+ * Cash on delivery is removed when every line is a digital product, because
+ * the Express checkout cannot collect COD for digital files.
  */
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const q = req.query as Record<string, string>;
-  const cartId = q.cart_id;
+  const cartId = (req.query as Record<string, string>).cart_id;
   if (!cartId) {
     return res.status(400).json({ error: "Missing cart_id" });
   }
@@ -20,54 +18,69 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     entity: "cart",
     fields: [
       "id",
+      "region_id",
       "items.product.metadata",
-      "shipping_address.country_code",
-      "region.currency_code",
-      "region.countries.iso_2",
+      "items.variant.metadata",
     ],
     filters: { id: cartId },
   });
 
-  const cart = data[0];
+  const cart = data[0] as
+    | {
+        id: string;
+        region_id?: string | null;
+        items?: Array<{
+          product?: { metadata?: { kind?: string } | null } | null;
+          variant?: { metadata?: { kind?: string } | null } | null;
+        }> | null;
+      }
+    | undefined;
+
   if (!cart) {
     return res.status(404).json({ error: "Cart not found" });
   }
+  if (!cart.region_id) {
+    return res.status(200).json({ providerIds: [], methods: [] });
+  }
 
-  const items = (cart.items ?? []) as Array<{
-    product?: { metadata?: { kind?: string } };
-  }>;
+  const { data: regions } = await query.graph({
+    entity: "region",
+    fields: ["id", "currency_code", "payment_providers.id", "payment_providers.is_enabled"],
+    filters: { id: cart.region_id },
+  });
+
+  const region = regions[0] as
+    | {
+        id: string;
+        currency_code?: string | null;
+        payment_providers?: Array<{ id: string; is_enabled?: boolean | null }> | null;
+      }
+    | undefined;
+
+  const providerIds = (region?.payment_providers ?? [])
+    .filter((provider) => provider.is_enabled !== false)
+    .map((provider) => provider.id);
+
+  let methods = checkoutMethodsFromProviderIds(providerIds);
+
+  const items = cart.items ?? [];
   const isDigitalOnly =
     items.length > 0 &&
-    items.every((i) => i.product?.metadata?.kind === "digital");
-
-  const explicitCountry = q.country_code?.toLowerCase();
-  const addressCountry = (
-    cart.shipping_address as { country_code?: string } | null
-  )?.country_code?.toLowerCase();
-  const regionCurrency = (
-    cart.region as { currency_code?: string } | null
-  )?.currency_code?.toLowerCase();
-  const regionHasEg = (
-    (cart.region as { countries?: Array<{ iso_2?: string }> } | null)
-      ?.countries ?? []
-  ).some((c) => c.iso_2?.toLowerCase() === "eg");
-
-  const countryCode = explicitCountry || addressCountry;
-  const shipsWithinEgypt =
-    countryCode === "eg" ||
-    (!countryCode && (regionCurrency === "egp" || regionHasEg));
-
-  const providerIds =
-    isDigitalOnly || !shipsWithinEgypt
-      ? ["lemonsqueezy", "paypal-egp"]
-      : ["paymob-card", "paymob-wallet", "cod", "paypal-egp"];
+    items.every((item) => {
+      const variantKind = item.variant?.metadata?.kind;
+      const productKind = item.product?.metadata?.kind;
+      return variantKind === "digital" || productKind === "digital";
+    });
+  if (isDigitalOnly) {
+    methods = methods.filter((method) => method !== "cash_on_delivery");
+  }
 
   return res.status(200).json({
     providerIds,
+    methods,
     region: {
-      currency_code: regionCurrency ?? null,
-      country_code: countryCode ?? null,
-      shipsWithinEgypt,
+      id: cart.region_id,
+      currency_code: region?.currency_code ?? null,
       isDigitalOnly,
     },
   });

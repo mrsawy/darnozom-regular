@@ -16,6 +16,7 @@ import { useCart } from "@/lib/cart-context";
 import { useLanguage } from "@/lib/language-context";
 import {
   fetchAvailablePaymentMethods,
+  getStoreRegionId,
   type StorePaymentMethod,
 } from "@/lib/medusa-client";
 
@@ -237,37 +238,26 @@ export default function CheckoutPage() {
   // Payment methods come from Medusa (region / cart), not a hard-coded list.
   useEffect(() => {
     let cancelled = false;
-    const cartId = cart?.id;
-    if (!cartId) {
-      setAllowedMethods(null);
-      return;
-    }
     (async () => {
       try {
-        // Domestic Egypt checkout: EGP region + paper shipping in Egypt.
-        const countryCode = hasPaperItems ? "eg" : undefined;
-        const methods = await fetchAvailablePaymentMethods({ cartId, countryCode });
+        const resolvedRegionId = await getStoreRegionId();
+        const methods = await fetchAvailablePaymentMethods(resolvedRegionId);
         if (cancelled) return;
-        const filtered = hasDigitalItems
+        const next = hasDigitalItems
           ? methods.filter((m) => m !== "cash_on_delivery")
           : methods;
-        const next = filtered.length > 0 ? filtered : (["paypal"] as StorePaymentMethod[]);
         setAllowedMethods(next);
-        setPaymentMethod((current) =>
-          next.includes(current) ? current : next[0],
-        );
-      } catch {
-        if (!cancelled) {
-          // Fail open to PayPal so checkout remains usable if Medusa is down.
-          setAllowedMethods(["paypal"]);
-          setPaymentMethod("paypal");
+        if (next.length > 0) {
+          setPaymentMethod((current) => (next.includes(current) ? current : next[0]));
         }
+      } catch {
+        if (!cancelled) setAllowedMethods([]);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [cart?.id, hasPaperItems, hasDigitalItems]);
+  }, [hasDigitalItems]);
 
   type ShippingState = {
     loading: boolean;
@@ -719,7 +709,19 @@ export default function CheckoutPage() {
             <div className="bg-card border border-border p-6">
               <h2 className="text-lg font-black text-primary mb-4">{t.paymentMethod}</h2>
               <div className="space-y-3">
-                {(!allowedMethods || allowedMethods.includes("card")) && (
+                {allowedMethods === null && (
+                  <p className="text-sm text-muted-foreground">
+                    {isAr ? "جارٍ تحميل طرق الدفع..." : "Loading payment methods..."}
+                  </p>
+                )}
+                {allowedMethods?.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    {isAr
+                      ? "لا توجد طرق دفع مفعّلة لهذه المنطقة في لوحة التجارة."
+                      : "No payment methods are enabled for this region in Medusa."}
+                  </p>
+                )}
+                {allowedMethods?.includes("card") && (
                 <label
                   className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${
                     paymentMethod === "card"
@@ -756,7 +758,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {(!allowedMethods || allowedMethods.includes("wallet")) && (
+                {allowedMethods?.includes("wallet") && (
                 <label
                   className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${
                     paymentMethod === "wallet"
@@ -816,7 +818,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {(!allowedMethods || allowedMethods.includes("paypal")) && (
+                {allowedMethods?.includes("paypal") && (
                 <label
                   className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${
                     paymentMethod === "paypal"
@@ -839,7 +841,7 @@ export default function CheckoutPage() {
                 </label>
                 )}
 
-                {(!allowedMethods || allowedMethods.includes("cash_on_delivery")) && (
+                {allowedMethods?.includes("cash_on_delivery") && (
                 <label
                   className={`flex items-start gap-3 border p-4 transition-colors ${
                     hasDigitalItems
@@ -892,6 +894,7 @@ export default function CheckoutPage() {
                 disabled={
                   submitting ||
                   shippingUnresolved ||
+                  !allowedMethods?.includes(paymentMethod) ||
                   (paymentMethod === "card" && cardStatus !== "ready") ||
                   (paymentMethod === "wallet" && walletStatus !== "ready")
                 }
