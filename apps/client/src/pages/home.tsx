@@ -474,7 +474,7 @@ const T = {
       cta3: "تواصل معنا",
       cta4: "متجر الكتب",
       cta5: "الأكاديمية",
-      ctaDiscover: "تعرّف على دار نظم",
+      ctaDiscover: "متجر الكتب",
       pillars: {
         shariah: "الحوكمة الشرعية",
         management: "التميّز الإداري",
@@ -622,7 +622,7 @@ const T = {
       cta3: "Contact Us",
       cta4: "Book Store",
       cta5: "Academy",
-      ctaDiscover: "Discover DarNozom",
+      ctaDiscover: "Book Store",
       pillars: {
         shariah: "Shariah Governance",
         management: "Management Excellence",
@@ -945,7 +945,7 @@ export default function Home() {
                 )}
               </MagneticButton>
               <Link
-                href="/about"
+                href="/services/store/books"
                 className="group flex items-center gap-2 text-foreground text-sm font-bold underline-offset-[6px] underline decoration-primary/30 hover:decoration-primary transition-colors px-1 py-1"
               >
                 {t.hero.ctaDiscover}
