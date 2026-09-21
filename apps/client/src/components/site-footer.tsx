@@ -10,6 +10,7 @@ const COPY = {
     address: "الشيخ زايد، الجيزة، مصر",
     privacy: "سياسة الخصوصية",
     terms: "الشروط والأحكام",
+    returns: "سياسة الإرجاع",
     rights: "جميع الحقوق محفوظة",
     facebookAria: "فيسبوك",
     twitterAria: "تويتر / X",
@@ -25,6 +26,7 @@ const COPY = {
     address: "Sheikh Zayed, Giza, Egypt",
     privacy: "Privacy Policy",
     terms: "Terms & Conditions",
+    returns: "Return Policy",
     rights: "All rights reserved",
     facebookAria: "Facebook",
     twitterAria: "Twitter / X",
@@ -124,9 +126,10 @@ export function SiteFooter() {
           <p className="text-white/20 text-xs">
             © {new Date().getFullYear()} {isArabic ? "دار نظم — جميع الحقوق محفوظة" : `DarNozom — ${t.rights}`}
           </p>
-          <div className="flex gap-6 text-primary-foreground/40 text-xs">
+          <div className="flex gap-6 text-primary-foreground/40 text-xs flex-wrap justify-center">
             <a href="/privacy" className="hover:text-secondary transition-colors">{t.privacy}</a>
             <a href="/terms" className="hover:text-secondary transition-colors">{t.terms}</a>
+            <a href="/return-policy" className="hover:text-secondary transition-colors">{t.returns}</a>
           </div>
         </div>
       </div>

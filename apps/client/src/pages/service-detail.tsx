@@ -891,8 +891,8 @@ const services: Record<string, ServiceData> = {
   },
   store: {
     slug: "store",
-    title: { ar: "المتجر الإلكتروني", en: "Online Store" },
-    subtitle: "Online Store",
+    title: { ar: "متجر الكتب", en: "Book Store" },
+    subtitle: "Book Store",
     icon: <ShoppingCart size={48} />,
     overview: {
       ar: "نوفر منتجات معرفية وتطبيقية تساعد الأفراد والمؤسسات على تطوير أعمالهم بشكل عملي.",

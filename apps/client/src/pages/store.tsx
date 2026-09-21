@@ -12,6 +12,7 @@ import ProductCard, { type ProductCardItem } from "@/components/store/product-ca
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { productIsFeatured } from "@/lib/product-featured";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -25,7 +26,7 @@ function formatAmount(amount: number | null | undefined): number {
 const T = {
   ar: {
     eyebrow: "متجرنا",
-    title: ["المتجر الإلكتروني"],
+    title: ["متجر الكتب"],
     subtitle: "مرجع موحّد لقادة الأعمال والمؤسسات: مكتبة بحثية، برامج تدريبية معتمدة، وحلول رقمية يطوّرها فريق دار نظم.",
     searchPlaceholder: "ابحث في المراجع والبرامج والحلول...",
     trust: ["محتوى يُعدّه ويراجعه فريق دار نظم", "معتمد لدى منشآت حكومية وخاصة", "محدّث سنويًا وفق أحدث الممارسات"],
@@ -62,7 +63,7 @@ const T = {
   },
   en: {
     eyebrow: "Our Store",
-    title: ["Online Store"],
+    title: ["Book Store"],
     subtitle: "A single reference for business leaders and institutions: a research library, accredited training programs, and digital solutions built by Darnozom.",
     searchPlaceholder: "Search across publications, programs, and solutions...",
     trust: ["Authored & reviewed by Darnozom experts", "Trusted by public & private institutions", "Updated annually with the latest practice"],
@@ -134,7 +135,7 @@ function productToItem(p: StoreProduct, isArabic: boolean): ProductCardItem {
     imageUrl: p.thumbnail,
     price: lowest > 0 ? String(lowest) : null,
     currency: "EGP",
-    isFeatured: !!meta.isFeatured,
+    isFeatured: productIsFeatured(p),
     isNewRelease: !!meta.isNewRelease,
     externalUrl: (meta.buyLink as string) || (meta.externalUrl as string) || null,
     detailUrl: `/services/store/books/${p.id}`,
@@ -170,7 +171,7 @@ export default function StorePage() {
         const { products: fetched } = await sdk.store.product.list({
           limit: 100,
           region_id: regionId,
-          fields: "*variants,*variants.calculated_price,*variants.metadata",
+          fields: "*variants,*variants.calculated_price,*variants.metadata,*tags",
         });
         if (cancelled) return;
         setProducts(fetched);

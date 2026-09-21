@@ -14,6 +14,10 @@ import SiteNav from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
 import { useLanguage } from "@/lib/language-context";
+import {
+  fetchAvailablePaymentMethods,
+  type StorePaymentMethod,
+} from "@/lib/medusa-client";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -175,16 +179,15 @@ export default function CheckoutPage() {
   const user = session?.user;
   const userLoaded = !isPending;
   const isSignedIn = !!user;
-  const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems } = useCart();
+  const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems, cart } = useCart();
 
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<
-    "paypal" | "card" | "wallet" | "cash_on_delivery"
-  >("paypal");
+  const [paymentMethod, setPaymentMethod] = useState<StorePaymentMethod>("paypal");
+  const [allowedMethods, setAllowedMethods] = useState<StorePaymentMethod[] | null>(null);
   const [walletPhone, setWalletPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -200,12 +203,14 @@ export default function CheckoutPage() {
     "loading",
   );
 
-  // Digital books can never be paid via cash on delivery — force PayPal.
+  // Digital books can never be paid via cash on delivery — force another method.
   useEffect(() => {
     if (hasDigitalItems && paymentMethod === "cash_on_delivery") {
-      setPaymentMethod("paypal");
+      const fallback =
+        (allowedMethods ?? []).find((m) => m !== "cash_on_delivery") ?? "paypal";
+      setPaymentMethod(fallback);
     }
-  }, [hasDigitalItems, paymentMethod]);
+  }, [hasDigitalItems, paymentMethod, allowedMethods]);
 
   // Ask the server whether Paymob card payments are configured.
   useEffect(() => {
@@ -228,6 +233,41 @@ export default function CheckoutPage() {
       cancelled = true;
     };
   }, []);
+
+  // Payment methods come from Medusa (region / cart), not a hard-coded list.
+  useEffect(() => {
+    let cancelled = false;
+    const cartId = cart?.id;
+    if (!cartId) {
+      setAllowedMethods(null);
+      return;
+    }
+    (async () => {
+      try {
+        // Domestic Egypt checkout: EGP region + paper shipping in Egypt.
+        const countryCode = hasPaperItems ? "eg" : undefined;
+        const methods = await fetchAvailablePaymentMethods({ cartId, countryCode });
+        if (cancelled) return;
+        const filtered = hasDigitalItems
+          ? methods.filter((m) => m !== "cash_on_delivery")
+          : methods;
+        const next = filtered.length > 0 ? filtered : (["paypal"] as StorePaymentMethod[]);
+        setAllowedMethods(next);
+        setPaymentMethod((current) =>
+          next.includes(current) ? current : next[0],
+        );
+      } catch {
+        if (!cancelled) {
+          // Fail open to PayPal so checkout remains usable if Medusa is down.
+          setAllowedMethods(["paypal"]);
+          setPaymentMethod("paypal");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cart?.id, hasPaperItems, hasDigitalItems]);
 
   type ShippingState = {
     loading: boolean;
@@ -679,6 +719,7 @@ export default function CheckoutPage() {
             <div className="bg-card border border-border p-6">
               <h2 className="text-lg font-black text-primary mb-4">{t.paymentMethod}</h2>
               <div className="space-y-3">
+                {(!allowedMethods || allowedMethods.includes("card")) && (
                 <label
                   className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${
                     paymentMethod === "card"
@@ -703,6 +744,7 @@ export default function CheckoutPage() {
                     <div className="text-xs text-muted-foreground mt-0.5">{t.cardDesc}</div>
                   </div>
                 </label>
+                )}
 
                 {paymentMethod === "card" && cardStatus === "unavailable" && (
                   <div
@@ -714,6 +756,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {(!allowedMethods || allowedMethods.includes("wallet")) && (
                 <label
                   className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${
                     paymentMethod === "wallet"
@@ -738,6 +781,7 @@ export default function CheckoutPage() {
                     <div className="text-xs text-muted-foreground mt-0.5">{t.walletDesc}</div>
                   </div>
                 </label>
+                )}
 
                 {paymentMethod === "wallet" && walletStatus === "unavailable" && (
                   <div
@@ -772,6 +816,7 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
+                {(!allowedMethods || allowedMethods.includes("paypal")) && (
                 <label
                   className={`flex items-start gap-3 border p-4 cursor-pointer transition-colors ${
                     paymentMethod === "paypal"
@@ -792,7 +837,9 @@ export default function CheckoutPage() {
                     <div className="text-xs text-muted-foreground mt-0.5">{t.paypalDesc}</div>
                   </div>
                 </label>
+                )}
 
+                {(!allowedMethods || allowedMethods.includes("cash_on_delivery")) && (
                 <label
                   className={`flex items-start gap-3 border p-4 transition-colors ${
                     hasDigitalItems
@@ -816,6 +863,7 @@ export default function CheckoutPage() {
                     <div className="text-xs text-muted-foreground mt-0.5">{t.codDesc}</div>
                   </div>
                 </label>
+                )}
 
                 {hasDigitalItems && (
                   <p className="text-[11px] text-muted-foreground">{t.codDisabledDigital}</p>

@@ -21,6 +21,7 @@ import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { useCart } from "@/lib/cart-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { productIsFeatured } from "@/lib/product-featured";
 import { getBookVariantInfo } from "@/lib/book-variants";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -133,7 +134,7 @@ export default function StoreBookDetailPage() {
         sdk.store.product.retrieve(id, {
           region_id: regionId,
           fields:
-            "*variants,*variants.calculated_price,*variants.metadata,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+            "*variants,*variants.calculated_price,*variants.metadata,*variants.options,*tags,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
         }),
       )
       .then(({ product }) => {
@@ -314,7 +315,7 @@ export default function StoreBookDetailPage() {
                             <Sparkles className="w-3 h-3" /> {t.new}
                           </span>
                         )}
-                        {!!meta.isFeatured && (
+                        {productIsFeatured({ metadata: meta, tags: book.tags }) && (
                           <span className="bg-secondary text-secondary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-secondary/30 inline-flex items-center gap-1 ms-auto">
                             <Star className="w-3 h-3 fill-current" /> {t.featured}
                           </span>

@@ -11,6 +11,7 @@ import { AdminFab } from "@/components/store/admin-fab";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { productIsFeatured } from "@/lib/product-featured";
 import { getBookVariantInfo } from "@/lib/book-variants";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
@@ -90,7 +91,7 @@ export default function StoreBooksPage() {
           limit: 100,
           region_id: regionId,
           fields:
-            "*variants,*variants.calculated_price,*variants.metadata,*variants.options,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+            "*variants,*variants.calculated_price,*variants.metadata,*variants.options,*tags,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
         });
         if (cancelled) return;
         setProducts(fetched);
@@ -186,7 +187,7 @@ export default function StoreBooksPage() {
       imageUrl: p.thumbnail,
       price: lowest > 0 ? String(lowest) : null,
       currency: "EGP",
-      isFeatured: !!meta.isFeatured,
+      isFeatured: productIsFeatured(p),
       isNewRelease: !!meta.isNewRelease,
       externalUrl: (meta.buyLink as string) || (meta.externalUrl as string) || null,
       detailUrl: `/services/store/books/${p.id}`,

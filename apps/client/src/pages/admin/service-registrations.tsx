@@ -34,7 +34,7 @@ const SERVICE_LABEL: Record<string, string> = {
   "academy": "أكاديمية دار نظم",
   "research": "البحث والتطوير",
   "publishing": "النشر والترجمة",
-  "store": "المتجر الإلكتروني",
+  "store": "متجر الكتب",
   "other": "أخرى",
 };
 

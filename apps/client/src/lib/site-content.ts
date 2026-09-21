@@ -148,8 +148,8 @@ export const SERVICES: ServiceItem[] = [
     ],
   },
   {
-    title: { ar: "المتجر الإلكتروني", en: "Online Store" },
-    subtitle: "Online Store",
+    title: { ar: "متجر الكتب", en: "Book Store" },
+    subtitle: "Book Store",
     slug: "store",
     featured: false,
     desc: {

@@ -12,6 +12,11 @@ if (!jwtSecret || !cookieSecret) {
   )
 }
 
+const resendApiKey = process.env.RESEND_API_KEY?.trim()
+const resendFromEmail =
+  process.env.RESEND_FROM_EMAIL?.trim() ||
+  'Darnozom Consulting <noreply@darnozom.com>'
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.MEDUSA_DATABASE_URL,
@@ -35,6 +40,29 @@ module.exports = defineConfig({
     }
   },
   modules: [
+    // Email notifications via Resend (same key/domain as apps/api). Only
+    // register when RESEND_API_KEY is present so local/dev without email
+    // still boots — Medusa's local feed provider remains the default otherwise.
+    ...(resendApiKey
+      ? [
+          {
+            resolve: '@medusajs/medusa/notification',
+            options: {
+              providers: [
+                {
+                  resolve: './src/modules/resend',
+                  id: 'resend',
+                  options: {
+                    channels: ['email'],
+                    api_key: resendApiKey,
+                    from: resendFromEmail,
+                  },
+                },
+              ],
+            },
+          },
+        ]
+      : []),
     {
       resolve: './src/modules/digital-product',
     },

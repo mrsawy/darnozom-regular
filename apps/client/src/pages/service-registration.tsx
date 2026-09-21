@@ -18,7 +18,7 @@ const SERVICES = [
   { id: "academy", labelAr: "أكاديمية دار نظم", labelEn: "DarNozom Academy" },
   { id: "research", labelAr: "البحث والتطوير", labelEn: "Research & Development" },
   { id: "publishing", labelAr: "النشر والترجمة", labelEn: "Publishing & Translation" },
-  { id: "store", labelAr: "المتجر الإلكتروني", labelEn: "Online Store" },
+  { id: "store", labelAr: "متجر الكتب", labelEn: "Book Store" },
   { id: "other", labelAr: "أخرى", labelEn: "Other" },
 ];
 

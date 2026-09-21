@@ -23,9 +23,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@workspace/db": "workspace:*",
-    "@workspace/object-store": "workspace:*",
-    "@workspace/payment-gateways": "workspace:*",
     "@medusajs/admin-sdk": "2.21.0",
     "@medusajs/admin-shared": "2.21.0",
     "@medusajs/caching": "2.21.0",
@@ -36,8 +33,12 @@
     "@medusajs/medusa": "2.21.0",
     "@medusajs/ui": "4.2.4",
     "@tanstack/react-query": "5.64.2",
+    "@workspace/db": "workspace:*",
+    "@workspace/object-store": "workspace:*",
+    "@workspace/payment-gateways": "workspace:*",
     "react-i18next": "13.5.0",
     "react-router-dom": "7.18.2",
+    "resend": "^6.28.1",
     "zod": "4.2.0"
   },
   "devDependencies": {

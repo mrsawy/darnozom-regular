@@ -15,8 +15,8 @@ const HIGHLIGHTS = [
   {
     href: "/services/store",
     icon: ShoppingBag,
-    ar: { title: "المتجر الإلكتروني", desc: "كتب متخصصة، دورات تدريبية، وتطبيقات رقمية جاهزة من إصدارات دار نظم — في مكان واحد متكامل.", cta: "زيارة المتجر" },
-    en: { title: "Online Store", desc: "Specialized books, training courses, and ready digital apps from Darnozom — all in one integrated marketplace.", cta: "Visit Store" },
+    ar: { title: "متجر الكتب", desc: "كتب متخصصة، دورات تدريبية، وتطبيقات رقمية جاهزة من إصدارات دار نظم — في مكان واحد متكامل.", cta: "زيارة المتجر" },
+    en: { title: "Book Store", desc: "Specialized books, training courses, and ready digital apps from Darnozom — all in one integrated marketplace.", cta: "Visit Store" },
   },
 ];
 

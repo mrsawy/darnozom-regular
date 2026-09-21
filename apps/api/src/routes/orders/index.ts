@@ -1801,8 +1801,8 @@ router.get(
         return res.status(403).json({ error: "Order is cancelled" });
       }
       // Digital PDF access is unlocked only once payment has actually been
-      // captured. COD orders never reach paymentStatus=paid, so they can never
-      // unlock a PDF.
+      // captured. COD paper orders can become paid when admin marks the order
+      // completed (cash collected); digital items are never sold via COD.
       if (order.paymentStatus !== "paid") {
         return res.status(403).json({ error: "Payment not completed" });
       }
@@ -2026,12 +2026,27 @@ router.put("/admin/orders/:id", requireAdmin, async (req, res) => {
     // Detect an actual status change so we only email the customer when the
     // order's status really moved (not on note-only edits or no-op saves).
     const [before] = await db.select().from(orders).where(eq(orders.id, id));
+    if (!before) return res.status(404).json({ error: "Not found" });
+
+    // COD: cash is collected on delivery. When admin marks the order completed
+    // ("reached the customer"), stamp payment as paid. Online payments are
+    // never flipped here — they only become paid via gateway webhooks/capture.
+    if (
+      updates.status === "completed" &&
+      before.status !== "completed" &&
+      before.paymentMethod === "cash_on_delivery" &&
+      before.paymentStatus !== "paid"
+    ) {
+      updates.paymentStatus = "paid";
+      updates.paidAt = new Date();
+      updates.paymentFailureReason = null;
+    }
+
     const [updated] = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Not found" });
 
     if (
       updates.status !== undefined &&
-      before &&
       before.status !== updated.status &&
       updated.userEmail
     ) {

@@ -28,6 +28,9 @@ import Careers from "@/pages/careers";
 import About from "@/pages/about";
 import CaseStudies from "@/pages/case-studies";
 import CaseStudyDetail from "@/pages/case-study-detail";
+import PrivacyPolicyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
+import ReturnPolicyPage from "@/pages/return-policy";
 import Services from "@/pages/services";
 import Sectors from "@/pages/sectors";
 import Contact from "@/pages/contact";
@@ -108,6 +111,9 @@ function Router() {
       <Route path="/services" component={Services} />
       <Route path="/sectors" component={Sectors} />
       <Route path="/contact" component={Contact} />
+      <Route path="/privacy" component={PrivacyPolicyPage} />
+      <Route path="/terms" component={TermsPage} />
+      <Route path="/return-policy" component={ReturnPolicyPage} />
       <Route path="/academy" component={Academy} />
       <Route path="/academy/islamic-systems" component={AcademyIslamic} />
       <Route path="/academy/professional-management" component={AcademyManagement} />

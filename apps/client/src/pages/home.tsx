@@ -15,6 +15,7 @@ import { useLanguage } from "@/lib/language-context";
 import SiteNav from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import CaseStudyCard from "@/components/case-study-card";
+import FeaturedBooksSection from "@/components/featured-books-section";
 import { SERVICES as SERVICES_DATA } from "@/lib/site-content";
 import { getFeaturedCaseStudies } from "@/lib/case-studies";
 import statServicesBg from "@/assets/stat-services-bg.png";
@@ -441,7 +442,7 @@ const T = {
     dir: "rtl" as const,
     nav: {
       home: "الرئيسية", about: "من نحن", services: "خدماتنا", sectors: "القطاعات",
-      academy: "الأكاديمية", onlineStore: "المتجر الإلكتروني", aiConsult: "وكيل الاستشارات الذكي",
+      academy: "الأكاديمية", onlineStore: "متجر الكتب", aiConsult: "وكيل الاستشارات الذكي",
       aiConsultMobile: "وكيل الاستشارات الذكي", career: "الوظائف", contact: "تواصل معنا",
       events: "الفعاليات", langToggle: "English",
       servicesDropdown: [
@@ -471,7 +472,7 @@ const T = {
       cta1: "اكتشف خدماتنا",
       cta2: "وكيل الاستشارات الذكي",
       cta3: "تواصل معنا",
-      cta4: "المتجر الإلكتروني",
+      cta4: "متجر الكتب",
       cta5: "الأكاديمية",
       ctaDiscover: "تعرّف على دار نظم",
       pillars: {
@@ -589,7 +590,7 @@ const T = {
     dir: "ltr" as const,
     nav: {
       home: "Home", about: "About", services: "Services", sectors: "Sectors",
-      academy: "Academy", onlineStore: "Online Store", aiConsult: "AI Consulting Agent",
+      academy: "Academy", onlineStore: "Book Store", aiConsult: "AI Consulting Agent",
       aiConsultMobile: "AI Consulting Agent", career: "Careers", contact: "Contact",
       events: "Events", langToggle: "العربية",
       servicesDropdown: [
@@ -619,7 +620,7 @@ const T = {
       cta1: "Explore Our Services",
       cta2: "AI Consulting Agent",
       cta3: "Contact Us",
-      cta4: "Online Store",
+      cta4: "Book Store",
       cta5: "Academy",
       ctaDiscover: "Discover DarNozom",
       pillars: {
@@ -1099,6 +1100,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <FeaturedBooksSection />
 
       {/* ══════════════════════════════════════
           SECTORS — McKinsey number style
