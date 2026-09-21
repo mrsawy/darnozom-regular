@@ -3,14 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { medusaAdminMock } = vi.hoisted(() => ({ medusaAdminMock: vi.fn() }));
 vi.mock("./medusa-admin", () => ({ medusaAdmin: medusaAdminMock }));
 
-const { syncMedusaOrder } = await import("./medusa-order-sync");
+const { syncMedusaOrder, markMedusaOrderPaidForDarnozomOrder } = await import(
+  "./medusa-order-sync"
+);
 
 describe("syncMedusaOrder", () => {
   beforeEach(() => {
     medusaAdminMock.mockReset();
   });
 
-  it("creates a draft order then converts it so it appears under Admin Orders", async () => {
+  it("creates a draft order, converts it, then attaches a not_paid payment collection", async () => {
     medusaAdminMock.mockImplementation(async (path: string, init?: RequestInit) => {
       if (path.startsWith("/admin/regions")) return { regions: [{ id: "reg_1" }] };
       if (path.startsWith("/admin/sales-channels")) {
@@ -21,6 +23,18 @@ describe("syncMedusaOrder", () => {
       }
       if (path === "/admin/draft-orders/order_draft_1/convert-to-order") {
         return { order: { id: "order_draft_1" } };
+      }
+      if (path.startsWith("/admin/orders/order_draft_1")) {
+        return {
+          order: {
+            id: "order_draft_1",
+            summary: { pending_difference: 150 },
+            payment_collections: [],
+          },
+        };
+      }
+      if (path === "/admin/payment-collections" && init?.method === "POST") {
+        return { payment_collection: { id: "paycol_1" } };
       }
       throw new Error(`unexpected call: ${path}`);
     });
@@ -35,6 +49,7 @@ describe("syncMedusaOrder", () => {
       currencyCode: "EGP",
       shippingTotal: 100,
       paymentMethod: "cash_on_delivery",
+      paymentStatus: "unpaid",
       items: [
         {
           title: "BOOK 858585",
@@ -58,6 +73,7 @@ describe("syncMedusaOrder", () => {
     expect(body.currency_code).toBe("egp");
     expect(body.no_notification_order).toBe(true);
     expect(body.metadata.darnozom_order_id).toBe(42);
+    expect(body.customer_id).toBeUndefined();
     expect(body.items).toEqual([
       {
         variant_id: "variant_paper_1",
@@ -86,6 +102,52 @@ describe("syncMedusaOrder", () => {
       "/admin/draft-orders/order_draft_1/convert-to-order",
       { method: "POST", body: "{}" },
     );
+
+    const payColCall = medusaAdminMock.mock.calls.find(
+      (c) => c[0] === "/admin/payment-collections",
+    );
+    expect(payColCall).toBeTruthy();
+    expect(JSON.parse(payColCall![1].body as string)).toEqual({
+      order_id: "order_draft_1",
+      amount: 150,
+    });
+  });
+
+  it("marks payment collection paid when Express paymentStatus is paid", async () => {
+    medusaAdminMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path.startsWith("/admin/regions")) return { regions: [{ id: "reg_1" }] };
+      if (path.startsWith("/admin/sales-channels")) return { sales_channels: [] };
+      if (path === "/admin/draft-orders") return { draft_order: { id: "order_paid" } };
+      if (path.includes("convert-to-order")) return { order: { id: "order_paid" } };
+      if (path.startsWith("/admin/orders/order_paid")) {
+        return {
+          order: {
+            id: "order_paid",
+            summary: { pending_difference: 50 },
+            payment_collections: [{ id: "paycol_existing", status: "not_paid" }],
+          },
+        };
+      }
+      if (path.includes("/mark-as-paid")) return { payment_collection: { id: "paycol_existing" } };
+      throw new Error(`unexpected: ${path} ${init?.method}`);
+    });
+
+    await syncMedusaOrder({
+      darnozomOrderId: 9,
+      email: "a@b.com",
+      fullName: "Solo",
+      paymentStatus: "paid",
+      items: [{ title: "Book", quantity: 1, unitPrice: 50 }],
+    });
+
+    const markCall = medusaAdminMock.mock.calls.find((c) =>
+      String(c[0]).includes("/mark-as-paid"),
+    );
+    expect(markCall).toBeTruthy();
+    expect(JSON.parse(markCall![1].body as string)).toMatchObject({
+      order_id: "order_paid",
+      provider_id: "pp_system_default",
+    });
   });
 
   it("uses custom line items when there is no Medusa variant id", async () => {
@@ -94,6 +156,18 @@ describe("syncMedusaOrder", () => {
       if (path.startsWith("/admin/sales-channels")) return { sales_channels: [] };
       if (path === "/admin/draft-orders") return { draft_order: { id: "order_2" } };
       if (path.includes("convert-to-order")) return { order: { id: "order_2" } };
+      if (path.startsWith("/admin/orders/order_2")) {
+        return {
+          order: {
+            id: "order_2",
+            summary: { pending_difference: 400 },
+            payment_collections: [],
+          },
+        };
+      }
+      if (path === "/admin/payment-collections") {
+        return { payment_collection: { id: "paycol_2" } };
+      }
       throw new Error(`unexpected: ${path} ${init?.method}`);
     });
 
@@ -116,6 +190,38 @@ describe("syncMedusaOrder", () => {
     });
   });
 
+  it("passes customer_id onto the draft order when provided", async () => {
+    medusaAdminMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path.startsWith("/admin/regions")) return { regions: [{ id: "reg_1" }] };
+      if (path.startsWith("/admin/sales-channels")) return { sales_channels: [] };
+      if (path === "/admin/draft-orders") return { draft_order: { id: "order_c" } };
+      if (path.includes("convert-to-order")) return { order: { id: "order_c" } };
+      if (path.startsWith("/admin/orders/order_c")) {
+        return {
+          order: {
+            id: "order_c",
+            summary: { pending_difference: 10 },
+            payment_collections: [{ id: "paycol", status: "not_paid" }],
+          },
+        };
+      }
+      throw new Error(`unexpected: ${path} ${init?.method}`);
+    });
+
+    await syncMedusaOrder({
+      darnozomOrderId: 3,
+      email: "a@b.com",
+      fullName: "A B",
+      customerId: "cus_registered",
+      items: [{ title: "Book", quantity: 1, unitPrice: 10 }],
+    });
+
+    const body = JSON.parse(
+      medusaAdminMock.mock.calls.find((c) => c[0] === "/admin/draft-orders")![1].body as string,
+    );
+    expect(body.customer_id).toBe("cus_registered");
+  });
+
   it("throws when no region exists", async () => {
     medusaAdminMock.mockResolvedValue({ regions: [] });
     await expect(
@@ -126,5 +232,42 @@ describe("syncMedusaOrder", () => {
         items: [{ title: "T", quantity: 1, unitPrice: 1 }],
       }),
     ).rejects.toThrow(/No Medusa region/);
+  });
+});
+
+describe("markMedusaOrderPaidForDarnozomOrder", () => {
+  beforeEach(() => {
+    medusaAdminMock.mockReset();
+  });
+
+  it("finds the mirrored order and marks its unpaid collection paid", async () => {
+    medusaAdminMock.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path.startsWith("/admin/orders?limit=100")) {
+        return {
+          orders: [
+            { id: "order_other", metadata: { darnozom_order_id: 1 } },
+            { id: "order_match", metadata: { darnozom_order_id: 42 } },
+          ],
+        };
+      }
+      if (path.startsWith("/admin/orders/order_match")) {
+        return {
+          order: {
+            id: "order_match",
+            summary: { pending_difference: 30 },
+            payment_collections: [{ id: "paycol_x", status: "not_paid" }],
+          },
+        };
+      }
+      if (path.includes("/mark-as-paid")) return {};
+      throw new Error(`unexpected: ${path} ${init?.method}`);
+    });
+
+    await markMedusaOrderPaidForDarnozomOrder(42);
+
+    const markCall = medusaAdminMock.mock.calls.find((c) =>
+      String(c[0]).includes("paycol_x/mark-as-paid"),
+    );
+    expect(markCall).toBeTruthy();
   });
 });

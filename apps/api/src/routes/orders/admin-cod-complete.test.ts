@@ -20,6 +20,18 @@ vi.mock("../../lib/email/email", () => ({
 }));
 
 vi.mock("../../middlewares/authMiddleware", () => ({
+  optionalAuth: (
+    req: express.Request & { userId?: string; userEmail?: string },
+    _res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const uid = req.header("x-test-user");
+    if (uid) {
+      req.userId = uid;
+      req.userEmail = req.header("x-test-email") || "buyer@example.com";
+    }
+    next();
+  },
   requireAuth: (
     req: express.Request & { userId?: string },
     res: express.Response,
@@ -51,6 +63,7 @@ vi.mock("../../middlewares/adminAuth", () => ({
 
 vi.mock("../../lib/medusa-order-sync", () => ({
   syncMedusaOrder: vi.fn(async () => undefined),
+  markMedusaOrderPaidForDarnozomOrder: vi.fn(async () => undefined),
 }));
 
 const { default: ordersRouter } = await import("./index");

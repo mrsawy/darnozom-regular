@@ -137,9 +137,18 @@ export default function CheckoutPaymobPayPage() {
       }
       if (!url) {
         try {
+          const guestEmail = (() => {
+            try {
+              return sessionStorage.getItem(`order-email-${orderId}`);
+            } catch {
+              return null;
+            }
+          })();
           const res = await fetch(`/api/store/orders/${orderId}/paymob-checkout`, {
             method: "POST",
             credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(guestEmail ? { email: guestEmail } : {}),
           });
           const body = await res.json().catch(() => ({}));
           if (res.ok && body.checkoutUrl) {
@@ -188,9 +197,18 @@ export default function CheckoutPaymobPayPage() {
 
   const confirmPayment = useCallback(async (): Promise<boolean> => {
     try {
+      const guestEmail = (() => {
+        try {
+          return sessionStorage.getItem(`order-email-${orderId}`);
+        } catch {
+          return null;
+        }
+      })();
       const res = await fetch(`/api/store/orders/${orderId}/paymob-confirm`, {
         method: "POST",
         credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(guestEmail ? { email: guestEmail } : {}),
       });
       const body = await res.json().catch(() => ({}));
       if (res.ok && body.paymentStatus === "paid") {

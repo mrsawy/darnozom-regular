@@ -36,7 +36,7 @@ export const paymentStatusEnum = pgEnum("payment_status", [
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id", { length: 255 }).notNull(),
+  userId: varchar("user_id", { length: 255 }), // null = guest checkout
   userEmail: varchar("user_email", { length: 255 }).notNull(),
   fullName: varchar("full_name", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 50 }).notNull(),

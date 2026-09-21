@@ -69,14 +69,17 @@ const COPY = {
     codDesc: "ادفع نقداً عند استلام الطلب (النسخ الورقية فقط).",
     codDisabledDigital: "الدفع عند الاستلام غير متاح للكتب الرقمية — اختر PayPal.",
     usdNote: "* يُحصّل الدفع عبر PayPal بالدولار الأمريكي حسب سعر الصرف وقت الدفع.",
-    signInRequired: "تسجيل الدخول مطلوب",
-    signInDesc: "سجّل دخولك أولاً لإتمام الطلب وتتبعه لاحقاً.",
-    signIn: "تسجيل الدخول",
+    signInOptional: "لديك حساب؟",
+    signInLink: "سجّل الدخول",
+    signInOptionalHint: "لتتبع الطلبات من حسابك وحفظ بياناتك للمرة القادمة.",
+    guestCheckout: "إتمام الشراء كزائر",
+    emailRequired: "البريد الإلكتروني مطلوب",
+    emailInvalid: "أدخل بريداً إلكترونياً صالحاً",
     emptyCart: "السلة فارغة",
     backToStore: "تصفح المتجر",
     success: "تم إنشاء الطلب بنجاح",
     successDesc:
-      "سيقوم فريقنا بمراجعة الطلب والتواصل معك خلال 24 ساعة. يمكنك تتبع حالة الطلب من صفحة حسابك.",
+      "سيقوم فريقنا بمراجعة الطلب والتواصل معك خلال 24 ساعة. إن كان لديك حساب، يمكنك تتبع الطلب من صفحة حسابك.",
     viewOrders: "عرض طلباتي",
     types: { book: "كتاب", course: "دورة", app: "تطبيق" } as Record<string, string>,
     formats: { paper: "ورقي", digital: "رقمي PDF" } as Record<string, string>,
@@ -142,14 +145,17 @@ const COPY = {
     codDesc: "Pay in cash when your order arrives (paper items only).",
     codDisabledDigital: "Cash on delivery is not available for digital books — choose PayPal.",
     usdNote: "* PayPal is charged in USD based on the exchange rate at payment time.",
-    signInRequired: "Sign-in required",
-    signInDesc: "Please sign in first to place and track your order.",
-    signIn: "Sign in",
+    signInOptional: "Have an account?",
+    signInLink: "Sign in",
+    signInOptionalHint: "Track orders from your account and save your details for next time.",
+    guestCheckout: "Continue as guest",
+    emailRequired: "Email is required",
+    emailInvalid: "Enter a valid email address",
     emptyCart: "Your cart is empty",
     backToStore: "Browse the store",
     success: "Order placed successfully",
     successDesc:
-      "Our team will review your order and contact you within 24 hours. You can track its status from your account page.",
+      "Our team will review your order and contact you within 24 hours. If you have an account, you can track it from your account page.",
     viewOrders: "View my orders",
     types: { book: "Book", course: "Course", app: "App" } as Record<string, string>,
     formats: { paper: "Paper", digital: "Digital PDF" } as Record<string, string>,
@@ -183,6 +189,7 @@ export default function CheckoutPage() {
   const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems, cart } = useCart();
 
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
@@ -336,11 +343,12 @@ export default function CheckoutPage() {
 
   // Pre-fill from the signed-in account (fallback — only fills fields still
   // empty so it never overwrites saved checkout details or user edits).
-  // There is no phone here: accounts carry a name and an email, and phone
-  // now comes solely from the saved checkout profile below.
   useEffect(() => {
     if (user?.name) {
       setFullName((prev) => prev || user.name);
+    }
+    if (user?.email) {
+      setEmail(user.email);
     }
   }, [user]);
 
@@ -383,13 +391,20 @@ export default function CheckoutPage() {
     };
   }, [isSignedIn]);
 
-  const email = user?.email || "";
-
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     if (!fullName.trim() || !phone.trim()) {
       setError(t.errors.missing);
+      return;
+    }
+    const emailTrimmed = email.trim().toLowerCase();
+    if (!emailTrimmed) {
+      setError(t.emailRequired);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
+      setError(t.emailInvalid);
       return;
     }
     if (hasPaperItems && !city.trim()) {
@@ -445,6 +460,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: fullName.trim(),
+          email: emailTrimmed,
           phone: phone.trim(),
           address: address.trim() || undefined,
           city: city.trim() || undefined,
@@ -472,6 +488,12 @@ export default function CheckoutPage() {
       if (!res.ok) {
         setError(body.error || t.errors.generic);
         return;
+      }
+      // Stash email for guest payment continuation (PayPal capture / Paymob).
+      try {
+        sessionStorage.setItem(`order-email-${body.id}`, emailTrimmed);
+      } catch {
+        // ignore
       }
       // PayPal: redirect the buyer to approve. Do NOT clear the cart until the
       // capture succeeds (handled on the return page) so a cancel keeps items.
@@ -528,30 +550,6 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-background" dir={isAr ? "rtl" : "ltr"}>
-        <SiteNav mode="page" />
-        <div className="max-w-2xl mx-auto px-6 py-20">
-          <div className="bg-card border border-border p-8 text-center">
-            <AlertCircle className="w-10 h-10 text-secondary mx-auto mb-3" />
-            <h1 className="text-2xl font-black text-primary mb-2">{t.signInRequired}</h1>
-            <p className="text-muted-foreground mb-6">{t.signInDesc}</p>
-            <Button
-              onClick={() =>
-                navigate(`/sign-in?redirect_url=${encodeURIComponent(`${basePath}/checkout`)}`)
-              }
-              className="rounded-none gap-2"
-            >
-              {t.signIn}
-              <Arrow className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (orderId) {
     return (
       <div className="min-h-screen bg-background" dir={isAr ? "rtl" : "ltr"}>
@@ -566,14 +564,16 @@ export default function CheckoutPage() {
               <span className="font-mono font-bold text-primary">#{orderId}</span>
             </div>
             <div className="flex items-center justify-center gap-3">
-              <Link href="/account?tab=orders">
-                <Button className="rounded-none gap-2">
-                  {t.viewOrders}
-                  <Arrow className="w-4 h-4" />
-                </Button>
-              </Link>
+              {isSignedIn ? (
+                <Link href="/account?tab=orders">
+                  <Button className="rounded-none gap-2">
+                    {t.viewOrders}
+                    <Arrow className="w-4 h-4" />
+                  </Button>
+                </Link>
+              ) : null}
               <Link href="/services/store">
-                <Button variant="outline" className="rounded-none">
+                <Button variant={isSignedIn ? "outline" : "default"} className="rounded-none">
                   {t.backToStore}
                 </Button>
               </Link>
@@ -620,7 +620,25 @@ export default function CheckoutPage() {
           {/* Form */}
           <form onSubmit={onSubmit} className="lg:col-span-2 space-y-5">
             <div className="bg-card border border-border p-6">
-              <h2 className="text-lg font-black text-primary mb-4">{t.contactInfo}</h2>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <h2 className="text-lg font-black text-primary">{t.contactInfo}</h2>
+                {!isSignedIn ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/sign-in?redirect_url=${encodeURIComponent(`${basePath}/checkout`)}`,
+                      )
+                    }
+                    className="text-sm text-secondary hover:underline"
+                  >
+                    {t.signInOptional} {t.signInLink}
+                  </button>
+                ) : null}
+              </div>
+              {!isSignedIn ? (
+                <p className="text-xs text-muted-foreground mb-4">{t.signInOptionalHint}</p>
+              ) : null}
               <div className="grid md:grid-cols-2 gap-4">
                 <Field label={t.fullName} required>
                   <input
@@ -635,13 +653,19 @@ export default function CheckoutPage() {
                     className={inputClass}
                   />
                 </Field>
-                <Field label={t.email}>
+                <Field label={t.email} required>
                   <input
                     type="email"
+                    required
                     value={email}
-                    readOnly
+                    readOnly={isSignedIn}
+                    onChange={(e) => {
+                      if (isSignedIn) return;
+                      markEdited("email");
+                      setEmail(e.target.value);
+                    }}
                     dir="ltr"
-                    className={`${inputClass} bg-muted/40 cursor-not-allowed`}
+                    className={`${inputClass}${isSignedIn ? " bg-muted/40 cursor-not-allowed" : ""}`}
                   />
                 </Field>
                 <Field label={t.phone} required>

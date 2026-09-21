@@ -12,7 +12,7 @@ import {
   type OrderItem,
 } from "@workspace/db";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import { requireAuth, type AuthRequest } from "../../middlewares/authMiddleware";
+import { requireAuth, optionalAuth, type AuthRequest } from "../../middlewares/authMiddleware";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import {
   openPrivateObjectStream,
@@ -22,7 +22,10 @@ import {
 import { computeFormats } from "../books";
 import { fetchBookProduct, variantPrice, variantInStock, variantKind } from "../../lib/medusa-book-variants";
 import { syncMedusaCustomer } from "../../lib/medusa-customer-sync";
-import { syncMedusaOrder } from "../../lib/medusa-order-sync";
+import {
+  markMedusaOrderPaidForDarnozomOrder,
+  syncMedusaOrder,
+} from "../../lib/medusa-order-sync";
 import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
@@ -81,6 +84,24 @@ function sanitizeAbsoluteUrl(raw: unknown): string | null {
   if (!/^https?:\/\//i.test(trimmed)) return null;
   if (trimmed.length > 1000) return null;
   return trimmed;
+}
+
+function normalizeEmail(raw: unknown): string {
+  if (typeof raw !== "string") return "";
+  return raw.trim().toLowerCase();
+}
+
+/** Registered order: session userId must match. Guest order: email must match. */
+function canAccessOrder(
+  order: Pick<Order, "userId" | "userEmail">,
+  req: AuthRequest,
+  guestEmail?: string | null,
+): boolean {
+  if (order.userId) {
+    return Boolean(req.userId) && order.userId === req.userId;
+  }
+  const email = normalizeEmail(guestEmail || req.userEmail);
+  return Boolean(email) && email === order.userEmail.toLowerCase();
 }
 
 // Books are now Medusa-native products (string ids, e.g. "prod_01H...").
@@ -328,9 +349,9 @@ router.get("/store/paymob-config", (_req, res) => {
   });
 });
 
-router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response) => {
+router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.userId!;
+    const userId = req.userId ?? null;
     const body = req.body as Record<string, unknown>;
 
     const fullName = String(body.fullName || "").trim();
@@ -405,10 +426,10 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
       return res.status(400).json({ error: "Cart is empty" });
     }
 
-    // The session already carries the address — no identity-provider round-trip.
-    const email = (req.userEmail || "").toLowerCase();
-    if (!email) {
-      return res.status(400).json({ error: "Account email not found" });
+    // Signed-in: prefer session email. Guest: require email in the body.
+    const email = normalizeEmail(userId ? req.userEmail || body.email : body.email);
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "A valid email is required" });
     }
 
     // Validate items + collapse duplicates (same productType+productId+format).
@@ -630,40 +651,44 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
 
     // Remember the customer's last-used checkout contact details so the next
     // checkout can pre-fill them. Notes are intentionally NOT saved (they are
-    // order-specific). Best-effort: a failure here must never block the order.
-    try {
-      await db
-        .insert(checkoutProfiles)
-        .values({
-          userId,
-          fullName,
-          phone,
-          address,
-          city,
-          updatedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: checkoutProfiles.userId,
-          set: {
+    // order-specific). Guests have no profile row. Best-effort.
+    if (userId) {
+      try {
+        await db
+          .insert(checkoutProfiles)
+          .values({
+            userId,
             fullName,
             phone,
             address,
             city,
             updatedAt: new Date(),
-          },
-        });
-    } catch (err) {
-      req.log.error({ err, orderId: order.id }, "checkout profile upsert failed");
+          })
+          .onConflictDoUpdate({
+            target: checkoutProfiles.userId,
+            set: {
+              fullName,
+              phone,
+              address,
+              city,
+              updatedAt: new Date(),
+            },
+          });
+      } catch (err) {
+        req.log.error({ err, orderId: order.id }, "checkout profile upsert failed");
+      }
     }
 
-    // Keep Medusa's own Customer record (Admin > Customers) in sync with
-    // this buyer. Medusa carts/orders are never associated with a customer
-    // otherwise (see medusa-customer-sync.ts) — without this, Medusa
-    // Admin's Customers page shows nothing real while every actual order
-    // lives only in this app's own Orders admin. Best-effort, same posture
-    // as the checkoutProfiles upsert above: never block a real order.
+    // Medusa Customer: guests → has_account false; signed-in → registered.
+    let medusaCustomerId: string | null = null;
     try {
-      await syncMedusaCustomer({ email, fullName, phone });
+      const synced = await syncMedusaCustomer({
+        email,
+        fullName,
+        phone,
+        betterAuthUserId: userId,
+      });
+      medusaCustomerId = synced.customerId;
     } catch (err) {
       req.log.error({ err, orderId: order.id }, "medusa customer sync failed");
     }
@@ -681,6 +706,8 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         currencyCode: currency,
         shippingTotal,
         paymentMethod,
+        paymentStatus: order.paymentStatus,
+        customerId: medusaCustomerId,
         items: resolved.map((r) => ({
           title: r.productTitle,
           quantity: r.quantity,
@@ -694,10 +721,8 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
 
     // Dedupe: this new order supersedes the user's older *online-payment*
     // orders that are still awaiting payment and contain the exact same
-    // items. Those are almost always failed/abandoned checkout retries (the
-    // exact bug that produced 4 duplicate stuck orders from one purchase).
-    // COD orders are never auto-cancelled — they may already be in
-    // fulfillment. Best-effort: a dedupe failure must not block the order.
+    // items. Guests skip dedupe (no stable userId). Best-effort.
+    if (userId) {
     try {
       const itemKey = (items: { productType: string; productId: number | string; format: string | null; quantity: number }[]) =>
         items
@@ -770,6 +795,7 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
         { err: dedupeErr, orderId: order.id },
         "order dedupe failed (non-fatal)",
       );
+    }
     }
 
     // Cash on delivery: order is placed immediately, awaiting fulfillment.
@@ -1048,11 +1074,14 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
     }
 
     try {
+      const paypalReturnUrl = `${returnUrl!.replace(/[?&]orderId=\d+/g, "")}${
+        returnUrl!.includes("?") ? "&" : "?"
+      }orderId=${order.id}`;
       const paypalOrder = await createPayPalOrder({
         usdAmount: converted.usd,
         referenceId: String(order.id),
         description: `DarNozom order #${order.id}`,
-        returnUrl: returnUrl!,
+        returnUrl: paypalReturnUrl,
         cancelUrl: cancelUrl!,
       });
       const paypalOrderId = paypalOrder.id;
@@ -1136,15 +1165,13 @@ router.post("/store/orders", requireAuth, async (req: AuthRequest, res: Response
   }
 });
 
-// Capture a PayPal order after the buyer approves it. Only the owning user may
-// capture. On success the order becomes paid + confirmed, which unlocks any
-// digital PDF access.
+// Capture a PayPal order after the buyer approves it. Owning user or guest
+// email (body.email) may capture.
 router.post(
   "/store/orders/:id/capture",
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
@@ -1153,7 +1180,8 @@ router.post(
         .select()
         .from(orders)
         .where(eq(orders.id, orderId));
-      if (!order || order.userId !== userId) {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (!order || !canAccessOrder(order, req, body.email as string | undefined)) {
         return res.status(404).json({ error: "Order not found" });
       }
       if (
@@ -1480,19 +1508,19 @@ router.post("/store/paymob/callback", async (req, res) => {
 });
 
 // Regenerate a fresh Paymob card-iframe URL for a pending card order (payment
-// tokens expire after an hour). Only the owning user may request one.
+// tokens expire after an hour). Owning user or guest email may request one.
 router.post(
   "/store/orders/:id/paymob-checkout",
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
       }
       const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-      if (!order || order.userId !== userId) {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (!order || !canAccessOrder(order, req, body.email as string | undefined)) {
         return res.status(404).json({ error: "Order not found" });
       }
       if (order.paymentMethod !== "card" || !order.paymobOrderId) {
@@ -1552,20 +1580,20 @@ router.post(
 );
 
 // Restart the mobile-wallet payment for a pending wallet order (payment
-// tokens expire after an hour) and return a fresh wallet redirect URL. Only
-// the owning user may request one.
+// tokens expire after an hour) and return a fresh wallet redirect URL.
+// Owning user or guest email may request one.
 router.post(
   "/store/orders/:id/paymob-wallet-checkout",
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
       }
       const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-      if (!order || order.userId !== userId) {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (!order || !canAccessOrder(order, req, body.email as string | undefined)) {
         return res.status(404).json({ error: "Order not found" });
       }
       if (
@@ -1637,16 +1665,16 @@ router.post(
 // succeeded. Same idempotent conditional update as the webhook/reconciler.
 router.post(
   "/store/orders/:id/paymob-confirm",
-  requireAuth,
+  optionalAuth,
   async (req: AuthRequest, res: Response) => {
     try {
-      const userId = req.userId!;
       const orderId = Number(req.params.id);
       if (!Number.isFinite(orderId) || orderId <= 0) {
         return res.status(400).json({ error: "Invalid order id" });
       }
       const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
-      if (!order || order.userId !== userId) {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      if (!order || !canAccessOrder(order, req, body.email as string | undefined)) {
         return res.status(404).json({ error: "Order not found" });
       }
       if (
@@ -2044,6 +2072,21 @@ router.put("/admin/orders/:id", requireAdmin, async (req, res) => {
 
     const [updated] = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Not found" });
+
+    // Mirror COD paid → Medusa so Admin payment status matches Express.
+    if (
+      updated.paymentStatus === "paid" &&
+      before.paymentStatus !== "paid"
+    ) {
+      try {
+        await markMedusaOrderPaidForDarnozomOrder(updated.id);
+      } catch (err) {
+        req.log.error(
+          { err, orderId: updated.id },
+          "medusa mark-as-paid sync failed",
+        );
+      }
+    }
 
     if (
       updates.status !== undefined &&

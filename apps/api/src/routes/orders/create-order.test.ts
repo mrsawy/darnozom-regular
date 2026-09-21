@@ -60,7 +60,8 @@ vi.mock("../../lib/medusa-admin", () => ({
   medusaAdmin: medusaAdminMock,
 }));
 
-// Stub auth: trust an `x-test-user` header instead of a session. Absent → 401.
+// Stub auth: trust an `x-test-user` header instead of a session.
+// optionalAuth never 401s (guest checkout); requireAuth still does.
 vi.mock("../../middlewares/authMiddleware", () => ({
   requireAuth: (
     req: express.Request & { userId?: string; userEmail?: string },
@@ -74,6 +75,18 @@ vi.mock("../../middlewares/authMiddleware", () => ({
     }
     req.userId = uid;
     req.userEmail = "buyer@example.com";
+    next();
+  },
+  optionalAuth: (
+    req: express.Request & { userId?: string; userEmail?: string },
+    _res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const uid = req.header("x-test-user");
+    if (uid) {
+      req.userId = uid;
+      req.userEmail = "buyer@example.com";
+    }
     next();
   },
 }));
@@ -199,6 +212,19 @@ function mockMedusaProduct(opts: {
     if (path.startsWith("/admin/sales-channels")) return { sales_channels: [{ id: "sc_test" }] };
     if (path === "/admin/draft-orders") return { draft_order: { id: "order_synced" } };
     if (path.includes("/convert-to-order")) return { order: { id: "order_synced" } };
+    if (path.startsWith("/admin/orders/")) {
+      return {
+        order: {
+          id: "order_synced",
+          summary: { pending_difference: 100 },
+          payment_collections: [],
+        },
+      };
+    }
+    if (path === "/admin/payment-collections") {
+      return { payment_collection: { id: "paycol_test" } };
+    }
+    if (path.includes("/mark-as-paid")) return { payment_collection: { id: "paycol_test" } };
     throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
   });
 }
@@ -245,6 +271,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await db.delete(orders).where(like(orders.userId, `${TEST_USER_PREFIX}%`));
+  await db.delete(orders).where(eq(orders.userEmail, "guest-buyer@example.com"));
   createMock.mockReset();
   rateMock.mockReset();
   convertMock.mockReset();
@@ -653,6 +680,89 @@ describe("POST /store/orders — Medusa-native book (no legacy books row)", () =
   });
 });
 
+describe("POST /store/orders — guest checkout", () => {
+  it("creates a guest order with null userId for cash on delivery paper books", async () => {
+    // Restore Medusa stubs after afterEach mockReset (legacy books don't call
+    // mockMedusaProduct).
+    medusaAdminMock.mockImplementation(async (path: string) => {
+      if (path.startsWith("/admin/customers?")) return { customers: [] };
+      if (path === "/admin/customers") {
+        return { customer: { id: "cus_guest", email: "guest-buyer@example.com" } };
+      }
+      if (path.startsWith("/admin/regions")) return { regions: [{ id: "reg_test" }] };
+      if (path.startsWith("/admin/sales-channels")) return { sales_channels: [] };
+      if (path === "/admin/draft-orders") return { draft_order: { id: "order_synced" } };
+      if (path.includes("/convert-to-order")) return { order: { id: "order_synced" } };
+      if (path.startsWith("/admin/orders/")) {
+        return {
+          order: {
+            id: "order_synced",
+            summary: { pending_difference: 140 },
+            payment_collections: [],
+          },
+        };
+      }
+      if (path === "/admin/payment-collections") {
+        return { payment_collection: { id: "paycol_test" } };
+      }
+      throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
+    });
+
+    const bookId = await seedBook({
+      paperAvailable: true,
+      paperPrice: "90.00",
+      digitalAvailable: false,
+    });
+
+    const res = await request(app)
+      .post("/store/orders")
+      .send({
+        fullName: "Guest Buyer",
+        email: "guest-buyer@example.com",
+        phone: "0100000000",
+        address: "123 Guest St",
+        city: TEST_CITY,
+        paymentMethod: "cash_on_delivery",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "paper" },
+        ],
+      });
+
+    expect(res.status).toBe(201);
+    const order = await getOrder(res.body.id);
+    expect(order.userId).toBeNull();
+    expect(order.userEmail).toBe("guest-buyer@example.com");
+    expect(order.fullName).toBe("Guest Buyer");
+
+    // Guest → Medusa customer with has_account false
+    const createCustomerCall = medusaAdminMock.mock.calls.find(
+      (c) => c[0] === "/admin/customers" && c[1]?.method === "POST",
+    );
+    expect(createCustomerCall).toBeTruthy();
+    const customerBody = JSON.parse(createCustomerCall![1].body as string);
+    expect(customerBody.has_account).toBe(false);
+    expect(customerBody.metadata?.source).toBe("darnozom_guest");
+  });
+
+  it("rejects guest checkout without an email", async () => {
+    const bookId = await seedBook({ digitalPrice: "50.00" });
+    const res = await request(app)
+      .post("/store/orders")
+      .send({
+        fullName: "No Email",
+        phone: "0100000000",
+        paymentMethod: "paypal",
+        returnUrl: "https://shop.example/return",
+        cancelUrl: "https://shop.example/cancel",
+        items: [
+          { productType: "book", productId: bookId, quantity: 1, format: "digital" },
+        ],
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/email/i);
+  });
+});
+
 // Regression coverage for a product with more than one edition of the same
 // format (e.g. two paper editions) — "format" alone can't tell them apart,
 // so checkout must send the exact variantId and the server must resolve
@@ -695,6 +805,22 @@ describe("POST /store/orders — multiple editions of the same format", () => {
       }
       if (path.startsWith("/admin/customers?")) return { customers: [] };
       if (path === "/admin/customers") return { customer: { id: "cus_test" } };
+      if (path.startsWith("/admin/regions")) return { regions: [{ id: "reg_test" }] };
+      if (path.startsWith("/admin/sales-channels")) return { sales_channels: [] };
+      if (path === "/admin/draft-orders") return { draft_order: { id: "order_synced" } };
+      if (path.includes("/convert-to-order")) return { order: { id: "order_synced" } };
+      if (path.startsWith("/admin/orders/")) {
+        return {
+          order: {
+            id: "order_synced",
+            summary: { pending_difference: 250 },
+            payment_collections: [],
+          },
+        };
+      }
+      if (path === "/admin/payment-collections") {
+        return { payment_collection: { id: "paycol_test" } };
+      }
       throw new Error(`Unexpected medusaAdmin call in test: ${path}`);
     });
   }

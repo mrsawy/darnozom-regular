@@ -10,7 +10,7 @@ import ProductCard, { type ProductCardItem } from "@/components/store/product-ca
 import { AdminFab } from "@/components/store/admin-fab";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { getMedusaAdminUrl, getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { productIsFeatured } from "@/lib/product-featured";
 import { getBookVariantInfo } from "@/lib/book-variants";
 import { useCart } from "@/lib/cart-context";
@@ -285,7 +285,11 @@ export default function StoreBooksPage() {
         </div>
       </section>
 
-      <AdminFab href="/admin/books" label={{ ar: "إضافة كتاب", en: "Add book" }} />
+      <AdminFab
+        href={getMedusaAdminUrl()}
+        external
+        label={{ ar: "إدارة المتجر", en: "Manage Store" }}
+      />
       <SiteFooter />
     </div>
   );

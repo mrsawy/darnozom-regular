@@ -2,23 +2,20 @@ import { medusaAdmin } from "./medusa-admin";
 
 /**
  * Keeps a Medusa Customer record (Admin > Customers) in sync with the app's
- * own identity/profile data. Medusa's Customer entity is otherwise
- * completely unused — no cart is ever associated with one, and the
- * better-auth-bridge auth provider only creates an AuthIdentity, a
- * different, more primitive entity (see apps/medusa/src/modules/better-auth-bridge/service.ts).
- * Without this, Medusa Admin's Customers page shows nothing real, while the
- * storefront's own admin (Orders page) shows every actual buyer from the
- * `orders` table — two dashboards with no relationship to each other.
+ * own identity/profile data.
  *
- * Called from order creation (the point where a verified email + the
- * checkout's name/phone are already in hand). Find-or-create by email:
- * Medusa email lookups are case-insensitive-safe here because we lowercase
- * before both the query and the create.
+ * - Guests (no Better Auth session): has_account=false
+ * - Registered (signed in): has_account=true + betterAuthUserId metadata
+ *
+ * Returns the Medusa customer id so the mirrored draft order can set
+ * customer_id (email-only drafts leave buyers looking like guests).
  */
 
 interface MedusaAdminCustomer {
   id: string;
   email: string;
+  has_account?: boolean;
+  metadata?: Record<string, unknown> | null;
 }
 
 function splitFullName(fullName: string): { first_name: string; last_name: string | null } {
@@ -35,10 +32,19 @@ export async function syncMedusaCustomer(input: {
   email: string;
   fullName: string;
   phone?: string | null;
-}): Promise<void> {
+  /** When set, buyer is a signed-in Better Auth user → registered Medusa customer. */
+  betterAuthUserId?: string | null;
+}): Promise<{ customerId: string | null }> {
   const email = input.email.trim().toLowerCase();
-  if (!email) return;
+  if (!email) return { customerId: null };
   const { first_name, last_name } = splitFullName(input.fullName);
+  const isRegistered = Boolean(input.betterAuthUserId);
+  const metadata: Record<string, unknown> = {
+    source: isRegistered ? "darnozom_registered" : "darnozom_guest",
+  };
+  if (input.betterAuthUserId) {
+    metadata.betterAuthUserId = input.betterAuthUserId;
+  }
 
   try {
     const existing = await medusaAdmin<{ customers: MedusaAdminCustomer[] }>(
@@ -47,31 +53,46 @@ export async function syncMedusaCustomer(input: {
     const match = existing.customers[0];
 
     if (match) {
+      // Promote guest → registered when they later check out signed-in.
+      // Never demote a registered customer back to guest.
+      const promote =
+        isRegistered && match.has_account !== true
+          ? { has_account: true as const }
+          : {};
+      const nextMeta = {
+        ...(match.metadata ?? {}),
+        ...metadata,
+      };
       await medusaAdmin(`/admin/customers/${match.id}`, {
         method: "POST",
         body: JSON.stringify({
           first_name,
           last_name,
           phone: input.phone || undefined,
+          metadata: nextMeta,
+          ...promote,
         }),
       });
-      return;
+      return { customerId: match.id };
     }
 
-    await medusaAdmin("/admin/customers", {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        first_name,
-        last_name,
-        phone: input.phone || undefined,
-      }),
-    });
+    const created = await medusaAdmin<{ customer: MedusaAdminCustomer }>(
+      "/admin/customers",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          first_name,
+          last_name,
+          phone: input.phone || undefined,
+          has_account: isRegistered,
+          metadata,
+        }),
+      },
+    );
+    return { customerId: created.customer?.id ?? null };
   } catch (err) {
-    // Best-effort, same posture as the checkoutProfiles upsert right next to
-    // this call in orders/index.ts: a sync failure must never block a real
-    // order from being placed. The caller logs it; Medusa's Customers page
-    // simply misses/lags this one customer until the next successful order.
+    // Best-effort: caller logs; never block a real order.
     throw err;
   }
 }

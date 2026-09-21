@@ -74,10 +74,17 @@ export default function CheckoutPayPalReturnPage() {
 
     async function run(id: number) {
       try {
+        let guestEmail: string | null = null;
+        try {
+          guestEmail = sessionStorage.getItem(`order-email-${id}`);
+        } catch {
+          guestEmail = null;
+        }
         const res = await fetch(`/api/store/orders/${id}/capture`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(guestEmail ? { email: guestEmail } : {}),
         });
         const body = await res.json().catch(() => ({}));
         if (res.ok && body.paymentStatus === "paid") {

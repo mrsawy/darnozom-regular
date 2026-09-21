@@ -45,6 +45,18 @@ vi.mock("../../lib/email/email", () => ({
 
 // Stub auth boundaries (the callback itself is public).
 vi.mock("../../middlewares/authMiddleware", () => ({
+  optionalAuth: (
+    req: express.Request & { userId?: string; userEmail?: string },
+    _res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const uid = req.header("x-test-user");
+    if (uid) {
+      req.userId = uid;
+      req.userEmail = req.header("x-test-email") || "buyer@example.com";
+    }
+    next();
+  },
   requireAuth: (
     req: express.Request & { userId?: string; userEmail?: string },
     res: express.Response,

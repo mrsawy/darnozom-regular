@@ -85,6 +85,20 @@ export async function requireAuth(
   return next();
 }
 
+/**
+ * Attaches session fields when present; never rejects. Use for guest-capable
+ * storefront routes (e.g. checkout) that still prefer a signed-in identity.
+ */
+export async function optionalAuth(
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction,
+) {
+  const user = await getSessionUser(req);
+  if (user) applySessionToRequest(req, user);
+  return next();
+}
+
 function applySessionToRequest(req: AuthRequest, user: SessionUser) {
   req.userId = user.id;
   req.userEmail = user.email;

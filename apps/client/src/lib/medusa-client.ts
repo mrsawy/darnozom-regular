@@ -32,6 +32,14 @@ export function getMedusaClient(): Medusa {
   return cachedClient;
 }
 
+/** Medusa Admin dashboard URL (Create Book, products, regions, …). */
+export function getMedusaAdminUrl(): string {
+  const base = (
+    import.meta.env.VITE_MEDUSA_BACKEND_URL || "http://localhost:9010"
+  ).replace(/\/$/, "");
+  return `${base}/app`;
+}
+
 /** Region required by Store API calls that request calculated_price. Prefers EGP. */
 export function getStoreRegionId(): Promise<string> {
   if (!cachedRegionId) {
