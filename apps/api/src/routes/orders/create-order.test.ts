@@ -734,13 +734,16 @@ describe("POST /store/orders — guest checkout", () => {
     expect(order.userEmail).toBe("guest-buyer@example.com");
     expect(order.fullName).toBe("Guest Buyer");
 
-    // Guest → Medusa customer with has_account false
+    // Guest → Medusa customer with checkout name/phone (Admin API rejects has_account)
     const createCustomerCall = medusaAdminMock.mock.calls.find(
       (c) => c[0] === "/admin/customers" && c[1]?.method === "POST",
     );
     expect(createCustomerCall).toBeTruthy();
     const customerBody = JSON.parse(createCustomerCall![1].body as string);
-    expect(customerBody.has_account).toBe(false);
+    expect(customerBody).not.toHaveProperty("has_account");
+    expect(customerBody.first_name).toBe("Guest");
+    expect(customerBody.last_name).toBe("Buyer");
+    expect(customerBody.phone).toBe("0100000000");
     expect(customerBody.metadata?.source).toBe("darnozom_guest");
   });
 

@@ -679,7 +679,7 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
       }
     }
 
-    // Medusa Customer: guests → has_account false; signed-in → registered.
+    // Medusa Customer: upsert checkout name/phone; metadata marks guest vs registered.
     let medusaCustomerId: string | null = null;
     try {
       const synced = await syncMedusaCustomer({

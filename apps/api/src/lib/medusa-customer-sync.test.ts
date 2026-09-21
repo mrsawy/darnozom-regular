@@ -10,7 +10,7 @@ describe("syncMedusaCustomer", () => {
     medusaAdminMock.mockReset();
   });
 
-  it("creates a guest Medusa customer (has_account false) when not signed in", async () => {
+  it("creates a guest Medusa customer with checkout name and phone", async () => {
     medusaAdminMock.mockImplementation(async (path: string) => {
       if (path.startsWith("/admin/customers?")) return { customers: [] };
       if (path === "/admin/customers") return { customer: { id: "cus_guest" } };
@@ -31,10 +31,14 @@ describe("syncMedusaCustomer", () => {
         first_name: "Ahmed",
         last_name: "Yosef",
         phone: "01012345678",
-        has_account: false,
         metadata: { source: "darnozom_guest" },
       }),
     });
+    const body = JSON.parse(
+      (medusaAdminMock.mock.calls.find((c) => c[0] === "/admin/customers")![1] as { body: string })
+        .body,
+    );
+    expect(body).not.toHaveProperty("has_account");
   });
 
   it("creates a registered Medusa customer when betterAuthUserId is set", async () => {
@@ -58,16 +62,20 @@ describe("syncMedusaCustomer", () => {
         first_name: "Ahmed",
         last_name: "Yosef",
         phone: undefined,
-        has_account: true,
         metadata: {
           source: "darnozom_registered",
           betterAuthUserId: "user_abc",
         },
       }),
     });
+    const body = JSON.parse(
+      (medusaAdminMock.mock.calls.find((c) => c[0] === "/admin/customers")![1] as { body: string })
+        .body,
+    );
+    expect(body).not.toHaveProperty("has_account");
   });
 
-  it("promotes an existing guest to registered on signed-in checkout", async () => {
+  it("updates an existing guest with checkout name/phone and marks registered", async () => {
     medusaAdminMock.mockImplementation(async (path: string) => {
       if (path.startsWith("/admin/customers?")) {
         return {
@@ -104,7 +112,57 @@ describe("syncMedusaCustomer", () => {
           source: "darnozom_registered",
           betterAuthUserId: "user_abc",
         },
-        has_account: true,
+      }),
+    });
+    const body = JSON.parse(
+      (
+        medusaAdminMock.mock.calls.find(
+          (c) => c[0] === "/admin/customers/cus_existing",
+        )![1] as { body: string }
+      ).body,
+    );
+    expect(body).not.toHaveProperty("has_account");
+  });
+
+  it("heals an email-only guest when create races with a prior draft customer", async () => {
+    let lookups = 0;
+    medusaAdminMock.mockImplementation(async (path: string, init?: { method?: string }) => {
+      if (path.startsWith("/admin/customers?")) {
+        lookups += 1;
+        if (lookups === 1) return { customers: [] };
+        return {
+          customers: [
+            {
+              id: "cus_race",
+              email: "buyer@example.com",
+              metadata: {},
+            },
+          ],
+        };
+      }
+      if (path === "/admin/customers" && init?.method === "POST") {
+        throw new Error("Customer with email already exists");
+      }
+      if (path === "/admin/customers/cus_race") {
+        return { customer: { id: "cus_race" } };
+      }
+      throw new Error(`unexpected call: ${path}`);
+    });
+
+    const result = await syncMedusaCustomer({
+      email: "buyer@example.com",
+      fullName: "Sara Ali",
+      phone: "01111111111",
+    });
+
+    expect(result.customerId).toBe("cus_race");
+    expect(medusaAdminMock).toHaveBeenCalledWith("/admin/customers/cus_race", {
+      method: "POST",
+      body: JSON.stringify({
+        first_name: "Sara",
+        last_name: "Ali",
+        phone: "01111111111",
+        metadata: { source: "darnozom_guest" },
       }),
     });
   });
@@ -124,7 +182,6 @@ describe("syncMedusaCustomer", () => {
         first_name: "Ahmed",
         last_name: null,
         phone: undefined,
-        has_account: false,
         metadata: { source: "darnozom_guest" },
       }),
     });
