@@ -69,7 +69,13 @@ export async function syncMedusaOrder(input: SyncMedusaOrderInput): Promise<{ me
   const names = splitFullName(input.fullName);
   const currency = (input.currencyCode || "egp").toLowerCase();
 
-  const draftItems = input.items.map((it) => {
+  const draftItems: Array<{
+    title?: string;
+    variant_id?: string;
+    quantity: number;
+    unit_price: number;
+    metadata?: Record<string, unknown>;
+  }> = input.items.map((it) => {
     if (it.variantId) {
       return {
         variant_id: it.variantId,
