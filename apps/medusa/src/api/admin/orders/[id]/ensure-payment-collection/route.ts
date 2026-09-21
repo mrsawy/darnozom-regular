@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { ensureOrderPaymentCollection } from "../../../lib/ensure-order-payment-collection"
+import { ensureOrderPaymentCollection } from "../../../../../lib/ensure-order-payment-collection"
 
 /**
  * POST /admin/orders/:id/ensure-payment-collection
