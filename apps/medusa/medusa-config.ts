@@ -75,6 +75,9 @@ module.exports = defineConfig({
       resolve: './src/modules/manual-payment',
     },
     {
+      resolve: './src/modules/book-catalog',
+    },
+    {
       key: Modules.FILE,
       resolve: '@medusajs/file',
       options: {
