@@ -37,3 +37,4 @@ data/
 # Books-to-products migration output artifact (regenerated per run, not committed)
 apps/medusa/src/scripts/migrate-books-mapping.json
 
+.superpowers/
