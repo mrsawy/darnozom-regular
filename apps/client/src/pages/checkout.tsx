@@ -16,9 +16,17 @@ import { useCart } from "@/lib/cart-context";
 import { useLanguage } from "@/lib/language-context";
 import {
   fetchAvailablePaymentMethods,
+  fetchManualPaymentMethods,
   getStoreRegionId,
   type StorePaymentMethod,
 } from "@/lib/medusa-client";
+import EditionBadge from "@/components/store/edition-badge";
+import { codAvailability, type CodAvailability } from "@/lib/checkout-methods";
+import {
+  type ManualPaymentCode,
+  unconfiguredManualMethods,
+  withoutUnconfiguredManualMethods,
+} from "@/lib/manual-payments";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -52,6 +60,8 @@ const COPY = {
     cardEgpNote: "* يُحصّل الدفع بالبطاقة بالجنيه المصري مباشرة دون تحويل عملة.",
     cardSetupNotice:
       "الدفع بالبطاقة غير مفعّل بعد — يتطلب إعداد حساب Paymob. اختر طريقة دفع أخرى حالياً.",
+    paypalSetupNotice:
+      "الدفع عبر PayPal غير مفعّل بعد — يتطلب إعداد حساب PayPal. اختر طريقة دفع أخرى حالياً.",
     wallet: "محفظة إلكترونية",
     walletDesc: "ادفع عبر فودافون كاش أو أورنج موني أو اتصالات كاش عبر بوابة Paymob الآمنة.",
     payWallet: "ادفع بالمحفظة",
@@ -67,11 +77,21 @@ const COPY = {
     paypalDesc: "ادفع بأمان عبر PayPal. تُحوّل القيمة إلى الدولار عند الدفع.",
     cod: "الدفع عند الاستلام",
     codDesc: "ادفع نقداً عند استلام الطلب (النسخ الورقية فقط).",
-    codDisabledDigital: "الدفع عند الاستلام غير متاح للكتب الرقمية — اختر PayPal.",
+    vodafoneCash: "فودافون كاش",
+    vodafoneCashDesc: "حوّل المبلغ إلى رقم فودافون كاش وأرسل صورة الإيصال على واتساب.",
+    instapay: "إنستاباي",
+    instapayDesc: "ادفع عبر إنستاباي وأرسل رمز التأكيد على واتساب.",
+    placeManual: "تأكيد الطلب وعرض بيانات الدفع",
+    manualNote: "* سيتم تفعيل الطلب بعد تأكيد الدفع يدوياً.",
+    manualNotSetUp: "غير متاح حالياً — لم تُضبط بيانات الدفع بعد.",
+    codDisabledDigital:
+      "غير متاح لهذا الطلب لأنه يحتوي على كتاب رقمي. الدفع عند الاستلام متاح للنسخ الورقية فقط، لأن المبلغ يُحصَّل عند تسليم الشحنة، بينما تُسلَّم النسخ الرقمية إلكترونياً. لاستخدامه، اطلب النسخ الورقية في طلب منفصل.",
     usdNote: "* يُحصّل الدفع عبر PayPal بالدولار الأمريكي حسب سعر الصرف وقت الدفع.",
     signInOptional: "لديك حساب؟",
     signInLink: "سجّل الدخول",
     signInOptionalHint: "لتتبع الطلبات من حسابك وحفظ بياناتك للمرة القادمة.",
+    digitalNeedsAccount: "الكتب الرقمية تُضاف إلى مكتبتك في حسابك، لذا يلزم تسجيل الدخول أو إنشاء حساب لإتمام الطلب.",
+    signInOrSignUp: "تسجيل الدخول / إنشاء حساب",
     guestCheckout: "إتمام الشراء كزائر",
     emailRequired: "البريد الإلكتروني مطلوب",
     emailInvalid: "أدخل بريداً إلكترونياً صالحاً",
@@ -82,7 +102,6 @@ const COPY = {
       "سيقوم فريقنا بمراجعة الطلب والتواصل معك خلال 24 ساعة. إن كان لديك حساب، يمكنك تتبع الطلب من صفحة حسابك.",
     viewOrders: "عرض طلباتي",
     types: { book: "كتاب", course: "دورة", app: "تطبيق" } as Record<string, string>,
-    formats: { paper: "ورقي", digital: "رقمي PDF" } as Record<string, string>,
     shippingTo: "الشحن إلى",
     shipping: "الشحن",
     shippingFreePending: "—",
@@ -127,6 +146,8 @@ const COPY = {
     cardEgpNote: "* Card payments are charged directly in EGP — no currency conversion.",
     cardSetupNotice:
       "Card payment is not enabled yet — it requires a Paymob account setup. Please choose another payment method for now.",
+    paypalSetupNotice:
+      "PayPal is not enabled yet — it requires a PayPal account setup. Please choose another payment method for now.",
     wallet: "Mobile wallet",
     walletDesc:
       "Pay with Vodafone Cash, Orange Money or Etisalat Cash via the secure Paymob gateway.",
@@ -143,11 +164,21 @@ const COPY = {
     paypalDesc: "Pay securely via PayPal. Amount is converted to USD at payment time.",
     cod: "Cash on delivery",
     codDesc: "Pay in cash when your order arrives (paper items only).",
-    codDisabledDigital: "Cash on delivery is not available for digital books — choose PayPal.",
+    vodafoneCash: "Vodafone Cash",
+    vodafoneCashDesc: "Transfer to our Vodafone Cash number and send the receipt screenshot on WhatsApp.",
+    instapay: "InstaPay",
+    instapayDesc: "Pay via InstaPay and send the confirmation code on WhatsApp.",
+    placeManual: "Place order & view payment details",
+    manualNote: "* Your order is activated once we verify the payment.",
+    manualNotSetUp: "Not available yet — payment details have not been set up.",
+    codDisabledDigital:
+      "Not available for this order because it includes a digital book. Cash on delivery is for paper books only — the cash is collected when the parcel is delivered, and digital books are delivered online. To pay cash, order the paper books separately.",
     usdNote: "* PayPal is charged in USD based on the exchange rate at payment time.",
     signInOptional: "Have an account?",
     signInLink: "Sign in",
     signInOptionalHint: "Track orders from your account and save your details for next time.",
+    digitalNeedsAccount: "Digital books are delivered to the library in your account, so please sign in or create an account to place this order.",
+    signInOrSignUp: "Sign in / Create account",
     guestCheckout: "Continue as guest",
     emailRequired: "Email is required",
     emailInvalid: "Enter a valid email address",
@@ -158,7 +189,6 @@ const COPY = {
       "Our team will review your order and contact you within 24 hours. If you have an account, you can track it from your account page.",
     viewOrders: "View my orders",
     types: { book: "Book", course: "Course", app: "App" } as Record<string, string>,
-    formats: { paper: "Paper", digital: "Digital PDF" } as Record<string, string>,
     shippingTo: "Shipping to",
     shipping: "Shipping",
     shippingFreePending: "—",
@@ -187,6 +217,9 @@ export default function CheckoutPage() {
   const userLoaded = !isPending;
   const isSignedIn = !!user;
   const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems, cart } = useCart();
+  // Digital books go to the account library — the server rejects guest
+  // digital orders, so ask for sign-in up front.
+  const needsAccount = userLoaded && !isSignedIn && hasDigitalItems;
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -196,6 +229,10 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<StorePaymentMethod>("paypal");
   const [allowedMethods, setAllowedMethods] = useState<StorePaymentMethod[] | null>(null);
+  // Enabled on the region but missing payment details: shown disabled.
+  const [notSetUpMethods, setNotSetUpMethods] = useState<ManualPaymentCode[]>([]);
+  // COD is paper-only: with a digital book in the cart it is shown disabled.
+  const [cod, setCod] = useState<CodAvailability>("not_offered");
   const [walletPhone, setWalletPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,6 +256,25 @@ export default function CheckoutPage() {
       setPaymentMethod(fallback);
     }
   }, [hasDigitalItems, paymentMethod, allowedMethods]);
+
+  // PayPal needs REST credentials on the server; same pattern as card/wallet.
+  const [paypalStatus, setPaypalStatus] = useState<"loading" | "ready" | "unavailable">(
+    "loading",
+  );
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/store/paypal-config", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then((cfg: { cardEnabled?: boolean }) => {
+        if (!cancelled) setPaypalStatus(cfg.cardEnabled ? "ready" : "unavailable");
+      })
+      .catch(() => {
+        if (!cancelled) setPaypalStatus("unavailable");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Ask the server whether Paymob card payments are configured.
   useEffect(() => {
@@ -248,8 +304,15 @@ export default function CheckoutPage() {
     (async () => {
       try {
         const resolvedRegionId = await getStoreRegionId();
-        const methods = await fetchAvailablePaymentMethods(resolvedRegionId);
+        const regionMethods = await fetchAvailablePaymentMethods(resolvedRegionId);
+        // Vodafone Cash / InstaPay are selectable only when their payment
+        // details are set; otherwise they're listed disabled. If the details
+        // can't be loaded, treat them as not set up.
+        const manualDetails = await fetchManualPaymentMethods().catch(() => []);
+        const methods = withoutUnconfiguredManualMethods(regionMethods, manualDetails);
         if (cancelled) return;
+        setNotSetUpMethods(unconfiguredManualMethods(regionMethods, manualDetails));
+        setCod(codAvailability(methods, hasDigitalItems));
         const next = hasDigitalItems
           ? methods.filter((m) => m !== "cash_on_delivery")
           : methods;
@@ -421,6 +484,10 @@ export default function CheckoutPage() {
     }
     if (items.length === 0) return;
 
+    if (paymentMethod === "paypal" && paypalStatus !== "ready") {
+      setError(t.paypalSetupNotice);
+      return;
+    }
     // Card payments require the Paymob secrets to be configured server-side.
     if (paymentMethod === "card" && cardStatus !== "ready") {
       setError(t.cardSetupNotice);
@@ -525,6 +592,12 @@ export default function CheckoutPage() {
           }
         }
         navigate(`/checkout/paymob/wallet?orderId=${body.id}`);
+        return;
+      }
+      // Manual transfer: the order is placed; payment happens out-of-band.
+      if ((paymentMethod === "vodafone_cash" || paymentMethod === "instapay") && body.id) {
+        clear();
+        navigate(`/checkout/manual?orderId=${body.id}`);
         return;
       }
       // Cash on delivery: order is placed; show success.
@@ -636,7 +709,24 @@ export default function CheckoutPage() {
                   </button>
                 ) : null}
               </div>
-              {!isSignedIn ? (
+              {needsAccount ? (
+                <div
+                  className="border border-amber-500/40 bg-amber-500/10 p-3 mb-4 space-y-2"
+                  data-testid="digital-needs-account"
+                >
+                  <p className="text-sm">{t.digitalNeedsAccount}</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-none"
+                    onClick={() =>
+                      navigate(`/sign-in?redirect_url=${encodeURIComponent(`${basePath}/checkout`)}`)
+                    }
+                  >
+                    {t.signInOrSignUp}
+                  </Button>
+                </div>
+              ) : !isSignedIn ? (
                 <p className="text-xs text-muted-foreground mb-4">{t.signInOptionalHint}</p>
               ) : null}
               <div className="grid md:grid-cols-2 gap-4">
@@ -738,7 +828,7 @@ export default function CheckoutPage() {
                     {isAr ? "جارٍ تحميل طرق الدفع..." : "Loading payment methods..."}
                   </p>
                 )}
-                {allowedMethods?.length === 0 && (
+                {allowedMethods?.length === 0 && notSetUpMethods.length === 0 && (
                   <p className="text-sm text-muted-foreground">
                     {isAr
                       ? "لا توجد طرق دفع مفعّلة لهذه المنطقة في لوحة التجارة."
@@ -864,12 +954,22 @@ export default function CheckoutPage() {
                   </div>
                 </label>
                 )}
+                {paymentMethod === "paypal" && paypalStatus === "unavailable" && (
+                  <div
+                    className="flex items-start gap-2 border border-amber-300 bg-amber-50 text-amber-800 text-xs px-3 py-2.5"
+                    data-testid="notice-paypal-setup"
+                  >
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>{t.paypalSetupNotice}</span>
+                  </div>
+                )}
 
-                {allowedMethods?.includes("cash_on_delivery") && (
+                {cod !== "not_offered" && (
                 <label
+                  data-testid="option-payment-cod"
                   className={`flex items-start gap-3 border p-4 transition-colors ${
-                    hasDigitalItems
-                      ? "border-border opacity-50 cursor-not-allowed"
+                    cod === "blocked_digital"
+                      ? "border-border bg-muted/30 cursor-not-allowed"
                       : paymentMethod === "cash_on_delivery"
                         ? "border-secondary bg-secondary/5 cursor-pointer"
                         : "border-border hover:border-secondary/50 cursor-pointer"
@@ -879,21 +979,69 @@ export default function CheckoutPage() {
                     type="radio"
                     name="paymentMethod"
                     value="cash_on_delivery"
-                    checked={paymentMethod === "cash_on_delivery"}
+                    checked={cod === "available" && paymentMethod === "cash_on_delivery"}
                     onChange={() => setPaymentMethod("cash_on_delivery")}
-                    disabled={hasDigitalItems}
-                    className="mt-1 accent-secondary"
+                    disabled={cod === "blocked_digital"}
+                    className={`mt-1 accent-secondary ${cod === "blocked_digital" ? "opacity-50" : ""}`}
                   />
                   <div className="flex-1">
-                    <div className="font-bold text-primary">{t.cod}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{t.codDesc}</div>
+                    <div className={cod === "blocked_digital" ? "opacity-50" : undefined}>
+                      <div className="font-bold text-primary">{t.cod}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{t.codDesc}</div>
+                    </div>
+                    {cod === "blocked_digital" && (
+                      <div
+                        role="note"
+                        className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-2"
+                      >
+                        {t.codDisabledDigital}
+                      </div>
+                    )}
                   </div>
                 </label>
                 )}
 
-                {hasDigitalItems && (
-                  <p className="text-[11px] text-muted-foreground">{t.codDisabledDigital}</p>
-                )}
+                {(["vodafone_cash", "instapay"] as const)
+                  .filter((m) => allowedMethods?.includes(m) || notSetUpMethods.includes(m))
+                  .map((m) => {
+                    const notSetUp = !allowedMethods?.includes(m);
+                    return (
+                    <label
+                      key={m}
+                      data-testid={`option-payment-${m}`}
+                      className={`flex items-start gap-3 border p-4 transition-colors ${
+                        notSetUp
+                          ? "border-border opacity-50 cursor-not-allowed"
+                          : paymentMethod === m
+                            ? "border-secondary bg-secondary/5 cursor-pointer"
+                            : "border-border hover:border-secondary/50 cursor-pointer"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={m}
+                        checked={!notSetUp && paymentMethod === m}
+                        onChange={() => setPaymentMethod(m)}
+                        disabled={notSetUp}
+                        className="mt-1 accent-secondary"
+                      />
+                      <div className="flex-1">
+                        <div className="font-bold text-primary">
+                          {m === "vodafone_cash" ? t.vodafoneCash : t.instapay}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {notSetUp
+                            ? t.manualNotSetUp
+                            : m === "vodafone_cash"
+                              ? t.vodafoneCashDesc
+                              : t.instapayDesc}
+                        </div>
+                      </div>
+                    </label>
+                    );
+                  })}
+
                 {paymentMethod === "paypal" && (
                   <p className="text-[11px] text-muted-foreground">{t.usdNote}</p>
                 )}
@@ -902,6 +1050,9 @@ export default function CheckoutPage() {
                 )}
                 {paymentMethod === "wallet" && (
                   <p className="text-[11px] text-muted-foreground">{t.walletEgpNote}</p>
+                )}
+                {(paymentMethod === "vodafone_cash" || paymentMethod === "instapay") && (
+                  <p className="text-[11px] text-muted-foreground">{t.manualNote}</p>
                 )}
               </div>
             </div>
@@ -917,8 +1068,10 @@ export default function CheckoutPage() {
                 type="submit"
                 disabled={
                   submitting ||
+                  needsAccount ||
                   shippingUnresolved ||
                   !allowedMethods?.includes(paymentMethod) ||
+                  (paymentMethod === "paypal" && paypalStatus !== "ready") ||
                   (paymentMethod === "card" && cardStatus !== "ready") ||
                   (paymentMethod === "wallet" && walletStatus !== "ready")
                 }
@@ -937,7 +1090,9 @@ export default function CheckoutPage() {
                     ? t.payCard
                     : paymentMethod === "wallet"
                       ? t.payWallet
-                      : t.place}
+                      : paymentMethod === "vodafone_cash" || paymentMethod === "instapay"
+                        ? t.placeManual
+                        : t.place}
               </Button>
             </div>
           </form>
@@ -962,16 +1117,12 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] text-secondary uppercase flex items-center gap-1.5 flex-wrap">
-                        <span>{t.types[it.type]}</span>
-                        {it.format && (
-                          <span className="px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/20 normal-case">
-                            {t.formats[it.format]}
-                          </span>
-                        )}
-                      </div>
+                      <div className="text-[10px] text-secondary uppercase">{t.types[it.type]}</div>
                       <div className="font-bold text-primary line-clamp-2 leading-snug">
                         {it.title}
+                      </div>
+                      <div className="mt-1">
+                        <EditionBadge format={it.format} lang={isAr ? "ar" : "en"} hint={false} />
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {it.quantity} × {it.unitPrice.toFixed(2)} {currency}

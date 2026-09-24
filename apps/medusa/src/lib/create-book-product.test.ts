@@ -65,6 +65,9 @@ describe("createBookProduct", () => {
       paperPrice: 600,
       digitalPrice: 200,
       paperInventoryQty: 20,
+      author: "صفي الرحمن",
+      category: "shariah",
+      language: "ar",
       __testCreateProductsWorkflow: () => ({ run }),
       __testCreateInventoryLevelsWorkflow: () => ({ run: levelsRun }),
       __testQuery: { graph },
@@ -76,6 +79,11 @@ describe("createBookProduct", () => {
 
     const productInput = run.mock.calls[0][0].input.products[0];
     expect(productInput.type_id).toBe(BOOK_TYPE_ID);
+    expect(productInput.metadata).toEqual({
+      author: "صفي الرحمن",
+      category: "shariah",
+      language: "ar",
+    });
     expect(productInput.shipping_profile_id).toBe("sp_1");
     expect(productInput.sales_channels).toEqual([{ id: "sc_1" }]);
     expect(productInput.options).toEqual([
@@ -117,5 +125,65 @@ describe("createBookProduct", () => {
         digitalPrice: 5,
       }),
     ).rejects.toThrow(/paperPrice and digitalPrice/);
+  });
+
+  function paperOnlyMocks() {
+    const run = vi.fn().mockResolvedValue({
+      result: [{ id: "prod_2", variants: [{ id: "var_p", title: "Paper", metadata: { kind: "paper" } }] }],
+    });
+    const graph = vi.fn().mockResolvedValue({ data: [] });
+    return { run, graph };
+  }
+
+  it("creates a paper-only book when hasDigital is false (no digital price needed)", async () => {
+    const { run, graph } = paperOnlyMocks();
+    const result = await createBookProduct({} as any, {
+      title: "Paper only",
+      salesChannelId: "sc_1",
+      paperPrice: 100,
+      digitalPrice: Number.NaN,
+      hasDigital: false,
+      __testCreateProductsWorkflow: () => ({ run }),
+      __testQuery: { graph },
+    });
+    const productInput = run.mock.calls[0][0].input.products[0];
+    expect(productInput.options).toEqual([
+      { title: "Format", values: ["Paper"], is_exclusive: true },
+    ]);
+    expect(productInput.variants).toHaveLength(1);
+    expect(productInput.variants[0].metadata).toEqual({ kind: "paper" });
+    expect(result.digitalVariantId).toBeNull();
+  });
+
+  it("still requires a digital price when the book has a digital edition", async () => {
+    await expect(
+      createBookProduct({} as any, {
+        title: "X",
+        salesChannelId: "sc_1",
+        paperPrice: 10,
+        digitalPrice: 0,
+      }),
+    ).rejects.toThrow(/digitalPrice/);
+  });
+
+  it("keeps every uploaded image, cover first, without duplicates", async () => {
+    const { run, graph } = paperOnlyMocks();
+    await createBookProduct({} as any, {
+      title: "Gallery",
+      salesChannelId: "sc_1",
+      paperPrice: 100,
+      digitalPrice: 50,
+      thumbnailUrl: "https://cdn/a.jpg",
+      imageUrls: ["https://cdn/a.jpg", "https://cdn/b.jpg", "https://cdn/c.jpg"],
+      __testCreateProductsWorkflow: () => ({ run }),
+      __testQuery: { graph },
+    });
+    const productInput = run.mock.calls[0][0].input.products[0];
+    expect(productInput.thumbnail).toBe("https://cdn/a.jpg");
+    expect(productInput.images).toEqual([
+      { url: "https://cdn/a.jpg" },
+      { url: "https://cdn/b.jpg" },
+      { url: "https://cdn/c.jpg" },
+    ]);
   });
 });

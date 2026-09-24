@@ -1,5 +1,7 @@
+import http from "node:http";
 import app from "./app";
 import { logger } from "./lib/logger";
+import { attachAdminSocket } from "./lib/admin-socket";
 import { seedStoreApps } from "./lib/seed/seedStoreApps";
 import { seedJobOpenings } from "./lib/seed/seedJobOpenings";
 import { seedAdminUsers } from "./lib/seed/seedAdminUsers";
@@ -20,12 +22,10 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+const server = http.createServer(app);
+attachAdminSocket(server);
 
+server.listen(port, () => {
   logger.info({ port }, "Server listening");
   void seedStoreApps();
   void seedJobOpenings();

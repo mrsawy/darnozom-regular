@@ -1,7 +1,33 @@
 import { db, orderItems, type Order } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { emitOrderUpdated } from "../admin-socket";
+import {
+  ensureMedusaOrderPayable,
+  markMedusaOrderPaidForDarnozomOrder,
+} from "../medusa-order-sync";
 import { logger } from "../logger";
 import { sendAdminSalesNotification, sendOrderReceipt } from "./email";
+
+/**
+ * Mirror "paid" onto the order's Medusa copy so Medusa Admin shows the same
+ * payment status (PayPal, Paymob card/wallet and manual transfers all land
+ * here). Idempotent: an already-captured Medusa order is left alone.
+ * Best-effort — never blocks the customer's receipt.
+ */
+async function markMedusaOrderPaid(order: Order): Promise<void> {
+  try {
+    if (order.medusaOrderId) {
+      await ensureMedusaOrderPayable(order.medusaOrderId, Number(order.totalAmount) || 0, {
+        markPaid: true,
+        providerId: "pp_system_default",
+      });
+    } else {
+      await markMedusaOrderPaidForDarnozomOrder(order.id);
+    }
+  } catch (err) {
+    logger.error({ err, orderId: order.id }, "medusa mark-as-paid sync failed");
+  }
+}
 
 // Shared post-payment notifications for an order that just became paid:
 //   1. the customer's Arabic receipt email (with digital read/download links)
@@ -10,6 +36,14 @@ import { sendAdminSalesNotification, sendOrderReceipt } from "./email";
 // recovered payment produces exactly the same confirmation email as a normal
 // capture. Best-effort: failures are logged and never thrown.
 export async function sendOrderPaidNotifications(order: Order): Promise<void> {
+  await markMedusaOrderPaid(order);
+  // Live refresh for the storefront admin and Medusa Admin bells.
+  emitOrderUpdated({
+    id: order.id,
+    medusaOrderId: order.medusaOrderId ?? null,
+    status: order.status,
+    paymentStatus: order.paymentStatus,
+  });
   try {
     const receiptItems = await db
       .select()
@@ -47,7 +81,9 @@ export async function sendOrderPaidNotifications(order: Order): Promise<void> {
       order.paymentMethod === "paypal" ||
       order.paymentMethod === "card" ||
       order.paymentMethod === "wallet" ||
-      order.paymentMethod === "cash_on_delivery"
+      order.paymentMethod === "cash_on_delivery" ||
+      order.paymentMethod === "vodafone_cash" ||
+      order.paymentMethod === "instapay"
     ) {
       await sendAdminSalesNotification({
         orderId: order.id,

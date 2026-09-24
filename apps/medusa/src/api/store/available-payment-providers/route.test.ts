@@ -87,3 +87,38 @@ describe("GET /store/available-payment-providers", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Cart not found" });
   });
 });
+
+describe("GET /store/available-payment-providers — manual transfers", () => {
+  it("keeps Vodafone Cash and InstaPay for digital-only carts (only COD is removed)", async () => {
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "cart_1",
+            region_id: "reg_1",
+            items: [{ product: { metadata: { kind: "digital" } } }],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            id: "reg_1",
+            currency_code: "egp",
+            payment_providers: [
+              { id: "pp_cod_cod" },
+              { id: "pp_vodafone-cash_vodafone-cash" },
+              { id: "pp_instapay_instapay" },
+            ],
+          },
+        ],
+      });
+    const req = { query: { cart_id: "cart_1" }, scope: { resolve: () => ({ graph }) } } as any;
+    const res = fakeRes();
+    await GET(req, res);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ methods: ["vodafone_cash", "instapay"] }),
+    );
+  });
+});

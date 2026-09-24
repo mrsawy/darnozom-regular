@@ -281,10 +281,16 @@ describe("POST /store/orders/:id/capture", () => {
     expect(after.paypalCaptureId).toBeNull();
   });
 
-  it("returns 401 when unauthenticated", async () => {
+  // Guest checkout is supported (optionalAuth + order email), so a stranger
+  // gets 404 — the order's existence isn't revealed — and nothing is captured.
+  it("won't capture for a visitor who is neither the owner nor has the order email", async () => {
     const orderId = await seedOrder();
     const res = await request(app).post(`/store/orders/${orderId}/capture`);
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(404);
+    const wrongEmail = await request(app)
+      .post(`/store/orders/${orderId}/capture`)
+      .send({ email: "someone-else@example.com" });
+    expect(wrongEmail.status).toBe(404);
     expect(captureMock).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { HttpTypes } from "@medusajs/types";
-import { getMedusaAdminUrl, getMedusaClient } from "@/lib/medusa-client";
+import { getMedusaAdminUrl } from "@/lib/medusa-client";
+import { listStoreBooks } from "@/lib/list-store-books";
 import { ExternalLink, Loader2, Search, BookOpen, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,19 +94,8 @@ export default function BooksPage() {
   async function load() {
     setLoading(true);
     try {
-      const sdk = getMedusaClient();
-      const { regions } = await sdk.store.region.list({ limit: 50 });
-      const region =
-        regions.find((item) => item.currency_code === "egp") ??
-        regions.find((item) => item.currency_code === "eur") ??
-        regions[0];
-      const { products } = await sdk.store.product.list({
-        limit: 100,
-        region_id: region?.id,
-        fields:
-          "id,title,subtitle,description,thumbnail,metadata,created_at,*variants,*variants.calculated_price,*variants.metadata",
-      });
-      setItems(products.map((product) => mapMedusaProduct(product, region?.currency_code)));
+      const products = await listStoreBooks({ limit: 100 });
+      setItems(products.map((product) => mapMedusaProduct(product)));
     } catch {
       show("تعذر تحميل منتجات Medusa", "error");
       setItems([]);
@@ -140,16 +130,7 @@ export default function BooksPage() {
         }
       />
 
-      <div className="bg-background border border-border p-4 mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
-        <p className="text-sm text-muted-foreground flex-1">
-          لإضافة أو تعديل أو حذف الكتب والمنتجات، استخدم لوحة Medusa.
-        </p>
-        <Button asChild variant="outline" className="gap-2 rounded-none shrink-0">
-          <a href={medusaAdminUrl} target="_blank" rel="noreferrer">
-            <ExternalLink size={16} /> Manage Store
-          </a>
-        </Button>
-      </div>
+   
 
       <div className="bg-background border border-border p-3 mb-4 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">

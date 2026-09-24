@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Globe, ChevronDown, User, LogIn, LogOut, ShieldCheck, UserCircle2, ShoppingCart } from "lucide-react";
+import { Menu, X, Globe, ChevronDown, User, LogIn, LogOut, ShieldCheck, UserCircle2, ShoppingCart, BookOpen } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLanguage } from "@/lib/language-context";
 import { signOut, useSession } from "@/lib/auth-client";
@@ -34,6 +34,7 @@ const NAV_LABELS = {
     rfp: "طلب خدمة",
     signIn: "تسجيل الدخول",
     myAccount: "حسابي",
+    myLibrary: "مكتبتي",
     adminPanel: "لوحة الإدارة",
     signOut: "تسجيل الخروج",
     userMenu: "قائمة المستخدم",
@@ -45,6 +46,7 @@ const NAV_LABELS = {
     rfp: "Request Service",
     signIn: "Sign In",
     myAccount: "My Account",
+    myLibrary: "My Library",
     adminPanel: "Admin Panel",
     signOut: "Sign Out",
     userMenu: "User menu",
@@ -261,6 +263,17 @@ function UserMenu({
                 <User size={14} />
                 {t.myAccount}
               </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onNavigate("/account/library");
+                }}
+                className="w-full text-start px-4 py-2.5 text-sm text-primary-foreground/80 hover:text-secondary hover:bg-secondary/5 flex items-center gap-2"
+                data-testid="nav-user-library"
+              >
+                <BookOpen size={14} />
+                {t.myLibrary}
+              </button>
               {isAdmin && (
                 <button
                   onClick={() => {
@@ -429,6 +442,12 @@ function MobileAuthSlotInner({
             className="w-full py-2.5 text-sm text-primary-foreground hover:text-secondary flex items-center gap-2 text-start"
           >
             <User size={14} /> {t.myAccount}
+          </button>
+          <button
+            onClick={() => onNavigate("/account/library")}
+            className="w-full py-2.5 text-sm text-primary-foreground hover:text-secondary flex items-center gap-2 text-start"
+          >
+            <BookOpen size={14} /> {t.myLibrary}
           </button>
           {isAdmin && (
             <button

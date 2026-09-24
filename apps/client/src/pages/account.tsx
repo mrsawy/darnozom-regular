@@ -28,6 +28,7 @@ import { useState } from "react";
 import SiteNav from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import { useLanguage } from "@/lib/language-context";
+import MyLibrary from "@/components/account/my-library";
 import { useAdminStatus } from "@/lib/use-admin-status";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -67,6 +68,7 @@ const COPY = {
     notSet: "—",
     backHome: "الصفحة الرئيسية",
     ordersHeading: "طلباتي",
+    libraryHeading: "مكتبتي",
     orderNumber: "رقم الطلب",
     orderItemsCount: "عدد العناصر",
     orderTotal: "الإجمالي",
@@ -87,6 +89,10 @@ const COPY = {
     methodCard: "بطاقة ائتمان / مدى",
     methodWallet: "محفظة إلكترونية",
     methodCod: "الدفع عند الاستلام",
+    methodVodafoneCash: "فودافون كاش",
+    methodInstapay: "إنستاباي",
+    awaitingVerification: "بانتظار تأكيد الدفع",
+    viewPaymentDetails: "عرض بيانات الدفع",
     payUnpaid: "غير مدفوع",
     payPending: "بانتظار الدفع",
     payPaid: "مدفوع",
@@ -139,6 +145,7 @@ const COPY = {
     notSet: "—",
     backHome: "Home",
     ordersHeading: "My Orders",
+    libraryHeading: "My Library",
     orderNumber: "Order #",
     orderItemsCount: "Items",
     orderTotal: "Total",
@@ -159,6 +166,10 @@ const COPY = {
     methodCard: "Credit / Debit card",
     methodWallet: "Mobile wallet",
     methodCod: "Cash on delivery",
+    methodVodafoneCash: "Vodafone Cash",
+    methodInstapay: "InstaPay",
+    awaitingVerification: "Awaiting payment verification",
+    viewPaymentDetails: "View payment details",
     payUnpaid: "Unpaid",
     payPending: "Awaiting payment",
     payPaid: "Paid",
@@ -231,7 +242,7 @@ interface OrderRow {
   shippingCity: string | null;
   currency: string;
   itemsCount: number;
-  paymentMethod: "paypal" | "card" | "wallet" | "cash_on_delivery" | null;
+  paymentMethod: "paypal" | "card" | "wallet" | "cash_on_delivery" | "vodafone_cash" | "instapay" | null;
   paymentStatus: "unpaid" | "pending" | "paid" | "failed" | null;
   paymentFailureReason: string | null;
   paymentRecoveredAt: string | null;
@@ -420,13 +431,27 @@ function OrderRowItem({
                       ? t.methodCard
                       : order.paymentMethod === "wallet"
                         ? t.methodWallet
-                        : t.methodCod}
+                        : order.paymentMethod === "vodafone_cash"
+                          ? t.methodVodafoneCash
+                          : order.paymentMethod === "instapay"
+                            ? t.methodInstapay
+                            : t.methodCod}
                 </span>
               </>
             )}
             {order.paymentStatus && (
               <PaymentPill status={order.paymentStatus} t={t} />
             )}
+            {(order.paymentMethod === "vodafone_cash" || order.paymentMethod === "instapay") &&
+              order.paymentStatus !== "paid" &&
+              order.status !== "cancelled" && (
+                <>
+                  <span className="text-amber-700 font-bold">{t.awaitingVerification}</span>
+                  <Link href={`/checkout/manual?orderId=${order.id}`} className="underline font-bold">
+                    {t.viewPaymentDetails}
+                  </Link>
+                </>
+              )}
           </div>
           {order.paymentRecoveredAt && order.paymentStatus === "paid" && (
             <p
@@ -802,6 +827,11 @@ export default function AccountPage() {
                 {t.editProfile}
               </button>
             </div>
+          </SectionCard>
+
+          {/* Digital books bought — files unlock once payment is confirmed */}
+          <SectionCard icon={BookOpen} heading={t.libraryHeading}>
+            <MyLibrary lang={language === "ar" ? "ar" : "en"} />
           </SectionCard>
 
           {/* Orders (checkout-based) */}

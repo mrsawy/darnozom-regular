@@ -39,12 +39,14 @@ import SsoCallbackPage from "@/pages/sso-callback";
 import ResetPasswordPage from "@/pages/reset-password";
 import VerifyEmailPage from "@/pages/verify-email";
 import AccountPage from "@/pages/account";
+import AccountLibraryPage from "@/pages/account-library";
 import OrderReaderPage from "@/pages/order-reader";
 import CartPage from "@/pages/cart";
 import CheckoutPage from "@/pages/checkout";
 import CheckoutPayPalReturnPage from "@/pages/checkout-paypal-return";
 import CheckoutPaymobPayPage from "@/pages/checkout-paymob-pay";
 import CheckoutPaymobWalletPage from "@/pages/checkout-paymob-wallet";
+import CheckoutManualPage from "@/pages/checkout-manual";
 import { AdminGate } from "@/pages/admin/layout";
 import AdminOverview from "@/pages/admin/overview";
 import AdminBooks from "@/pages/admin/store/books";
@@ -57,6 +59,7 @@ import BookConsultationPage from "@/pages/book-consultation";
 import AccountConsultationsPage from "@/pages/account-consultations";
 import AdminOrders from "@/pages/admin/store/orders";
 import AdminShipping from "@/pages/admin/store/shipping";
+import AdminManualPayments from "@/pages/admin/store/manual-payments";
 import AdminRegistrations from "@/pages/admin/academy/registrations";
 import AdminServiceRegistrations from "@/pages/admin/service-registrations";
 import AdminJobApplications from "@/pages/admin/people/job-applications";
@@ -81,6 +84,7 @@ function AdminRouter() {
         <Route path="/admin/consultation-bookings" component={AdminConsultationBookings} />
         <Route path="/admin/orders" component={AdminOrders} />
         <Route path="/admin/shipping" component={AdminShipping} />
+        <Route path="/admin/manual-payments" component={AdminManualPayments} />
         <Route path="/admin/registrations" component={AdminRegistrations} />
         <Route path="/admin/service-registrations" component={AdminServiceRegistrations} />
         <Route path="/admin/jobs" component={AdminJobs} />
@@ -139,6 +143,7 @@ function Router() {
       <Route path="/reset-password" component={ResetPasswordPage} />
       <Route path="/verify-email" component={VerifyEmailPage} />
       <Route path="/account" component={AccountPage} />
+      <Route path="/account/library" component={AccountLibraryPage} />
       <Route path="/account/consultations" component={AccountConsultationsPage} />
       <Route path="/services/consulting/book" component={BookConsultationPage} />
       <Route path="/account/orders/:orderId/items/:itemId/read" component={OrderReaderPage} />
@@ -148,6 +153,7 @@ function Router() {
       <Route path="/checkout/paypal/cancel"><Redirect to="/cart" /></Route>
       <Route path="/checkout/paymob/pay" component={CheckoutPaymobPayPage} />
       <Route path="/checkout/paymob/wallet" component={CheckoutPaymobWalletPage} />
+      <Route path="/checkout/manual" component={CheckoutManualPage} />
 
       {/* Legacy redirects to new admin sections (must come before catch-all /admin) */}
       <Route path="/admin/store"><Redirect to="/admin/books" /></Route>

@@ -399,6 +399,17 @@ MEDUSA_UPLOAD_DIR=$MEDUSA_UPLOAD_DIR
 MEDUSA_UPLOAD_BACKEND_URL=https://$MEDUSA_HOST/static
 AUTH_MFA_ENCRYPTION_KEY=$AUTH_MFA_ENCRYPTION_KEY
 BETTER_AUTH_BRIDGE_SECRET=$BETTER_AUTH_BRIDGE_SECRET
+# Medusa → Express calls (order notifications, Vodafone Cash / InstaPay
+# "Mark as paid" sync). Without it Medusa falls back to port 8087, which is
+# not where the API listens in production.
+DARNOZOM_API_URL=http://127.0.0.1:$API_PORT
+# Browser-facing API address for the Medusa Admin order bell's live socket
+# (served at /api/socket.io through the storefront's nginx /api/ proxy).
+DARNOZOM_PUBLIC_API_URL=https://$DOMAIN
+# Same private store as the API: Medusa writes digital-book files here and
+# the API streams them to buyers from here.
+OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
+PRIVATE_OBJECT_DIR=$OBJECTS_DIR
 PAYMOB_API_KEY=${PAYMOB_API_KEY:-}
 PAYMOB_HMAC_SECRET=${PAYMOB_HMAC_SECRET:-}
 PAYMOB_IFRAME_ID=${PAYMOB_IFRAME_ID:-}

@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import ProductCard, { type ProductCardItem } from "@/components/store/product-card";
 import { useLanguage } from "@/lib/language-context";
-import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { listStoreBooks } from "@/lib/list-store-books";
 import { productIsFeatured } from "@/lib/product-featured";
 
 function formatAmount(amount: number | null | undefined): number {
@@ -89,13 +89,7 @@ export default function FeaturedBooksSection() {
     let cancelled = false;
     (async () => {
       try {
-        const sdk = getMedusaClient();
-        const regionId = await getStoreRegionId();
-        const { products } = await sdk.store.product.list({
-          limit: 24,
-          region_id: regionId,
-          fields: "*variants,*variants.calculated_price,*variants.metadata,*tags",
-        });
+        const products = await listStoreBooks({ limit: 24 });
         if (cancelled) return;
         const featured = (products || [])
           .filter((p) =>

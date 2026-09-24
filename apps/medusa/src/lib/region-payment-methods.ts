@@ -2,7 +2,9 @@ export type CheckoutPaymentMethod =
   | "paypal"
   | "card"
   | "wallet"
-  | "cash_on_delivery";
+  | "cash_on_delivery"
+  | "vodafone_cash"
+  | "instapay";
 
 /**
  * Medusa region payment provider ids look like `pp_{identifier}_{id}`
@@ -13,6 +15,10 @@ export function checkoutMethodFromProviderId(
   providerId: string,
 ): CheckoutPaymentMethod | null {
   const id = providerId.toLowerCase();
+  // Manual transfers first: "vodafone-cash" must never fall through to the
+  // Paymob wallet or COD rules below.
+  if (id.includes("vodafone-cash") || id.includes("vodafone_cash")) return "vodafone_cash";
+  if (id.includes("instapay")) return "instapay";
   if (id.includes("paymob-wallet") || id.includes("paymob_wallet")) return "wallet";
   if (id.includes("paymob-card") || id.includes("paymob_card")) return "card";
   if (id.includes("paypal")) return "paypal";

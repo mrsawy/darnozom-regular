@@ -25,11 +25,16 @@ import mobileChatRouter from "./mobile-chat/index";
 import storeCoursesRouter from "./store-courses/index";
 import storeAppsRouter from "./store-apps/index";
 import ordersRouter from "./orders/index";
+import manualPaymentOrdersRouter from "./orders/manual-payments";
 import shippingRatesRouter from "./shipping-rates/index";
 import adminRouter from "./admin/index";
+import manualPaymentSettingsRouter from "./admin/manual-payment-settings";
+import orderNotificationsRouter from "./admin/order-notifications";
+import adminNotifyRouter from "./admin-notify";
 import jobApplicationsRouter from "./job-applications/index";
 import jobsRouter from "./jobs/index";
 import accountRouter from "./account/index";
+import libraryRouter from "./account/library";
 import consultationsRouter from "./consultations/index";
 import { medusaBridgeRouter } from "./medusa-bridge/index";
 
@@ -47,12 +52,17 @@ router.use(eventsRouter);
 router.use(storeCoursesRouter);
 router.use(storeAppsRouter);
 router.use(ordersRouter);
+router.use(manualPaymentOrdersRouter);
 router.use(shippingRatesRouter);
 router.use("/store", medusaBridgeRouter);
 router.use(adminRouter);
+router.use(manualPaymentSettingsRouter);
+router.use(orderNotificationsRouter);
+router.use(adminNotifyRouter);
 router.use(jobApplicationsRouter);
 router.use(jobsRouter);
 router.use(accountRouter);
+router.use(libraryRouter);
 router.use(consultationsRouter);
 
 // Storage must be reachable for anonymous storefront images (book covers etc.).

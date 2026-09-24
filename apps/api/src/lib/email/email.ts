@@ -643,6 +643,42 @@ export async function sendOrderReceipt(params: {
 
 // Customer confirmation for a cash-on-delivery order (payment collected on
 // delivery, so no digital access and no receipt of payment yet).
+type ManualInstructionsParams = {
+  to: string;
+  orderId: number;
+  customerName: string;
+  paymentMethod: "vodafone_cash" | "instapay";
+  totalAmount: string;
+  currency: string;
+};
+
+export function sendManualPaymentInstructionsHtml(params: ManualInstructionsParams): string {
+  const methodAr = params.paymentMethod === "vodafone_cash" ? "فودافون كاش" : "إنستاباي";
+  const proofAr =
+    params.paymentMethod === "vodafone_cash"
+      ? "أرسل صورة إيصال التحويل على واتساب"
+      : "أرسل رمز تأكيد التحويل على واتساب";
+  // Carries the email so a guest can reopen the page from another browser.
+  const link = `${PLATFORM_URL}/checkout/manual?orderId=${params.orderId}&email=${encodeURIComponent(params.to)}`;
+  return `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8">
+  <h2>تم استلام طلبك #${params.orderId}</h2>
+  <p>مرحباً ${escapeHtml(params.customerName)}،</p>
+  <p>لإتمام الطلب، حوّل مبلغ <strong>${escapeHtml(params.totalAmount)} ${escapeHtml(params.currency)}</strong> عبر <strong>${methodAr}</strong>، ثم ${proofAr}.</p>
+  <p><a href="${escapeHtml(link)}">عرض بيانات الدفع</a></p>
+  <p>سيتم تفعيل طلبك (والوصول إلى الكتب الرقمية) فور تأكيد الدفع.</p>
+</div>`;
+}
+
+export async function sendManualPaymentInstructions(
+  params: ManualInstructionsParams,
+): Promise<{ ok: boolean; error?: string }> {
+  return sendEmail({
+    to: params.to,
+    subject: `أكمل الدفع لطلبك #${params.orderId} | Darnozom Consulting`,
+    html: sendManualPaymentInstructionsHtml(params),
+  });
+}
+
 export async function sendOrderPlacedConfirmation(params: {
   to: string;
   orderId: number;
@@ -832,7 +868,7 @@ const SALE_STAGE_LABELS: Record<SaleStage, { ar: string; en: string; color: stri
 export async function sendAdminSalesNotification(params: {
   orderId: number;
   stage: SaleStage;
-  paymentMethod: "paypal" | "card" | "wallet" | "cash_on_delivery";
+  paymentMethod: "paypal" | "card" | "wallet" | "cash_on_delivery" | "vodafone_cash" | "instapay";
   customerName: string;
   customerEmail: string;
   phone: string;
@@ -851,7 +887,11 @@ export async function sendAdminSalesNotification(params: {
         ? "بطاقة ائتمان / خصم"
         : params.paymentMethod === "wallet"
           ? "محفظة إلكترونية (فودافون كاش / أورنج موني / اتصالات كاش)"
-          : "الدفع عند الاستلام (COD)";
+          : params.paymentMethod === "vodafone_cash"
+            ? "فودافون كاش (تحويل يدوي)"
+            : params.paymentMethod === "instapay"
+              ? "إنستاباي (تحويل يدوي)"
+              : "الدفع عند الاستلام (COD)";
 
   const itemRows = params.items
     .map((it) => {

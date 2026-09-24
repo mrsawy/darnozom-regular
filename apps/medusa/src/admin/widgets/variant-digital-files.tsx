@@ -1,0 +1,26 @@
+import { defineWidgetConfig } from "@medusajs/admin-sdk";
+import type { AdminProductVariant, DetailWidgetProps } from "@medusajs/framework/types";
+import { Container, Heading, Text } from "@medusajs/ui";
+import { VariantFiles } from "../components/digital-files";
+
+// Same file manager as the product page, on the Digital variant's own page.
+const VariantDigitalFilesWidget = ({ data: variant }: DetailWidgetProps<AdminProductVariant>) => {
+  if ((variant.metadata as { kind?: string } | null)?.kind !== "digital") return null;
+  return (
+    <Container className="divide-y p-0">
+      <div className="px-6 py-4">
+        <Heading level="h2">Digital files</Heading>
+        <Text size="small" className="text-ui-fg-subtle">
+          Files buyers get in their library once their payment is confirmed.
+        </Text>
+      </div>
+      <VariantFiles variantId={variant.id} label={variant.title ?? "Digital edition"} />
+    </Container>
+  );
+};
+
+export const config = defineWidgetConfig({
+  zone: "product_variant.details.after",
+});
+
+export default VariantDigitalFilesWidget;

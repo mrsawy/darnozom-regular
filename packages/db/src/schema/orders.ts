@@ -25,6 +25,8 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "card",
   "wallet",
   "cash_on_delivery",
+  "vodafone_cash",
+  "instapay",
 ]);
 
 export const paymentStatusEnum = pgEnum("payment_status", [
@@ -57,6 +59,9 @@ export const orders = pgTable("orders", {
   // the successful transaction id once the card charge completes. Card orders
   // are charged in EGP directly (no USD conversion).
   paymobOrderId: varchar("paymob_order_id", { length: 255 }),
+  // Id of the mirrored Medusa order (set after syncMedusaOrder succeeds).
+  // Lets admin actions reach the Medusa order without scanning recent orders.
+  medusaOrderId: varchar("medusa_order_id", { length: 64 }),
   paymobTransactionId: varchar("paymob_transaction_id", { length: 255 }),
   // Mobile-wallet payments (Vodafone Cash / Orange Money / Etisalat Cash via
   // Paymob): the wallet phone number the buyer pays from. Needed to
@@ -108,6 +113,9 @@ export const orderItems = pgTable("order_items", {
   currency: varchar("currency", { length: 10 }).notNull().default("EGP"),
   format: orderItemFormatEnum("format"),
   digitalFileUrlSnapshot: text("digital_file_url_snapshot"),
+  // Medusa variant bought (digital editions: resolves the files the buyer
+  // gets in their library — see apps/api routes/account/library.ts).
+  variantId: varchar("variant_id", { length: 64 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

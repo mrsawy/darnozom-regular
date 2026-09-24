@@ -25,3 +25,24 @@ describe("region payment methods", () => {
     ).toEqual(["cash_on_delivery", "paypal"]);
   });
 });
+
+describe("manual transfer providers", () => {
+  it("maps vodafone-cash provider ids", () => {
+    expect(checkoutMethodFromProviderId("pp_vodafone-cash_vodafone-cash")).toBe("vodafone_cash");
+    expect(checkoutMethodFromProviderId("pp_vodafone_cash_vodafone_cash")).toBe("vodafone_cash");
+  });
+
+  it("maps instapay provider ids", () => {
+    expect(checkoutMethodFromProviderId("pp_instapay_instapay")).toBe("instapay");
+  });
+
+  it("does not confuse vodafone-cash with cod or paymob wallet", () => {
+    expect(
+      checkoutMethodsFromProviderIds([
+        "pp_paymob-wallet_paymob-wallet",
+        "pp_vodafone-cash_vodafone-cash",
+        "pp_cod_cod",
+      ]),
+    ).toEqual(["wallet", "vodafone_cash", "cash_on_delivery"]);
+  });
+});

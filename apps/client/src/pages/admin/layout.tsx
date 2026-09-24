@@ -4,9 +4,10 @@ import { signOut, useSession } from "@/lib/auth-client";
 import {
   LayoutDashboard, BookOpen, GraduationCap, School, CalendarDays,
   Users, LogOut, Loader2, Menu, X, ShieldAlert, ShieldCheck,
-  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock,
+  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { OrderNotificationsBell } from "@/components/admin/order-notifications";
 import { useAdminStatus } from "@/lib/use-admin-status";
 
 export { useAdminStatus };
@@ -29,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/consultation-bookings", label: "حجوزات الاستشارات", icon: Video },
   { href: "/admin/orders", label: "طلبات المتجر", icon: Package },
   { href: "/admin/shipping", label: "أسعار الشحن", icon: Truck },
+  { href: "/admin/manual-payments", label: "الدفع اليدوي", icon: Wallet },
   { href: "/admin/service-registrations", label: "تسجيلات الخدمات", icon: FileText },
   { href: "/admin/registrations", label: "تسجيلات الطلاب", icon: Users },
   { href: "/admin/jobs", label: "الوظائف", icon: Briefcase },
@@ -163,6 +165,7 @@ function AdminShell({ children, currentPath }: { children: ReactNode; currentPat
             <span className="hidden md:inline text-secondary font-bold text-sm">لوحة التحكم</span>
           </div>
           <div className="flex items-center gap-3">
+            <OrderNotificationsBell />
             <div className="hidden sm:block text-right text-xs">
               <div className="text-white font-bold leading-tight">{name}</div>
               <div className="text-primary-foreground/60 leading-tight">{email}</div>

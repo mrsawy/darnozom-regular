@@ -40,6 +40,7 @@ jobs:
         env:
           VITE_MEDUSA_BACKEND_URL: ${{ secrets.VITE_MEDUSA_BACKEND_URL }}
           VITE_MEDUSA_PUBLISHABLE_KEY: ${{ secrets.VITE_MEDUSA_PUBLISHABLE_KEY }}
+          VITE_MEDUSA_BOOK_PRODUCT_TYPE_ID: ${{ secrets.VITE_MEDUSA_BOOK_PRODUCT_TYPE_ID }}
         run: |
           export VITE_MEDUSA_BACKEND_URL="${VITE_MEDUSA_BACKEND_URL:-https://ecommerce.darnozom.com}"
           pnpm run build:client

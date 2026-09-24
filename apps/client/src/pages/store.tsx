@@ -11,7 +11,7 @@ import SiteNav from "@/components/site-nav";
 import ProductCard, { type ProductCardItem } from "@/components/store/product-card";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
+import { listStoreBooks } from "@/lib/list-store-books";
 import { productIsFeatured } from "@/lib/product-featured";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
@@ -164,15 +164,7 @@ export default function StorePage() {
       setLoading(true);
       setError(false);
       try {
-        const sdk = getMedusaClient();
-        const regionId = await getStoreRegionId();
-        // calculated_price is only populated when explicitly requested via
-        // `fields`, and Medusa rejects that request unless region_id is set.
-        const { products: fetched } = await sdk.store.product.list({
-          limit: 100,
-          region_id: regionId,
-          fields: "*variants,*variants.calculated_price,*variants.metadata,*tags",
-        });
+        const fetched = await listStoreBooks();
         if (cancelled) return;
         setProducts(fetched);
       } catch {
@@ -220,19 +212,19 @@ export default function StorePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[hsl(150_12%_97%)]">
       <SiteNav />
 
       {/* Editorial Hero */}
-      <section className="relative pt-28 pb-14 px-4 overflow-hidden border-b border-border/60">
+      <section className="relative pt-28 pb-14 px-4 overflow-hidden border-b border-border/60 bg-[hsl(150_12%_97%)]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(212,175,55,0.10),_transparent_60%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-secondary/40 to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(15,61,46,0.10),_transparent_60%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
         </div>
         <div className="container mx-auto max-w-6xl relative">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <div className="inline-flex items-center gap-2 text-xs tracking-[0.25em] uppercase text-secondary mb-5 font-medium">
-              <span className="w-8 h-px bg-secondary/60" />
+            <div className="inline-flex items-center gap-2 text-xs tracking-[0.25em] uppercase text-primary mb-5 font-medium">
+              <span className="w-8 h-px bg-primary/50" />
               {t.eyebrow}
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-bold text-foreground leading-[1.15] max-w-4xl mb-5">
@@ -241,7 +233,7 @@ export default function StorePage() {
             <p className="text-lg text-muted-foreground max-w-2xl mb-8 leading-relaxed">{t.subtitle}</p>
 
             <form onSubmit={handleSearch} className="max-w-2xl">
-              <div className="relative bg-card border border-border rounded-xl shadow-sm hover:border-secondary/50 transition-colors focus-within:border-secondary/60">
+              <div className="relative bg-card border border-border rounded-xl shadow-sm hover:border-primary/40 transition-colors focus-within:border-primary/50">
                 <Search className="absolute top-1/2 -translate-y-1/2 start-4 w-4 h-4 text-muted-foreground" />
                 <Input
                   value={search}
@@ -249,7 +241,7 @@ export default function StorePage() {
                   placeholder={t.searchPlaceholder}
                   className="ps-11 pe-24 h-12 bg-transparent border-0 focus-visible:ring-0 text-sm"
                 />
-                <button type="submit" className="absolute top-1/2 -translate-y-1/2 end-2 h-9 px-4 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-lg transition-colors">
+                <button type="submit" className="absolute top-1/2 -translate-y-1/2 end-2 h-9 px-4 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors">
                   {isArabic ? "بحث" : "Search"}
                 </button>
               </div>
@@ -275,24 +267,24 @@ export default function StorePage() {
                 >
                   <Link
                     href={cat.href}
-                    className="group relative block bg-card border border-border hover:border-secondary/60 rounded-2xl p-7 h-full transition-all overflow-hidden"
+                    className="group relative block bg-card border border-border hover:border-primary/40 rounded-2xl p-7 h-full transition-all overflow-hidden"
                   >
-                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-secondary/0 group-hover:via-secondary/60 to-transparent transition-all" />
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/0 group-hover:via-primary/40 to-transparent transition-all" />
                     <div className="flex items-start justify-between mb-6">
-                      <div className="w-11 h-11 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-secondary" />
+                      <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/15 flex items-center justify-center">
+                        <Icon className="w-5 h-5 text-primary" />
                       </div>
                       <span className="text-[10px] tracking-widest uppercase text-muted-foreground font-medium">
                         0{i + 1}
                       </span>
                     </div>
-                    <div className="text-[11px] tracking-[0.2em] uppercase text-secondary/80 font-medium mb-2">
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-primary/70 font-medium mb-2">
                       {meta.kicker}
                     </div>
                     <h3 className="text-2xl font-bold text-foreground mb-3">{meta.title}</h3>
                     <p className="text-sm text-muted-foreground leading-relaxed mb-6 min-h-[3.5rem]">{meta.desc}</p>
                     <div className="flex items-center justify-between pt-4 border-t border-border">
-                      <span className="inline-flex items-center gap-1.5 text-secondary font-medium text-sm group-hover:gap-2.5 transition-all">
+                      <span className="inline-flex items-center gap-1.5 text-primary font-medium text-sm group-hover:gap-2.5 transition-all">
                         {meta.cta}
                         <ArrowUpRight className={`w-4 h-4 ${isArabic ? "rotate-[270deg]" : ""}`} />
                       </span>
@@ -316,7 +308,7 @@ export default function StorePage() {
           <div className="flex flex-wrap items-center justify-center md:justify-between gap-x-8 gap-y-2 text-xs text-muted-foreground">
             {t.trust.map((line, i) => (
               <div key={i} className="inline-flex items-center gap-2">
-                <BadgeCheck className="w-3.5 h-3.5 text-secondary" />
+                <BadgeCheck className="w-3.5 h-3.5 text-primary" />
                 <span>{line}</span>
               </div>
             ))}
@@ -338,8 +330,8 @@ export default function StorePage() {
                 transition={{ delay: i * 0.05 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-10 h-10 rounded-lg bg-secondary/10 border border-secondary/20 flex items-center justify-center">
-                  <Icon className="w-4 h-4 text-secondary" />
+                <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center">
+                  <Icon className="w-4 h-4 text-primary" />
                 </div>
                 <div>
                   <div className="text-xl font-bold text-foreground leading-tight">{s.value}</div>
@@ -357,7 +349,7 @@ export default function StorePage() {
           <div className="container mx-auto max-w-6xl">
             <div className="flex items-end justify-between mb-8 flex-wrap gap-3">
               <div>
-                <div className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-secondary mb-2 font-medium">
+                <div className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-primary mb-2 font-medium">
                   <Sparkle className="w-3.5 h-3.5" /> {t.editorPick}
                 </div>
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-1">{t.editorPick}</h2>
@@ -408,16 +400,16 @@ export default function StorePage() {
       )}
 
       {/* Enterprise CTA */}
-      <section className="py-16 px-4 bg-[#F4ECD7]">
+      <section className="py-16 px-4 bg-muted/30">
         <div className="container mx-auto max-w-5xl">
-          <div className="relative overflow-hidden bg-primary text-primary-foreground rounded-3xl p-8 md:p-12 border border-secondary/30">
+          <div className="relative overflow-hidden bg-primary text-primary-foreground rounded-3xl p-8 md:p-12 border border-primary-foreground/10">
             <div className="absolute inset-0 pointer-events-none">
-              <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-secondary/20 blur-3xl" />
-              <div className="absolute -left-20 -bottom-20 w-64 h-64 rounded-full bg-secondary/10 blur-3xl" />
+              <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-white/10 blur-3xl" />
+              <div className="absolute -left-20 -bottom-20 w-64 h-64 rounded-full bg-emerald-400/10 blur-3xl" />
             </div>
             <div className="relative grid md:grid-cols-[1fr_auto] gap-6 items-center">
               <div>
-                <div className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-secondary mb-3 font-medium">
+                <div className="inline-flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-primary-foreground/70 mb-3 font-medium">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   {isArabic ? "للمؤسسات" : "For Enterprise"}
                 </div>
@@ -426,7 +418,7 @@ export default function StorePage() {
               </div>
               <Link
                 href="/#contact"
-                className="inline-flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap"
+                className="inline-flex items-center justify-center gap-2 bg-card text-primary hover:bg-card/90 px-6 py-3 rounded-xl font-medium text-sm transition-colors whitespace-nowrap"
               >
                 {t.forTeamsCta}
                 <ArrowUpRight className={`w-4 h-4 ${isArabic ? "rotate-[270deg]" : ""}`} />

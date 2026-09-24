@@ -19,7 +19,7 @@ export function AdminFab({ href, label, external = false }: AdminFabProps) {
 
   const text = typeof label === "string" ? label : isArabic ? label.ar : label.en;
   const className =
-    "fixed bottom-6 end-6 z-40 inline-flex items-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-5 py-3 rounded-full shadow-lg shadow-secondary/30 font-medium text-sm transition-all hover:scale-105";
+    "fixed bottom-6 end-6 z-40 inline-flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 px-5 py-3 rounded-full shadow-lg shadow-primary/25 font-medium text-sm transition-all hover:scale-105";
 
   if (external) {
     return (

@@ -17,15 +17,25 @@ export type CreateBookProductInput = {
   imageUrls?: string[];
   paperPrice: number;
   digitalPrice: number;
+  /** false → paper-only book: no Digital variant (digitalPrice ignored). Default true. */
+  hasDigital?: boolean;
   paperInventoryQty?: number;
   currencyCode?: string;
+  /** Storefront filter metadata (synced to product.metadata). */
+  author?: string | null;
+  language?: "ar" | "en" | "both" | null;
+  /** Medusa product category ids (`pcat_…`) — drives storefront category filters. */
+  categoryIds?: string[] | null;
+  /** @deprecated Prefer categoryIds (Medusa product categories). */
+  category?:
+    "shariah" | "management" | "digital_transformation" | "other" | null;
   /** Test seam — production callers omit these. */
-  __testCreateProductsWorkflow?: (
-    container: MedusaContainer,
-  ) => { run: (args: any) => Promise<{ result: any[] }> };
-  __testCreateInventoryLevelsWorkflow?: (
-    container: MedusaContainer,
-  ) => { run: (args: any) => Promise<{ result: any[] }> };
+  __testCreateProductsWorkflow?: (container: MedusaContainer) => {
+    run: (args: any) => Promise<{ result: any[] }>;
+  };
+  __testCreateInventoryLevelsWorkflow?: (container: MedusaContainer) => {
+    run: (args: any) => Promise<{ result: any[] }>;
+  };
   __testQuery?: {
     graph: (args: any) => Promise<{ data: any[] }>;
   };
@@ -76,8 +86,13 @@ export async function createBookProduct(
   if (!input.salesChannelId?.trim()) {
     throw new Error("salesChannelId is required");
   }
-  if (!(input.paperPrice > 0) || !(input.digitalPrice > 0)) {
-    throw new Error("paperPrice and digitalPrice must be positive numbers");
+  const hasDigital = input.hasDigital !== false;
+  if (!(input.paperPrice > 0) || (hasDigital && !(input.digitalPrice > 0))) {
+    throw new Error(
+      hasDigital
+        ? "paperPrice and digitalPrice must be positive numbers"
+        : "paperPrice must be a positive number",
+    );
   }
 
   const query = input.__testQuery ?? container.resolve("query");
@@ -90,9 +105,15 @@ export async function createBookProduct(
   const images = [
     ...(input.thumbnailUrl ? [{ url: input.thumbnailUrl }] : []),
     ...(input.imageUrls ?? []).map((url) => ({ url })),
-  ].filter(
-    (img, i, arr) => arr.findIndex((x) => x.url === img.url) === i,
-  );
+  ].filter((img, i, arr) => arr.findIndex((x) => x.url === img.url) === i);
+
+  const metadata: Record<string, unknown> = {};
+  if (input.author?.trim()) metadata.author = input.author.trim();
+  if (input.language) metadata.language = input.language;
+  // Keep legacy metadata.category for older products / admin list views.
+  if (input.category) metadata.category = input.category;
+
+  const categoryIds = (input.categoryIds ?? []).filter(Boolean);
 
   const createProducts =
     input.__testCreateProductsWorkflow ?? createProductsWorkflow;
@@ -109,10 +130,12 @@ export async function createBookProduct(
           images: images.length ? images : undefined,
           shipping_profile_id: shippingProfileId,
           sales_channels: [{ id: input.salesChannelId }],
+          ...(categoryIds.length ? { category_ids: categoryIds } : {}),
+          ...(Object.keys(metadata).length ? { metadata } : {}),
           options: [
             {
               title: FORMAT_OPTION_TITLE,
-              values: [PAPER_VALUE, DIGITAL_VALUE],
+              values: hasDigital ? [PAPER_VALUE, DIGITAL_VALUE] : [PAPER_VALUE],
               is_exclusive: true,
             },
           ],
@@ -126,15 +149,21 @@ export async function createBookProduct(
               manage_inventory: true,
               allow_backorder: false,
             },
-            {
-              title: DIGITAL_VALUE,
-              sku: slugSku(input.title, "digital"),
-              options: { [FORMAT_OPTION_TITLE]: DIGITAL_VALUE },
-              prices: [{ amount: input.digitalPrice, currency_code: currency }],
-              metadata: { kind: "digital" },
-              manage_inventory: false,
-              allow_backorder: true,
-            },
+            ...(hasDigital
+              ? [
+                  {
+                    title: DIGITAL_VALUE,
+                    sku: slugSku(input.title, "digital"),
+                    options: { [FORMAT_OPTION_TITLE]: DIGITAL_VALUE },
+                    prices: [
+                      { amount: input.digitalPrice, currency_code: currency },
+                    ],
+                    metadata: { kind: "digital" },
+                    manage_inventory: false,
+                    allow_backorder: true,
+                  },
+                ]
+              : []),
           ],
         },
       ],

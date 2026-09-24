@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ShoppingCart, ExternalLink, Star, Plus, Check } from "lucide-react";
+import { ShoppingCart, ExternalLink, Star, Plus, Check, BookOpen, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/language-context";
 import { useCart } from "@/lib/cart-context";
@@ -84,7 +84,7 @@ export default function ProductCard({ item }: Props) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.35 }}
-      className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-secondary/50 hover:shadow-lg hover:shadow-secondary/5 transition-all flex flex-col"
+      className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/35 hover:shadow-lg hover:shadow-primary/5 transition-all flex flex-col"
     >
       <CoverWrap detailUrl={item.detailUrl}>
         <div className="relative aspect-[4/3] bg-gradient-to-br from-muted/30 to-muted/10 overflow-hidden">
@@ -97,12 +97,12 @@ export default function ProductCard({ item }: Props) {
           )}
           <div className="absolute top-3 inset-x-3 flex items-start justify-between gap-2 pointer-events-none">
             {item.isNewRelease && (
-              <span className="bg-emerald-500/90 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">
+              <span className="bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">
                 {tNew}
               </span>
             )}
             {item.isFeatured && (
-              <span className="bg-secondary/90 text-secondary-foreground text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide flex items-center gap-1 ms-auto">
+              <span className="bg-primary/90 text-primary-foreground text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide flex items-center gap-1 ms-auto">
                 <Star className="w-2.5 h-2.5 fill-current" /> {tFeatured}
               </span>
             )}
@@ -112,11 +112,11 @@ export default function ProductCard({ item }: Props) {
 
       <div className="p-4 flex flex-col flex-1">
         {item.badge && (
-          <div className="text-xs text-secondary mb-1">{item.badge}</div>
+          <div className="text-xs text-primary mb-1">{item.badge}</div>
         )}
         {item.detailUrl ? (
           <Link href={item.detailUrl}>
-            <h3 className="font-semibold text-foreground text-base leading-snug line-clamp-2 mb-1 hover:text-secondary cursor-pointer transition-colors">
+            <h3 className="font-semibold text-foreground text-base leading-snug line-clamp-2 mb-1 hover:text-primary cursor-pointer transition-colors">
               {item.title}
             </h3>
           </Link>
@@ -132,8 +132,31 @@ export default function ProductCard({ item }: Props) {
           <p className="text-sm text-muted-foreground/80 line-clamp-2 mb-3">{item.description}</p>
         )}
 
+        {item.type === "book" && (item.paperAvailable || item.digitalAvailable) && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {item.paperAvailable && (
+              <span
+                data-testid="card-edition-paper"
+                className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 border border-primary/30 bg-primary/5 text-primary"
+              >
+                <BookOpen className="w-3 h-3" aria-hidden />
+                {isArabic ? "نسخة ورقية" : "Paper"}
+              </span>
+            )}
+            {item.digitalAvailable && (
+              <span
+                data-testid="card-edition-digital"
+                className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 border border-secondary/40 bg-secondary/10 text-secondary"
+              >
+                <Download className="w-3 h-3" aria-hidden />
+                {isArabic ? "نسخة رقمية" : "Digital"}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="mt-auto flex items-center justify-between gap-2 pt-2">
-          <div className="text-sm font-bold text-secondary">
+          <div className="text-sm font-bold text-primary">
             {item.price ? (
               <>
                 {item.pricePrefix && (
@@ -163,7 +186,7 @@ export default function ProductCard({ item }: Props) {
               <Link href={item.detailUrl}>
                 <Button
                   size="sm"
-                  className="h-8 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                  className="h-8 bg-primary text-primary-foreground hover:bg-primary/90"
                   data-testid="btn-view-options"
                 >
                   {isArabic ? "اختر النسخة" : "Choose edition"}
@@ -177,10 +200,8 @@ export default function ProductCard({ item }: Props) {
                 title={inCart ? tInCart : tAdd}
                 className={`h-8 ${
                   justAdded
-                    ? "bg-emerald-500 text-white hover:bg-emerald-500"
-                    : inCart
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                    ? "bg-emerald-600 text-white hover:bg-emerald-600"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
               >
                 {justAdded ? (

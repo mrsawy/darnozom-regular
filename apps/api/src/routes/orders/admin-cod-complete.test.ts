@@ -61,6 +61,12 @@ vi.mock("../../middlewares/adminAuth", () => ({
   },
 }));
 
+const { emitUpdatedMock } = vi.hoisted(() => ({ emitUpdatedMock: vi.fn() }));
+vi.mock("../../lib/admin-socket", () => ({
+  emitOrderNew: vi.fn(),
+  emitOrderUpdated: emitUpdatedMock,
+}));
+
 vi.mock("../../lib/medusa-order-sync", () => ({
   syncMedusaOrder: vi.fn(async () => undefined),
   markMedusaOrderPaidForDarnozomOrder: vi.fn(async () => undefined),
@@ -135,6 +141,20 @@ describe("PUT /admin/orders/:id — COD paid on completed", () => {
     expect(row.paymentStatus).toBe("paid");
     expect(row.paidAt).toBeTruthy();
     expect(statusUpdateMock).toHaveBeenCalledOnce();
+    // Both admin dashboards refresh live.
+    expect(emitUpdatedMock).toHaveBeenCalledWith({
+      id: orderId,
+      medusaOrderId: null,
+      status: "completed",
+      paymentStatus: "paid",
+    });
+  });
+
+  it("does not push an update for a note-only edit", async () => {
+    const orderId = await seedOrder();
+    emitUpdatedMock.mockClear();
+    await request(app).put(`/admin/orders/${orderId}`).set("x-test-admin", "1").send({ adminNote: "hi" });
+    expect(emitUpdatedMock).not.toHaveBeenCalled();
   });
 
   it("does not mark PayPal orders paid when completed", async () => {

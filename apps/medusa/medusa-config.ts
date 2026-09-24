@@ -22,7 +22,9 @@ module.exports = defineConfig({
     databaseUrl: process.env.MEDUSA_DATABASE_URL,
     redisUrl: process.env.MEDUSA_REDIS_URL,
     http: {
-      storeCors: process.env.MEDUSA_STORE_CORS || 'http://localhost:5173',
+      storeCors:
+        process.env.MEDUSA_STORE_CORS ||
+        'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5550,http://localhost:3000',
       adminCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9010',
       authCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9010',
       jwtSecret,
@@ -68,6 +70,9 @@ module.exports = defineConfig({
     },
     {
       resolve: './src/modules/city-shipping',
+    },
+    {
+      resolve: './src/modules/manual-payment',
     },
     {
       key: Modules.FILE,
@@ -125,6 +130,14 @@ module.exports = defineConfig({
           {
             resolve: './src/modules/lemonsqueezy',
             id: 'lemonsqueezy',
+          },
+          {
+            resolve: './src/modules/vodafone-cash',
+            id: 'vodafone-cash',
+          },
+          {
+            resolve: './src/modules/instapay',
+            id: 'instapay',
           },
         ],
       },

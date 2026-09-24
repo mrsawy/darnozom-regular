@@ -13,6 +13,7 @@ import {
 import SiteNav from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import EditionBadge from "@/components/store/edition-badge";
 import { useCart } from "@/lib/cart-context";
 import { useLanguage } from "@/lib/language-context";
 
@@ -33,7 +34,6 @@ const COPY = {
     checkout: "إتمام الطلب",
     continueShopping: "متابعة التسوق",
     types: { book: "كتاب", course: "دورة", app: "تطبيق" } as Record<string, string>,
-    formats: { paper: "ورقي", digital: "رقمي PDF" } as Record<string, string>,
     shippingTitle: "حساب الشحن",
     shippingCityLabel: "المدينة",
     shippingCityPh: "مثال: الرياض",
@@ -60,7 +60,6 @@ const COPY = {
     checkout: "Checkout",
     continueShopping: "Continue shopping",
     types: { book: "Book", course: "Course", app: "App" } as Record<string, string>,
-    formats: { paper: "Paper", digital: "Digital PDF" } as Record<string, string>,
     shippingTitle: "Shipping estimate",
     shippingCityLabel: "City",
     shippingCityPh: "e.g. Riyadh",
@@ -199,15 +198,11 @@ export default function CartPage() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs text-secondary mb-0.5 flex items-center gap-2 flex-wrap">
-                            <span>{t.types[it.type]}</span>
-                            {it.format && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/10 border border-secondary/20 text-secondary uppercase tracking-wide">
-                                {t.formats[it.format]}
-                              </span>
-                            )}
-                          </div>
+                          <div className="text-xs text-secondary mb-0.5">{t.types[it.type]}</div>
                           <div className="font-bold text-primary line-clamp-2">{it.title}</div>
+                          <div className="mt-1">
+                            <EditionBadge format={it.format} lang={isAr ? "ar" : "en"} />
+                          </div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {it.unitPrice.toFixed(2)} {currency}
                           </div>

@@ -15,7 +15,6 @@ import { useLanguage } from "@/lib/language-context";
 import SiteNav from "@/components/site-nav";
 import { SiteFooter } from "@/components/site-footer";
 import CaseStudyCard from "@/components/case-study-card";
-import FeaturedBooksSection from "@/components/featured-books-section";
 import { SERVICES as SERVICES_DATA } from "@/lib/site-content";
 import { getFeaturedCaseStudies } from "@/lib/case-studies";
 import statServicesBg from "@/assets/stat-services-bg.png";
@@ -946,7 +945,7 @@ export default function Home() {
               </MagneticButton>
               <Link
                 href="/services/store/books"
-                className="group flex items-center gap-2 text-foreground text-sm font-bold underline-offset-[6px] underline decoration-primary/30 hover:decoration-primary transition-colors px-1 py-1"
+                className="group flex items-center gap-2 text-foreground text-xl font-bold underline-offset-[6px] underline decoration-primary/30 hover:decoration-primary transition-colors px-1 py-1"
               >
                 {t.hero.ctaDiscover}
                 {isArabic ? (
@@ -1100,8 +1099,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      <FeaturedBooksSection />
 
       {/* ══════════════════════════════════════
           SECTORS — McKinsey number style

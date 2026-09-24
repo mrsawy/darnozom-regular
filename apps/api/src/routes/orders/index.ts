@@ -26,6 +26,7 @@ import {
   markMedusaOrderPaidForDarnozomOrder,
   syncMedusaOrder,
 } from "../../lib/medusa-order-sync";
+import { emitOrderNew, emitOrderUpdated } from "../../lib/admin-socket";
 import { fetchEgpToUsdRate, convertEgpToUsd } from "@workspace/payment-gateways";
 import {
   createPayPalOrder,
@@ -57,14 +58,17 @@ import {
   sendOrderPlacedConfirmation,
   sendOrderStatusUpdate,
   sendAdminSalesNotification,
+  sendManualPaymentInstructions,
 } from "../../lib/email/email";
 import { sendOrderPaidNotifications } from "../../lib/email/orderPaidNotifications";
+import { isManualPaymentMethod } from "../../lib/payments/manualPayments";
+import { canAccessOrder, normalizeEmail } from "./access";
 
 const router = Router();
 
 type ProductType = "book" | "course" | "app";
 type Format = "paper" | "digital";
-type PaymentMethod = "paypal" | "card" | "wallet" | "cash_on_delivery";
+type PaymentMethod = "paypal" | "card" | "wallet" | "cash_on_delivery" | "vodafone_cash" | "instapay";
 
 // Egyptian mobile-wallet numbers: 01 followed by 9 digits (e.g. 01012345678).
 // Accepts optional +2/002 country prefix and strips spaces/dashes.
@@ -86,23 +90,6 @@ function sanitizeAbsoluteUrl(raw: unknown): string | null {
   return trimmed;
 }
 
-function normalizeEmail(raw: unknown): string {
-  if (typeof raw !== "string") return "";
-  return raw.trim().toLowerCase();
-}
-
-/** Registered order: session userId must match. Guest order: email must match. */
-function canAccessOrder(
-  order: Pick<Order, "userId" | "userEmail">,
-  req: AuthRequest,
-  guestEmail?: string | null,
-): boolean {
-  if (order.userId) {
-    return Boolean(req.userId) && order.userId === req.userId;
-  }
-  const email = normalizeEmail(guestEmail || req.userEmail);
-  return Boolean(email) && email === order.userEmail.toLowerCase();
-}
 
 // Books are now Medusa-native products (string ids, e.g. "prod_01H...").
 // Courses and apps still live in the legacy Drizzle tables (numeric ids).
@@ -366,11 +353,12 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
       paymentMethodRaw !== "paypal" &&
       paymentMethodRaw !== "card" &&
       paymentMethodRaw !== "wallet" &&
-      paymentMethodRaw !== "cash_on_delivery"
+      paymentMethodRaw !== "cash_on_delivery" &&
+      !isManualPaymentMethod(paymentMethodRaw)
     ) {
       return res.status(400).json({
         error:
-          "A valid payment method (paypal, card, wallet or cash_on_delivery) is required",
+          "A valid payment method (paypal, card, wallet, cash_on_delivery, vodafone_cash or instapay) is required",
       });
     }
     const paymentMethod = paymentMethodRaw as PaymentMethod;
@@ -566,12 +554,19 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
       });
     }
 
+    // Digital books are delivered to the buyer's account library, so they
+    // need a signed-in buyer (guests can still buy paper books).
+    if (hasDigital && !userId) {
+      return res.status(401).json({
+        error: "Please sign in or create an account to buy digital books.",
+      });
+    }
     // Digital books require an actual online payment — cash-on-delivery can
     // never unlock PDF access, so reject that combination up front.
     if (hasDigital && paymentMethod === "cash_on_delivery") {
       return res.status(400).json({
         error:
-          "Digital books cannot be paid with cash on delivery. Please pay online (card or PayPal).",
+          "Digital books cannot be paid with cash on delivery — it is for paper books only. Please choose another payment method.",
       });
     }
     // Online payments are charged in USD converted from EGP; we only support
@@ -579,6 +574,12 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
     if (isOnlinePayment && currency !== "EGP") {
       return res.status(400).json({
         error: `Online checkout only supports EGP orders (cart is ${currency}).`,
+      });
+    }
+    // Manual transfers are paid in EGP to an Egyptian wallet / InstaPay account.
+    if (isManualPaymentMethod(paymentMethod) && currency !== "EGP") {
+      return res.status(400).json({
+        error: `Vodafone Cash and InstaPay only support EGP orders (cart is ${currency}).`,
       });
     }
 
@@ -625,8 +626,9 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
         itemsCount: totalCount,
         paymentMethod,
         // COD orders start unpaid; PayPal moves to "pending" once the PayPal
-        // order is created below.
-        paymentStatus: "unpaid",
+        // order is created below. Manual transfers start "pending" (awaiting
+        // staff verification of the WhatsApp proof).
+        paymentStatus: isManualPaymentMethod(paymentMethod) ? "pending" : "unpaid",
       })
       .returning();
 
@@ -645,6 +647,7 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
           // Snapshot the file URL at purchase time so later admin edits don't
           // change what the customer was promised.
           digitalFileUrlSnapshot: r.format === "digital" ? r.digitalFileUrl : null,
+          variantId: r.variantId,
         })),
       );
     }
@@ -696,7 +699,7 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
     // Mirror this order into Medusa Admin > Orders (draft → convert). Same
     // best-effort posture as customer sync: never block the Express order.
     try {
-      await syncMedusaOrder({
+      const { medusaOrderId } = await syncMedusaOrder({
         darnozomOrderId: order.id,
         email,
         fullName,
@@ -715,9 +718,23 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
           variantId: r.variantId,
         })),
       });
+      await db.update(orders).set({ medusaOrderId }).where(eq(orders.id, order.id));
     } catch (err) {
       req.log.error({ err, orderId: order.id }, "medusa order sync failed");
     }
+
+    emitOrderNew({
+      id: order.id,
+      source: "express",
+      fullName: order.fullName,
+      email: order.userEmail,
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+      createdAt:
+        order.createdAt instanceof Date
+          ? order.createdAt.toISOString()
+          : new Date(order.createdAt).toISOString(),
+    });
 
     // Dedupe: this new order supersedes the user's older *online-payment*
     // orders that are still awaiting payment and contain the exact same
@@ -796,6 +813,52 @@ router.post("/store/orders", optionalAuth, async (req: AuthRequest, res: Respons
         "order dedupe failed (non-fatal)",
       );
     }
+    }
+
+    // Manual transfer (Vodafone Cash / InstaPay): the order is placed and
+    // waits for staff to verify the WhatsApp proof. The buyer is sent to the
+    // instructions page and emailed a link back to it.
+    if (isManualPaymentMethod(paymentMethod)) {
+      const grandTotal = (total + shippingTotal).toFixed(2);
+      try {
+        await sendManualPaymentInstructions({
+          to: email,
+          orderId: order.id,
+          customerName: fullName,
+          paymentMethod,
+          totalAmount: grandTotal,
+          currency,
+        });
+      } catch (emailErr) {
+        req.log.error({ err: emailErr, orderId: order.id }, "manual payment instructions email failed");
+      }
+      try {
+        await sendAdminSalesNotification({
+          orderId: order.id,
+          stage: "in_progress",
+          paymentMethod,
+          customerName: fullName,
+          customerEmail: email,
+          phone,
+          currency,
+          totalAmount: grandTotal,
+          city: shippingCity,
+          address,
+          items: resolved.map((r) => ({
+            productTitle: r.productTitle,
+            quantity: r.quantity,
+            format: r.format,
+          })),
+        });
+      } catch (emailErr) {
+        req.log.error({ err: emailErr, orderId: order.id }, "manual payment admin notification failed");
+      }
+      return res.status(201).json({
+        ok: true,
+        id: order.id,
+        paymentMethod,
+        paymentStatus: "pending",
+      });
     }
 
     // Cash on delivery: order is placed immediately, awaiting fulfillment.
@@ -2072,6 +2135,15 @@ router.put("/admin/orders/:id", requireAdmin, async (req, res) => {
 
     const [updated] = await db.update(orders).set(updates).where(eq(orders.id, id)).returning();
     if (!updated) return res.status(404).json({ error: "Not found" });
+
+    if (before.status !== updated.status || before.paymentStatus !== updated.paymentStatus) {
+      emitOrderUpdated({
+        id: updated.id,
+        medusaOrderId: updated.medusaOrderId ?? null,
+        status: updated.status,
+        paymentStatus: updated.paymentStatus,
+      });
+    }
 
     // Mirror COD paid → Medusa so Admin payment status matches Express.
     if (

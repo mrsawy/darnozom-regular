@@ -1,4 +1,5 @@
 import Medusa from "@medusajs/js-sdk";
+import type { ManualPaymentDetails } from "./manual-payments";
 
 const TOKEN_STORAGE_KEY = "medusa_customer_token";
 
@@ -63,7 +64,9 @@ export type StorePaymentMethod =
   | "paypal"
   | "card"
   | "wallet"
-  | "cash_on_delivery";
+  | "cash_on_delivery"
+  | "vodafone_cash"
+  | "instapay";
 
 /**
  * Payment methods enabled on the cart's Medusa region
@@ -83,9 +86,19 @@ export async function fetchAvailablePaymentMethods(
 
 function checkoutMethodFromRawId(providerId: string): StorePaymentMethod | null {
   const id = providerId.toLowerCase();
+  if (id.includes("vodafone-cash") || id.includes("vodafone_cash")) return "vodafone_cash";
+  if (id.includes("instapay")) return "instapay";
   if (id.includes("paymob-wallet")) return "wallet";
   if (id.includes("paymob-card")) return "card";
   if (id.includes("paypal")) return "paypal";
   if (/(^|[_-])cod($|[_-])/.test(id)) return "cash_on_delivery";
   return null;
+}
+
+/** Vodafone Cash / InstaPay display details (Medusa manualPayment module). */
+export async function fetchManualPaymentMethods(): Promise<ManualPaymentDetails[]> {
+  const { methods } = await getMedusaClient().client.fetch<{ methods: ManualPaymentDetails[] }>(
+    "/store/manual-payment-methods",
+  );
+  return methods ?? [];
 }

@@ -10,8 +10,13 @@ type CreateBookBody = {
   imageUrls?: string[];
   paperPrice?: number;
   digitalPrice?: number;
+  hasDigital?: boolean;
   paperInventoryQty?: number;
   currencyCode?: string;
+  author?: string;
+  categoryIds?: string[];
+  category?: "shariah" | "management" | "digital_transformation" | "other";
+  language?: "ar" | "en" | "both";
 };
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
@@ -27,11 +32,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
       imageUrls: body.imageUrls,
       paperPrice: Number(body.paperPrice),
       digitalPrice: Number(body.digitalPrice),
+      hasDigital: body.hasDigital !== false,
       paperInventoryQty:
         body.paperInventoryQty === undefined || body.paperInventoryQty === null
           ? undefined
           : Number(body.paperInventoryQty),
       currencyCode: body.currencyCode,
+      author: body.author,
+      categoryIds: body.categoryIds,
+      category: body.category,
+      language: body.language,
     });
 
     res.status(201).json({

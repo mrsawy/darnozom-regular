@@ -64,4 +64,16 @@ describe("POST /admin/books", () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ message: "title is required" });
   });
+
+  it("passes hasDigital through (defaults to true)", async () => {
+    vi.mocked(createBookProduct).mockResolvedValue({
+      product: { id: "prod_1" },
+      paperVariantId: "var_p",
+      digitalVariantId: null,
+    });
+    await POST(fakeReq({ title: "B", salesChannelId: "sc", paperPrice: 1, hasDigital: false }), fakeRes());
+    expect(vi.mocked(createBookProduct).mock.lastCall![1]).toMatchObject({ hasDigital: false });
+    await POST(fakeReq({ title: "B", salesChannelId: "sc", paperPrice: 1, digitalPrice: 2 }), fakeRes());
+    expect(vi.mocked(createBookProduct).mock.lastCall![1]).toMatchObject({ hasDigital: true });
+  });
 });

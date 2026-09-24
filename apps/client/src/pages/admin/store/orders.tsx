@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { adminFetch } from "../../../lib/admin-api";
+import EditionBadge from "@/components/store/edition-badge";
 import {
   Loader2,
   Package,
@@ -28,6 +29,8 @@ interface OrderItem {
   // numeric id for courses/apps and pre-Medusa books.
   productId: string;
   productTitle: string;
+  /** Book edition; null for courses / apps. */
+  format: "paper" | "digital" | null;
   imageUrl: string | null;
   unitPrice: string;
   quantity: number;
@@ -48,7 +51,7 @@ interface Order {
   currency: string;
   itemsCount: number;
   status: "pending" | "confirmed" | "processing" | "completed" | "cancelled";
-  paymentMethod: "paypal" | "card" | "wallet" | "cash_on_delivery" | null;
+  paymentMethod: "paypal" | "card" | "wallet" | "cash_on_delivery" | "vodafone_cash" | "instapay" | null;
   paymentStatus: "unpaid" | "pending" | "paid" | "failed" | null;
   paymentFailureReason: string | null;
   paypalOrderId: string | null;
@@ -246,6 +249,20 @@ export default function AdminOrdersPage() {
   // One-click "clean up stuck orders": rescues actually-paid pending orders
   // (PayPal + Paymob reconcile), then cancels stale abandoned online-payment
   // orders (>1h old, COD untouched).
+  // Vodafone Cash / InstaPay: staff verified the WhatsApp proof. Marks the
+  // order paid in Medusa first, then here (unlocks digital access + emails).
+  async function confirmPayment(id: number) {
+    if (!window.confirm("تأكيد استلام الدفع لهذا الطلب؟ سيتم تفعيل الطلب وإرسال بريد للعميل.")) return;
+    const r = await adminFetch(`${API_BASE}/admin/orders/${id}/confirm-payment`, { method: "POST" });
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      show(body.error || "تعذر تأكيد الدفع", "error");
+      return;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...body } : o)));
+    show("تم تأكيد الدفع");
+  }
+
   async function cleanupStuck() {
     if (!window.confirm("تنظيف الطلبات العالقة؟ سيتم أولاً التحقق من المدفوعات ثم إلغاء الطلبات غير المدفوعة المهجورة (أقدم من ساعة).")) {
       return;
@@ -463,7 +480,11 @@ export default function AdminOrdersPage() {
                               ? "بطاقة ائتمان / خصم"
                               : o.paymentMethod === "wallet"
                                 ? "محفظة إلكترونية"
-                                : "الدفع عند الاستلام"}
+                                : o.paymentMethod === "vodafone_cash"
+                                  ? "فودافون كاش"
+                                  : o.paymentMethod === "instapay"
+                                    ? "إنستاباي"
+                                    : "الدفع عند الاستلام"}
                         </span>
                       )}
                       {o.paymentStatus && (
@@ -496,6 +517,18 @@ export default function AdminOrdersPage() {
                         {o.exchangeRate ? ` @ ${o.exchangeRate}` : ""}
                       </div>
                     )}
+                    {(o.paymentMethod === "vodafone_cash" || o.paymentMethod === "instapay") &&
+                      o.paymentStatus !== "paid" &&
+                      o.status !== "cancelled" && (
+                        <Button
+                          size="sm"
+                          onClick={() => confirmPayment(o.id)}
+                          className="rounded-none font-bold"
+                          data-testid={`btn-confirm-payment-${o.id}`}
+                        >
+                          تأكيد الدفع
+                        </Button>
+                      )}
                     <select
                       value={o.status}
                       onChange={(e) => updateStatus(o.id, e.target.value)}
@@ -574,6 +607,11 @@ function OrderDetailBlock({
               >
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-primary truncate">{it.productTitle}</div>
+                  {it.format && (
+                    <div className="mt-1">
+                      <EditionBadge format={it.format} lang="ar" hint={false} />
+                    </div>
+                  )}
                   <div className="text-xs text-muted-foreground mt-0.5">
                     <span className="px-1.5 py-0.5 bg-muted/50 border border-border me-1">
                       {TYPE_AR[it.productType] || it.productType}
