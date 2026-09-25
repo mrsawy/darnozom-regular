@@ -124,7 +124,7 @@ describe("createBookProduct", () => {
         paperPrice: 0,
         digitalPrice: 5,
       }),
-    ).rejects.toThrow(/paperPrice and digitalPrice/);
+    ).rejects.toThrow(/paperPrice must be a positive number/);
   });
 
   function paperOnlyMocks() {
@@ -148,11 +148,41 @@ describe("createBookProduct", () => {
     });
     const productInput = run.mock.calls[0][0].input.products[0];
     expect(productInput.options).toEqual([
-      { title: "Format", values: ["Paper"], is_exclusive: true },
+      { title: "Format", values: ["Paper", "Digital"], is_exclusive: true },
     ]);
     expect(productInput.variants).toHaveLength(1);
     expect(productInput.variants[0].metadata).toEqual({ kind: "paper" });
     expect(result.digitalVariantId).toBeNull();
+  });
+
+  it("creates a digital-only book when hasPaper is false (no paper price needed)", async () => {
+    const run = vi.fn().mockResolvedValue({
+      result: [{ id: "prod_3", variants: [{ id: "var_d", title: "Digital", metadata: { kind: "digital" } }] }],
+    });
+    const result = await createBookProduct({} as any, {
+      title: "Digital only",
+      salesChannelId: "sc_1",
+      paperPrice: Number.NaN,
+      digitalPrice: 40,
+      hasPaper: false,
+      hasDigital: true,
+      __testCreateProductsWorkflow: () => ({ run }),
+      __testQuery: { graph: vi.fn().mockResolvedValue({ data: [] }) },
+    });
+    const productInput = run.mock.calls[0][0].input.products[0];
+    expect(productInput.variants).toHaveLength(1);
+    expect(productInput.variants[0].metadata).toEqual({ kind: "digital" });
+    expect(result.paperVariantId).toBeNull();
+    expect(result.digitalVariantId).toBe("var_d");
+  });
+
+  it("refuses a book with neither edition", async () => {
+    await expect(
+      createBookProduct({} as any, {
+        title: "X", salesChannelId: "sc_1", paperPrice: 1, digitalPrice: 1,
+        hasPaper: false, hasDigital: false,
+      }),
+    ).rejects.toThrow(/at least one edition/);
   });
 
   it("still requires a digital price when the book has a digital edition", async () => {

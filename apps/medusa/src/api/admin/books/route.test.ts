@@ -1,15 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
-vi.mock("../../../lib/create-book-product", () => ({
-  createBookProduct: vi.fn(),
+const { createBookMock } = vi.hoisted(() => ({ createBookMock: vi.fn() }));
+vi.mock("../../../lib/create-book", () => ({
+  createBook: createBookMock,
+  makeCreateBookDeps: () => ({}),
 }));
 
-import { createBookProduct } from "../../../lib/create-book-product";
 import { POST } from "./route";
-
-function fakeReq(body: any = {}) {
-  return { body, scope: {} } as any;
-}
+import { BookProfileConflictError } from "../../../modules/book-catalog";
 
 function fakeRes() {
   const res: any = {};
@@ -17,63 +15,35 @@ function fakeRes() {
   res.json = vi.fn().mockReturnValue(res);
   return res;
 }
+const valid = {
+  title: "Book",
+  sales_channel_id: "sc_1",
+  print: { price: 100, stock: 5 },
+  profile: { authors: ["A"], language: "ar" },
+};
 
 describe("POST /admin/books", () => {
-  it("returns 201 with the created product", async () => {
-    vi.mocked(createBookProduct).mockResolvedValue({
-      product: { id: "prod_1" },
-      paperVariantId: "var_p",
-      digitalVariantId: "var_d",
-    });
-    const res = fakeRes();
-    await POST(
-      fakeReq({
-        title: "Book",
-        salesChannelId: "sc_1",
-        paperPrice: 100,
-        digitalPrice: 50,
-        paperInventoryQty: 5,
-      }),
-      res,
-    );
+  beforeEach(() => createBookMock.mockReset());
 
-    expect(createBookProduct).toHaveBeenCalledWith(
-      {},
-      expect.objectContaining({
-        title: "Book",
-        salesChannelId: "sc_1",
-        paperPrice: 100,
-        digitalPrice: 50,
-        paperInventoryQty: 5,
-      }),
-    );
+  it("returns 201 with the created book", async () => {
+    createBookMock.mockResolvedValue({ product: { id: "prod_1" }, paperVariantId: "v", digitalVariantId: null, profile: {} });
+    const res = fakeRes();
+    await POST({ body: valid, scope: {} } as any, res);
+    expect(createBookMock.mock.calls[0][1]).toMatchObject({ title: "Book", print: { price: 100, stock: 5 } });
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({
-      product: { id: "prod_1" },
-      paperVariantId: "var_p",
-      digitalVariantId: "var_d",
-    });
   });
 
-  it("returns 400 for validation errors from createBookProduct", async () => {
-    vi.mocked(createBookProduct).mockRejectedValue(
-      new Error("title is required"),
-    );
+  it("returns 400 with field errors for an invalid body", async () => {
     const res = fakeRes();
-    await POST(fakeReq({}), res);
+    await POST({ body: { title: "" }, scope: {} } as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ message: "title is required" });
+    expect(createBookMock).not.toHaveBeenCalled();
   });
 
-  it("passes hasDigital through (defaults to true)", async () => {
-    vi.mocked(createBookProduct).mockResolvedValue({
-      product: { id: "prod_1" },
-      paperVariantId: "var_p",
-      digitalVariantId: null,
-    });
-    await POST(fakeReq({ title: "B", salesChannelId: "sc", paperPrice: 1, hasDigital: false }), fakeRes());
-    expect(vi.mocked(createBookProduct).mock.lastCall![1]).toMatchObject({ hasDigital: false });
-    await POST(fakeReq({ title: "B", salesChannelId: "sc", paperPrice: 1, digitalPrice: 2 }), fakeRes());
-    expect(vi.mocked(createBookProduct).mock.lastCall![1]).toMatchObject({ hasDigital: true });
+  it("returns 409 for a duplicate ISBN", async () => {
+    createBookMock.mockRejectedValueOnce(new BookProfileConflictError("exists"));
+    const res = fakeRes();
+    await POST({ body: valid, scope: {} } as any, res);
+    expect(res.status).toHaveBeenCalledWith(409);
   });
 });

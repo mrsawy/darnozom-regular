@@ -1,60 +1,19 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http";
-import { createBookProduct } from "../../../lib/create-book-product";
+import { parseCreateBook } from "../../../lib/book-input";
+import { createBook, makeCreateBookDeps } from "../../../lib/create-book";
+import { BookProfileConflictError } from "../../../modules/book-catalog";
 
-type CreateBookBody = {
-  title?: string;
-  description?: string;
-  status?: "draft" | "published";
-  salesChannelId?: string;
-  thumbnailUrl?: string;
-  imageUrls?: string[];
-  paperPrice?: number;
-  digitalPrice?: number;
-  hasDigital?: boolean;
-  paperInventoryQty?: number;
-  currencyCode?: string;
-  author?: string;
-  categoryIds?: string[];
-  category?: "shariah" | "management" | "digital_transformation" | "other";
-  language?: "ar" | "en" | "both";
-};
-
+/** Create Book (Medusa Admin → Products → Create Book). Body: CreateBookInput. */
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const body = (req.body ?? {}) as CreateBookBody;
-
+  const parsed = parseCreateBook(req.body);
+  if (!parsed.ok) return res.status(400).json({ errors: parsed.errors, message: parsed.errors.join("; ") });
   try {
-    const result = await createBookProduct(req.scope, {
-      title: body.title ?? "",
-      description: body.description,
-      status: body.status,
-      salesChannelId: body.salesChannelId ?? "",
-      thumbnailUrl: body.thumbnailUrl,
-      imageUrls: body.imageUrls,
-      paperPrice: Number(body.paperPrice),
-      digitalPrice: Number(body.digitalPrice),
-      hasDigital: body.hasDigital !== false,
-      paperInventoryQty:
-        body.paperInventoryQty === undefined || body.paperInventoryQty === null
-          ? undefined
-          : Number(body.paperInventoryQty),
-      currencyCode: body.currencyCode,
-      author: body.author,
-      categoryIds: body.categoryIds,
-      category: body.category,
-      language: body.language,
-    });
-
-    res.status(201).json({
-      product: result.product,
-      paperVariantId: result.paperVariantId,
-      digitalVariantId: result.digitalVariantId,
-    });
+    const out = await createBook(makeCreateBookDeps(req.scope), parsed.value);
+    return res.status(201).json(out);
   } catch (err) {
+    if (err instanceof BookProfileConflictError) return res.status(409).json({ message: err.message });
     const message = err instanceof Error ? err.message : String(err);
-    const status =
-      /required|must be positive|MEDUSA_BOOK_PRODUCT_TYPE_ID/i.test(message)
-        ? 400
-        : 500;
-    res.status(status).json({ message });
+    const status = /required|must be (a )?positive|at least one edition|MEDUSA_BOOK_PRODUCT_TYPE_ID/i.test(message) ? 400 : 500;
+    return res.status(status).json({ message });
   }
 }

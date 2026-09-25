@@ -19,6 +19,9 @@ export type CreateBookProductInput = {
   digitalPrice: number;
   /** false → paper-only book: no Digital variant (digitalPrice ignored). Default true. */
   hasDigital?: boolean;
+  /** false → digital-only book: no Paper variant (paperPrice ignored). Default true. */
+  hasPaper?: boolean;
+  subtitle?: string | null;
   paperInventoryQty?: number;
   currencyCode?: string;
   /** Storefront filter metadata (synced to product.metadata). */
@@ -87,11 +90,18 @@ export async function createBookProduct(
     throw new Error("salesChannelId is required");
   }
   const hasDigital = input.hasDigital !== false;
-  if (!(input.paperPrice > 0) || (hasDigital && !(input.digitalPrice > 0))) {
+  const hasPaper = input.hasPaper !== false;
+  if (!hasPaper && !hasDigital) {
+    throw new Error("a book needs at least one edition (paper or digital)");
+  }
+  if (hasPaper && !(input.paperPrice > 0)) {
+    throw new Error("paperPrice must be a positive number");
+  }
+  if (hasDigital && !(input.digitalPrice > 0)) {
     throw new Error(
-      hasDigital
+      hasPaper
         ? "paperPrice and digitalPrice must be positive numbers"
-        : "paperPrice must be a positive number",
+        : "digitalPrice must be a positive number",
     );
   }
 
@@ -123,6 +133,7 @@ export async function createBookProduct(
       products: [
         {
           title: input.title.trim(),
+          subtitle: input.subtitle?.trim() || undefined,
           description: input.description?.trim() || undefined,
           status,
           type_id: bookTypeId,
@@ -132,23 +143,29 @@ export async function createBookProduct(
           sales_channels: [{ id: input.salesChannelId }],
           ...(categoryIds.length ? { category_ids: categoryIds } : {}),
           ...(Object.keys(metadata).length ? { metadata } : {}),
+          // Both values always exist so staff can add the other edition later
+          // (Editions widget) without editing the option.
           options: [
             {
               title: FORMAT_OPTION_TITLE,
-              values: hasDigital ? [PAPER_VALUE, DIGITAL_VALUE] : [PAPER_VALUE],
+              values: [PAPER_VALUE, DIGITAL_VALUE],
               is_exclusive: true,
             },
           ],
           variants: [
-            {
-              title: PAPER_VALUE,
-              sku: slugSku(input.title, "paper"),
-              options: { [FORMAT_OPTION_TITLE]: PAPER_VALUE },
-              prices: [{ amount: input.paperPrice, currency_code: currency }],
-              metadata: { kind: "paper" },
-              manage_inventory: true,
-              allow_backorder: false,
-            },
+            ...(hasPaper
+              ? [
+                  {
+                    title: PAPER_VALUE,
+                    sku: slugSku(input.title, "paper"),
+                    options: { [FORMAT_OPTION_TITLE]: PAPER_VALUE },
+                    prices: [{ amount: input.paperPrice, currency_code: currency }],
+                    metadata: { kind: "paper" },
+                    manage_inventory: true,
+                    allow_backorder: false,
+                  },
+                ]
+              : []),
             ...(hasDigital
               ? [
                   {
@@ -202,7 +219,7 @@ export async function createBookProduct(
   };
 }
 
-async function setPaperInventory(
+export async function setPaperInventory(
   container: MedusaContainer,
   query: { graph: (args: any) => Promise<{ data: any[] }> },
   paperVariantId: string,
