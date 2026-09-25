@@ -144,11 +144,13 @@ export function variantPrice(variant: MedusaAdminVariant | undefined, currencyCo
   return match ? match.amount : null;
 }
 
-/** Same rule as apps/client/src/lib/book-variants.ts: a variant with
- * inventory management off, or backorders allowed, is always purchasable;
- * otherwise it needs a positive inventory_quantity. */
+/** Same rule as apps/client/src/lib/book-variants.ts: an edition taken off
+ * sale is never purchasable; otherwise a variant with inventory management
+ * off, or backorders allowed, is always purchasable; otherwise it needs a
+ * positive inventory_quantity. */
 export function variantInStock(variant: MedusaAdminVariant | undefined): boolean {
   if (!variant) return false;
+  if (variant.metadata?.sale_enabled === false) return false;
   if (variant.manage_inventory === false) return true;
   if (variant.allow_backorder) return true;
   if (variant.inventory_quantity == null) return true;

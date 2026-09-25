@@ -102,8 +102,9 @@ function amountOf(variant: StoreProductVariant | undefined): number {
 }
 
 /**
- * A variant with `manage_inventory` off, or with backorders allowed, is
- * always purchasable. Otherwise it needs a positive `inventory_quantity`.
+ * An edition taken off sale is never purchasable. Otherwise, a variant with
+ * `manage_inventory` off, or with backorders allowed, is always purchasable.
+ * Otherwise it needs a positive `inventory_quantity`.
  * `inventory_quantity` is only populated when explicitly requested via
  * `fields=+variants.inventory_quantity`; if it's missing we assume the
  * variant is purchasable rather than defaulting to "out of stock" — an
@@ -111,6 +112,9 @@ function amountOf(variant: StoreProductVariant | undefined): number {
  */
 function isInStock(variant: StoreProductVariant | undefined): boolean {
   if (!variant) return false;
+  // Staff can take an edition off sale (Medusa Admin → Editions) without
+  // deleting it; buyers who already own it keep their access.
+  if ((variant.metadata as Record<string, unknown> | null | undefined)?.sale_enabled === false) return false;
   if (variant.manage_inventory === false) return true;
   if (variant.allow_backorder) return true;
   if (variant.inventory_quantity == null) return true;

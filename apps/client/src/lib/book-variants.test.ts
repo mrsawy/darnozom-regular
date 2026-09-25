@@ -149,3 +149,18 @@ describe("getBookVariantInfo", () => {
     expect(variantKind({ options: [{ value: "Digital - PDF Download" }] } as any)).toBe("digital");
   });
 });
+
+describe("off-sale editions", () => {
+  it("treats an edition with sale_enabled false as unavailable even with stock", () => {
+    const info = getBookVariantInfo({
+      id: "p",
+      variants: [
+        { id: "v_d", metadata: { kind: "digital", sale_enabled: false }, manage_inventory: false, calculated_price: { calculated_amount: 40 } },
+        { id: "v_p", metadata: { kind: "paper" }, manage_inventory: true, inventory_quantity: 3, calculated_price: { calculated_amount: 90 } },
+      ],
+    } as any);
+    expect(info.digitalInStock).toBe(false);
+    expect(info.digitalEditions[0].inStock).toBe(false);
+    expect(info.paperInStock).toBe(true);
+  });
+});

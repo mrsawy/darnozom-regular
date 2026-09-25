@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { variantKind } from "./medusa-book-variants";
+import { variantInStock, variantKind } from "./medusa-book-variants";
 
 describe("variantKind", () => {
   it("reads metadata.kind when present", () => {
@@ -24,5 +24,12 @@ describe("variantKind", () => {
   it("returns null when nothing matches", () => {
     expect(variantKind({ options: [{ value: "Large" }] })).toBeNull();
     expect(variantKind(null)).toBeNull();
+  });
+});
+
+describe("variantInStock", () => {
+  it("is false for an edition staff took off sale", () => {
+    expect(variantInStock({ manage_inventory: false, metadata: { kind: "digital", sale_enabled: false } } as any)).toBe(false);
+    expect(variantInStock({ manage_inventory: false, metadata: { kind: "digital" } } as any)).toBe(true);
   });
 });
