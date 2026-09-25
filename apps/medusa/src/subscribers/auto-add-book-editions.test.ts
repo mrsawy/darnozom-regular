@@ -88,13 +88,6 @@ describe("auto-add-book-editions subscriber", () => {
             options: { Format: "Paper" },
             metadata: { kind: "paper" },
           },
-          {
-            product_id: "prod_1",
-            title: "Digital",
-            sku: "prod_1-digital",
-            options: { Format: "Digital" },
-            metadata: { kind: "digital" },
-          },
         ],
       },
     });
@@ -119,9 +112,6 @@ describe("auto-add-book-editions subscriber", () => {
         product_variants: [
           expect.objectContaining({
             options: { "Default option": "Default option value", Format: "Paper" },
-          }),
-          expect.objectContaining({
-            options: { "Default option": "Default option value", Format: "Digital" },
           }),
         ],
       },

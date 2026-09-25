@@ -6,9 +6,9 @@ import {
 
 /**
  * Any product assigned the "Book" product type automatically gets a
- * "Format" option with "Paper" and "Digital" values, and one variant per
- * value — so an admin never has to hand-build the option/variant structure
- * the storefront expects (see apps/client/src/lib/book-variants.ts).
+ * "Format" option (values "Paper" and "Digital") and a Paper variant. A
+ * digital edition is never created automatically — staff add it from the
+ * product's Editions panel, and only when the book has digital rights.
  *
  * The product type to watch for is configured via MEDUSA_BOOK_PRODUCT_TYPE_ID
  * (a "ptyp_..." id from Admin > Settings > Product Types) rather than
@@ -154,13 +154,6 @@ export default async function autoAddBookEditionsHandler({
             sku: `${product.id}-paper`,
             options: { ...otherOptionValues, [FORMAT_OPTION_TITLE]: PAPER_VALUE },
             metadata: { kind: "paper" },
-          },
-          {
-            product_id: product.id,
-            title: "Digital",
-            sku: `${product.id}-digital`,
-            options: { ...otherOptionValues, [FORMAT_OPTION_TITLE]: DIGITAL_VALUE },
-            metadata: { kind: "digital" },
           },
         ],
       },
