@@ -17,4 +17,13 @@ describe("buildPartnerOpenApi", () => {
     expect(book.required).toEqual(["title", "description", "primary_category_handle", "profile"]);
     expect(doc.components.schemas.Profile.required).toEqual(["authors", "language"]);
   });
+
+  it("describes openaiFileIdRefs as objects with download_link (matching partnerBookSchema)", () => {
+    const refs = doc.components.schemas.Book.properties.openaiFileIdRefs;
+    expect(refs.items).toMatchObject({
+      type: "object",
+      required: ["download_link"],
+      properties: { download_link: expect.objectContaining({ type: "string" }) },
+    });
+  });
 });

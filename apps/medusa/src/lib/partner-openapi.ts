@@ -59,7 +59,20 @@ export function buildPartnerOpenApi(serverUrl: string): Record<string, unknown> 
             print: { type: "object", properties: { price: { type: "number", description: "EGP" }, stock: int("Copies in stock") }, required: ["price"] },
             digital: { type: "object", properties: { price: { type: "number", description: "EGP; requires profile.digital_rights true" } }, required: ["price"] },
             images: { type: "array", maxItems: 10, items: { type: "object", required: ["url"], properties: { url: str("Public https image URL; the first image is the cover") } } },
-            openaiFileIdRefs: { type: "array", maxItems: 10, items: { type: "string" }, description: "Images attached in the chat (cover first)" },
+            openaiFileIdRefs: {
+              type: "array",
+              maxItems: 10,
+              description: "Images attached in the chat (cover first)",
+              items: {
+                type: "object",
+                required: ["download_link"],
+                properties: {
+                  name: str("Original filename, if known"),
+                  mime_type: str("MIME type, if known"),
+                  download_link: str("HTTPS URL ChatGPT provides for the attached file"),
+                },
+              },
+            },
             profile: { $ref: "#/components/schemas/Profile" },
           },
         },
