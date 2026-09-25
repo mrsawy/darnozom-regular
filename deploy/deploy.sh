@@ -406,6 +406,8 @@ DARNOZOM_API_URL=http://127.0.0.1:$API_PORT
 # Browser-facing API address for the Medusa Admin order bell's live socket
 # (served at /api/socket.io through the storefront's nginx /api/ proxy).
 DARNOZOM_PUBLIC_API_URL=https://$DOMAIN
+# ChatGPT books API (/partner/*). Empty = API disabled (answers 503).
+BOOKS_API_KEY=${BOOKS_API_KEY:-}
 # Same private store as the API: Medusa writes digital-book files here and
 # the API streams them to buyers from here.
 OBJECT_STORAGE_BACKEND=${OBJECT_STORAGE_BACKEND:-local}
@@ -455,6 +457,9 @@ log "Installing Medusa runtime and migrating"
   . "$MEDUSA_ENV"
   set +a
   npx medusa db:migrate
+  # Idempotent: creates missing sections/subcategories, maps legacy
+  # categories, backfills book profiles. Never renames staff edits.
+  npx medusa exec ./src/scripts/seed-book-catalog.js
 )
 
 log "Installing systemd unit for Medusa"

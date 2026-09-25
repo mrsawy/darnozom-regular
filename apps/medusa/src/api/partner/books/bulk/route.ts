@@ -13,7 +13,13 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return res.status(400).json({ message: `books must be an array of 1–${MAX} books` });
   }
   const deps = makePartnerDeps(req.scope);
-  const results = [];
+  const results: Array<{
+    index: number;
+    ok: boolean;
+    status?: "created" | "updated";
+    product_id?: string;
+    message?: string;
+  }> = [];
   for (const [index, book] of books.entries()) {
     try {
       results.push({ index, ok: true, ...(await upsertPartnerBook(deps, book)) });
