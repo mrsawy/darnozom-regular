@@ -2,19 +2,18 @@ import { useState, useEffect } from "react";
 import type { HttpTypes } from "@medusajs/types";
 import { getMedusaAdminUrl } from "@/lib/medusa-client";
 import { listStoreBooks } from "@/lib/list-store-books";
+import { listBookCategoryTree, type CategoryTreeNode } from "@/lib/book-catalog";
 import { ExternalLink, Loader2, Search, BookOpen, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, Toast, useToast } from "../layout";
-
-type BookCategory = "shariah" | "management" | "digital_transformation" | "other";
 
 interface Book {
   id: string;
   title: string;
   author: string | null;
   coverImageUrl: string | null;
-  category: BookCategory;
+  categoryIds: string[];
   currency: string | null;
   isFeatured: boolean;
   paperAvailable: boolean;
@@ -22,19 +21,6 @@ interface Book {
   digitalAvailable: boolean;
   digitalPrice: string | null;
 }
-
-const CATEGORY_LABELS: Record<BookCategory, string> = {
-  shariah: "الشريعة (Shariah)",
-  management: "الإدارة (Management)",
-  digital_transformation: "التحول الرقمي (Digital Transformation)",
-  other: "—",
-};
-
-const BOOK_CATEGORIES: BookCategory[] = [
-  "shariah",
-  "management",
-  "digital_transformation",
-];
 
 function priceAmount(variant: HttpTypes.StoreProductVariant | undefined): string | null {
   const amount = variant?.calculated_price?.calculated_amount;
@@ -56,10 +42,7 @@ function mapMedusaProduct(
   const priced = variants.find(
     (variant) => typeof variant.calculated_price?.calculated_amount === "number",
   );
-  const rawCategory = typeof meta.category === "string" ? meta.category : "";
-  const category = BOOK_CATEGORIES.includes(rawCategory as BookCategory)
-    ? (rawCategory as BookCategory)
-    : "other";
+  const categoryIds = (product.categories ?? []).map((c) => c.id);
   const currency = (
     paper?.calculated_price?.currency_code ||
     digital?.calculated_price?.currency_code ||
@@ -73,7 +56,7 @@ function mapMedusaProduct(
     title: product.title || "",
     author: typeof meta.author === "string" ? meta.author : product.subtitle,
     coverImageUrl: product.thumbnail,
-    category,
+    categoryIds,
     currency,
     isFeatured: meta.isFeatured === true,
     paperAvailable: Boolean(paper) || (!digital && Boolean(priced)),
@@ -85,6 +68,7 @@ function mapMedusaProduct(
 
 export default function BooksPage() {
   const [items, setItems] = useState<Book[]>([]);
+  const [tree, setTree] = useState<CategoryTreeNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -105,10 +89,19 @@ export default function BooksPage() {
   }
   useEffect(() => {
     load();
+    listBookCategoryTree().then(setTree).catch(() => setTree([]));
   }, []);
 
+  const flat = tree.flatMap((s) => [
+    { id: s.id, label: s.nameAr ?? s.name, sectionId: s.id },
+    ...s.children.map((c) => ({ id: c.id, label: `${s.nameAr ?? s.name} › ${c.nameAr ?? c.name}`, sectionId: s.id })),
+  ]);
+  const labelOf = (b: Book) => flat.filter((f) => b.categoryIds.includes(f.id)).map((f) => f.label).join("، ") || "—";
+  const inCategory = (b: Book, id: string) =>
+    b.categoryIds.some((cid) => cid === id || flat.find((f) => f.id === cid)?.sectionId === id);
+
   const filtered = items.filter((b) => {
-    if (filterCategory !== "all" && b.category !== filterCategory) return false;
+    if (filterCategory !== "all" && !inCategory(b, filterCategory)) return false;
     if (search && !b.title.includes(search) && !(b.author || "").includes(search)) {
       return false;
     }
@@ -148,9 +141,9 @@ export default function BooksPage() {
           className="border border-input bg-background px-3 py-2 text-sm rounded-none"
         >
           <option value="all">كل الفئات</option>
-          {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>
-              {v}
+          {flat.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.label}
             </option>
           ))}
         </select>
@@ -210,7 +203,7 @@ export default function BooksPage() {
                     </div>
                   </td>
                   <td className="p-3 text-xs hidden md:table-cell">
-                    {CATEGORY_LABELS[b.category]}
+                    {labelOf(b)}
                   </td>
                   <td className="p-3 text-xs hidden md:table-cell" dir="ltr">
                     <div className="flex flex-col gap-0.5">
