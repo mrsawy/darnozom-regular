@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StoreBooks from "./store-books";
-import * as listStoreBooksMod from "../lib/list-store-books";
+import * as bookCatalog from "../lib/book-catalog";
 
 vi.mock("@/lib/cart-context", () => ({
   useCart: () => ({
@@ -13,6 +13,10 @@ vi.mock("@/lib/cart-context", () => ({
     updateQuantity: vi.fn(),
   }),
 }));
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 const sampleBook = {
   id: "prod_1",
@@ -59,14 +63,12 @@ const paperOnly = {
 
 describe("StoreBooks page", () => {
   it("filters by Medusa variant format (paper / digital)", async () => {
-    vi.spyOn(listStoreBooksMod, "listStoreBooks").mockResolvedValue([
-      sampleBook as any,
-      paperOnly as any,
-    ]);
-    vi.spyOn(listStoreBooksMod, "listStoreBookCategories").mockResolvedValue([
-      { id: "pcat_mgmt", name: "Management", handle: "management" },
-      { id: "pcat_shariah", name: "Shariah", handle: "shariah", nameAr: "الشريعة" },
-    ]);
+    const searchSpy = vi.spyOn(bookCatalog, "searchStoreBooks").mockImplementation(async (p) => ({
+      products: (p.format === "paper" ? [paperOnly] : [sampleBook, paperOnly]) as any,
+      total: p.format === "paper" ? 1 : 2,
+      facets: { authors: [{ value: "Omar", count: 1 }], publishers: [], languages: [] },
+    }));
+    vi.spyOn(bookCatalog, "listBookCategoryTree").mockResolvedValue([]);
 
     const queryClient = new QueryClient();
     render(
@@ -80,25 +82,20 @@ describe("StoreBooks page", () => {
     );
     expect(screen.getByText("Fiqh Basics")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Online" }));
-    await waitFor(() => {
-      expect(screen.getByText("Digital Transformation Management")).not.toBeNull();
-      expect(screen.queryByText("Fiqh Basics")).toBeNull();
-    });
-
     fireEvent.click(screen.getByRole("button", { name: "Hardcopy" }));
-    await waitFor(() => {
-      expect(screen.getByText("Digital Transformation Management")).not.toBeNull();
-      expect(screen.getByText("Fiqh Basics")).not.toBeNull();
-    });
+    await waitFor(() =>
+      expect(searchSpy).toHaveBeenLastCalledWith(expect.objectContaining({ format: "paper" })),
+    );
   });
 
-  it("passes Medusa category_id when a category chip is selected", async () => {
-    const listSpy = vi
-      .spyOn(listStoreBooksMod, "listStoreBooks")
-      .mockResolvedValue([sampleBook as any]);
-    vi.spyOn(listStoreBooksMod, "listStoreBookCategories").mockResolvedValue([
-      { id: "pcat_mgmt", name: "Management", handle: "management" },
+  it("passes category_id when a section is selected", async () => {
+    const searchSpy = vi.spyOn(bookCatalog, "searchStoreBooks").mockResolvedValue({
+      products: [sampleBook as any],
+      total: 1,
+      facets: { authors: [], publishers: [], languages: [] },
+    });
+    vi.spyOn(bookCatalog, "listBookCategoryTree").mockResolvedValue([
+      { id: "pcat_mgmt", name: "Management", nameAr: null, children: [] },
     ]);
 
     const queryClient = new QueryClient();
@@ -114,15 +111,19 @@ describe("StoreBooks page", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Management" }));
     await waitFor(() =>
-      expect(listSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ categoryId: "pcat_mgmt" }),
+      expect(searchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ category_id: "pcat_mgmt" }),
       ),
     );
   });
 
-  it("has no language filter", async () => {
-    vi.spyOn(listStoreBooksMod, "listStoreBooks").mockResolvedValue([]);
-    vi.spyOn(listStoreBooksMod, "listStoreBookCategories").mockResolvedValue([]);
+  it("shows a language facet filter", async () => {
+    vi.spyOn(bookCatalog, "searchStoreBooks").mockResolvedValue({
+      products: [],
+      total: 0,
+      facets: { authors: [], publishers: [], languages: [{ value: "ar", count: 1 }] },
+    });
+    vi.spyOn(bookCatalog, "listBookCategoryTree").mockResolvedValue([]);
 
     const queryClient = new QueryClient();
     render(
@@ -132,7 +133,6 @@ describe("StoreBooks page", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Books")).not.toBeNull());
-    expect(screen.queryByText("Language")).toBeNull();
-    expect(screen.queryByText("Arabic")).toBeNull();
+    expect(screen.getByText("Book language")).not.toBeNull();
   });
 });

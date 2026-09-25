@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import type { HttpTypes } from "@medusajs/types";
@@ -10,19 +10,16 @@ import { AdminFab } from "@/components/store/admin-fab";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
 import { getMedusaAdminUrl } from "@/lib/medusa-client";
-import {
-  listStoreBookCategories,
-  listStoreBooks,
-  type StoreBookCategory,
-} from "@/lib/list-store-books";
+import { listBookCategoryTree, searchStoreBooks, type BookFacets, type CategoryTreeNode } from "@/lib/book-catalog";
+import { bookFiltersToQuery, EMPTY_BOOK_FILTERS, readBookFilters, type BookFilters } from "@/lib/book-filters";
+import CategoryFilter from "@/components/store/category-filter";
+import FacetSelect from "@/components/store/facet-select";
 import { productIsFeatured } from "@/lib/product-featured";
 import { getBookVariantInfo } from "@/lib/book-variants";
 import { useCart } from "@/lib/cart-context";
 import { SiteFooter } from "@/components/site-footer";
 
 type StoreProduct = HttpTypes.StoreProduct;
-/** Format filter = which Medusa variant kind the product must have. */
-type BookFormat = "paper" | "digital";
 
 const T = {
   ar: {
@@ -30,9 +27,15 @@ const T = {
     eyebrow: "مكتبة دار نظم",
     title: "الكتب",
     subtitle: "إصدارات ورقية وإلكترونية — صفِّ حسب الصيغة والتصنيف من Medusa",
-    searchPlaceholder: "ابحث بالعنوان أو المؤلف...",
+    searchPlaceholder: "ابحث بالعنوان أو المؤلف أو الناشر أو الموضوع أو الكلمات المفتاحية...",
     filterFormat: "الصيغة",
     filterCategory: "التصنيف",
+    filterAuthor: "المؤلف",
+    filterPublisher: "الناشر",
+    filterLanguage: "لغة الكتاب",
+    filterSection: "الأقسام العلمية",
+    languages: { ar: "العربية", en: "الإنجليزية", both: "العربية والإنجليزية" },
+    loadMore: "عرض المزيد",
     all: "الكل",
     paper: "ورقي",
     digital: "إلكتروني",
@@ -47,9 +50,15 @@ const T = {
     eyebrow: "Darnozom library",
     title: "Books",
     subtitle: "Paper and digital editions — filter by format and Medusa categories",
-    searchPlaceholder: "Search by title or author...",
+    searchPlaceholder: "Search by title, author, publisher, subject or keyword...",
     filterFormat: "Format",
     filterCategory: "Category",
+    filterAuthor: "Author",
+    filterPublisher: "Publisher",
+    filterLanguage: "Book language",
+    filterSection: "Sections",
+    languages: { ar: "Arabic", en: "English", both: "Arabic & English" },
+    loadMore: "Load more",
     all: "All",
     paper: "Hardcopy",
     digital: "Online",
@@ -61,120 +70,82 @@ const T = {
   },
 };
 
-function readFiltersFromSearch(searchString: string) {
-  const params = new URLSearchParams(searchString);
-  const q = params.get("q") || "";
-  const formatRaw = params.get("format") || "all";
-  // Accept legacy online/hardcopy/both URLs.
-  const formatMap: Record<string, "all" | BookFormat> = {
-    all: "all",
-    paper: "paper",
-    hardcopy: "paper",
-    digital: "digital",
-    online: "digital",
-  };
-  const format = formatMap[formatRaw] ?? "all";
-  const category = params.get("category") || "all";
-  return { q, format, category };
-}
-
-function writeFiltersToUrl(next: {
-  q: string;
-  format: string;
-  category: string;
-}) {
-  const params = new URLSearchParams();
-  if (next.q.trim()) params.set("q", next.q.trim());
-  if (next.format !== "all") params.set("format", next.format);
-  if (next.category !== "all") params.set("category", next.category);
-  const qs = params.toString();
-  window.history.replaceState(
-    null,
-    "",
-    `${window.location.pathname}${qs ? `?${qs}` : ""}`,
-  );
-}
-
-function categoryLabel(cat: StoreBookCategory, isArabic: boolean): string {
-  if (isArabic && cat.nameAr) return cat.nameAr;
-  return cat.name;
-}
-
 export default function StoreBooksPage() {
   const { isArabic } = useLanguage();
   const t = isArabic ? T.ar : T.en;
   const searchString = useSearch();
-  const initial = useMemo(
-    () => readFiltersFromSearch(searchString),
-    [searchString],
-  );
 
   const cart = useCart();
+  const PAGE = 24;
+  const [filters, setFilters] = useState<BookFilters>(() => readBookFilters(searchString));
+  const [search, setSearch] = useState(filters.q);
   const [products, setProducts] = useState<StoreProduct[]>([]);
-  const [categories, setCategories] = useState<StoreBookCategory[]>([]);
+  const [total, setTotal] = useState(0);
+  const [facets, setFacets] = useState<BookFacets>({ authors: [], publishers: [], languages: [] });
+  const [tree, setTree] = useState<CategoryTreeNode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
-  const [search, setSearch] = useState(initial.q);
-  const [debouncedSearch, setDebouncedSearch] = useState(initial.q);
-  const [format, setFormat] = useState<"all" | BookFormat>(initial.format);
-  const [categoryId, setCategoryId] = useState<string>(initial.category);
 
+  // Debounce typing into filters.q.
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 280);
+    const timer = setTimeout(() => setFilters((f) => (f.q === search.trim() ? f : { ...f, q: search.trim() })), 280);
     return () => clearTimeout(timer);
   }, [search]);
 
   useEffect(() => {
-    writeFiltersToUrl({
-      q: debouncedSearch,
-      format,
-      category: categoryId,
-    });
-  }, [debouncedSearch, format, categoryId]);
+    const qs = bookFiltersToQuery(filters);
+    window.history.replaceState(null, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+  }, [filters]);
 
-  // Load Medusa categories once (storefront filter source of truth).
   useEffect(() => {
     let cancelled = false;
-    listStoreBookCategories()
-      .then((cats) => {
-        if (!cancelled) setCategories(cats);
-      })
-      .catch(() => {
-        if (!cancelled) setCategories([]);
-      });
-    return () => {
-      cancelled = true;
-    };
+    listBookCategoryTree()
+      .then((t) => !cancelled && setTree(t))
+      .catch(() => !cancelled && setTree([]));
+    return () => { cancelled = true; };
   }, []);
 
-  // Fetch books from Medusa — category_id is a native Store API filter.
+  const params = (offset: number) => ({
+    q: filters.q.length >= 2 ? filters.q : undefined,
+    category_id: filters.category || undefined,
+    author: filters.author || undefined,
+    publisher: filters.publisher || undefined,
+    language: filters.language || undefined,
+    format: filters.format === "all" ? undefined : filters.format,
+    limit: PAGE,
+    offset,
+  });
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
-      setLoading(true);
-      setError(false);
-      try {
-        const fetched = await listStoreBooks({
-          categoryId: categoryId !== "all" ? categoryId : null,
-          q: debouncedSearch.length >= 2 ? debouncedSearch : null,
-        });
+    setLoading(true);
+    setError(false);
+    searchStoreBooks(params(0))
+      .then((r) => {
         if (cancelled) return;
-        setProducts(fetched);
-      } catch {
-        if (!cancelled) {
-          setError(true);
-          setProducts([]);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+        setProducts(r.products);
+        setTotal(r.total);
+        setFacets(r.facets);
+      })
+      .catch(() => {
+        if (!cancelled) { setError(true); setProducts([]); setTotal(0); }
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, reloadKey]);
+
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      const r = await searchStoreBooks(params(products.length));
+      setProducts((prev) => [...prev, ...r.products]);
+    } finally {
+      setLoadingMore(false);
     }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId, debouncedSearch, reloadKey]);
+  }
 
   function variantInfo(p: StoreProduct) {
     const { paperEditions, digitalEditions } = getBookVariantInfo(p);
@@ -208,31 +179,7 @@ export default function StoreBooksPage() {
     };
   }
 
-  const filtered = products.filter((p) => {
-    const meta = (p.metadata || {}) as Record<string, unknown>;
-    const { hasPaper, hasDigital } = variantInfo(p);
-
-    // Format = product must include that Medusa variant kind.
-    if (format === "paper" && !hasPaper) return false;
-    if (format === "digital" && !hasDigital) return false;
-
-    // Author / title refine (Medusa `q` may miss metadata.author).
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      const title = String(p.title || "").toLowerCase();
-      const author = String(meta.author || "").toLowerCase();
-      const description = String(p.description || "").toLowerCase();
-      if (
-        !title.includes(q) &&
-        !author.includes(q) &&
-        !description.includes(q)
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  });
+  const filtered = products;
 
   const items: ProductCardItem[] = filtered.map((p) => {
     const meta = (p.metadata || {}) as Record<string, unknown>;
@@ -279,21 +226,10 @@ export default function StoreBooksPage() {
 
   function clearAll() {
     setSearch("");
-    setDebouncedSearch("");
-    setFormat("all");
-    setCategoryId("all");
+    setFilters(EMPTY_BOOK_FILTERS);
   }
-
-  const hasActiveFilters =
-    !!debouncedSearch || format !== "all" || categoryId !== "all";
-
-  const categoryOptions = [
-    { v: "all", l: t.all },
-    ...categories.map((c) => ({
-      v: c.id,
-      l: categoryLabel(c, isArabic),
-    })),
-  ];
+  const set = (patch: Partial<BookFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const hasActiveFilters = bookFiltersToQuery(filters) !== "";
 
   return (
     <div className="min-h-screen bg-[hsl(150_12%_97%)]">
@@ -344,7 +280,7 @@ export default function StoreBooksPage() {
             </div>
             <div className="text-sm text-muted-foreground tabular-nums md:text-end">
               <span className="text-foreground font-semibold text-lg">
-                {loading ? "—" : items.length}
+                {loading ? "—" : total}
               </span>{" "}
               {t.results}
             </div>
@@ -372,8 +308,8 @@ export default function StoreBooksPage() {
               {t.filterFormat}
             </div>
             <Segmented
-              value={format}
-              onChange={(v) => setFormat(v as typeof format)}
+              value={filters.format}
+              onChange={(v) => set({ format: v as BookFilters["format"] })}
               options={[
                 { v: "all", l: t.all },
                 { v: "paper", l: t.paper },
@@ -382,29 +318,24 @@ export default function StoreBooksPage() {
             />
           </div>
 
-          {categories.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                {t.filterCategory}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {categoryOptions.map((opt) => (
-                  <button
-                    type="button"
-                    key={opt.v}
-                    onClick={() => setCategoryId(opt.v)}
-                    className={`text-sm px-3.5 py-1.5 rounded-full border transition-colors ${
-                      categoryId === opt.v
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-card text-muted-foreground border-border hover:border-primary/35 hover:text-foreground"
-                    }`}
-                  >
-                    {opt.l}
-                  </button>
-                ))}
-              </div>
+          {tree.length > 0 && (
+            <div className="bg-background border border-border p-2">
+              <div className="text-xs font-bold text-muted-foreground px-3 py-1">{t.filterSection}</div>
+              <CategoryFilter tree={tree} selectedId={filters.category} onSelect={(id) => set({ category: id })} isArabic={isArabic} allLabel={t.all} />
             </div>
           )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <FacetSelect label={t.filterAuthor} allLabel={t.all} value={filters.author} options={facets.authors} onChange={(v) => set({ author: v })} />
+            <FacetSelect label={t.filterPublisher} allLabel={t.all} value={filters.publisher} options={facets.publishers} onChange={(v) => set({ publisher: v })} />
+            <FacetSelect
+              label={t.filterLanguage}
+              allLabel={t.all}
+              value={filters.language}
+              options={facets.languages}
+              onChange={(v) => set({ language: v as BookFilters["language"] })}
+              format={(v) => t.languages[v as keyof typeof t.languages] ?? v}
+            />
+          </div>
 
           {hasActiveFilters && (
             <button
@@ -422,7 +353,7 @@ export default function StoreBooksPage() {
       <section className="px-4 py-12 md:py-16 bg-muted/30">
         <div className="container mx-auto max-w-6xl">
           <div className="text-sm text-muted-foreground mb-6">
-            {t.countLabel(items.length)}
+            {t.countLabel(total)}
           </div>
 
           {loading ? (
@@ -455,14 +386,23 @@ export default function StoreBooksPage() {
               )}
             </div>
           ) : (
-            <motion.div
-              layout
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
-            >
-              {items.map((item) => (
-                <ProductCard key={item.id} item={item} />
-              ))}
-            </motion.div>
+            <>
+              <motion.div
+                layout
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
+              >
+                {items.map((item) => (
+                  <ProductCard key={item.id} item={item} />
+                ))}
+              </motion.div>
+              {products.length < total && (
+                <div className="flex justify-center pt-6">
+                  <button type="button" onClick={loadMore} disabled={loadingMore} className="px-6 py-2 border border-border font-bold text-sm hover:bg-muted/60 disabled:opacity-50">
+                    {t.loadMore}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </section>
