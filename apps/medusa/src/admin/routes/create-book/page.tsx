@@ -18,111 +18,42 @@ import {
   formatSize,
   uploadDigitalFiles,
 } from "../../components/digital-files";
+import { BookProfileFields } from "../../components/book-profile-fields";
+import { CategoryPicker } from "../../components/category-picker";
+import { EMPTY_PROFILE_FORM, toProfilePayload, type BookProfileFormValue } from "../../lib/book-profile-form";
 
 type SalesChannel = { id: string; name: string };
-type ProductCategory = {
-  id: string;
-  name: string;
-  handle: string;
-  metadata?: Record<string, unknown> | null;
-};
-
-/** Default bookstore categories — created in Medusa if missing. */
-const BOOK_CATEGORY_SEEDS = [
-  { name: "Shariah", handle: "shariah", nameAr: "الشريعة" },
-  { name: "Management", handle: "management", nameAr: "الإدارة" },
-  {
-    name: "Digital Transformation",
-    handle: "digital-transformation",
-    nameAr: "التحول الرقمي",
-  },
-] as const;
-
-async function ensureBookCategories(): Promise<ProductCategory[]> {
-  const listRes = await fetch("/admin/product-categories?limit=100", {
-    credentials: "include",
-  });
-  if (!listRes.ok) return [];
-  const listBody = await listRes.json();
-  let cats: ProductCategory[] = listBody.product_categories ?? [];
-
-  for (const seed of BOOK_CATEGORY_SEEDS) {
-    const existing = cats.find(
-      (c) =>
-        c.handle === seed.handle ||
-        ((c.metadata as Record<string, unknown> | null)?.darnozom === "book" &&
-          c.handle === seed.handle),
-    );
-    if (existing) continue;
-    const createRes = await fetch("/admin/product-categories", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: seed.name,
-        handle: seed.handle,
-        is_active: true,
-        is_internal: false,
-        metadata: { darnozom: "book", name_ar: seed.nameAr },
-      }),
-    });
-    if (createRes.ok) {
-      const created = await createRes.json();
-      if (created.product_category) cats.push(created.product_category);
-    }
-  }
-
-  // Refresh so we have ids for ones we just created / already tagged.
-  const refresh = await fetch("/admin/product-categories?limit=100", {
-    credentials: "include",
-  });
-  if (refresh.ok) {
-    const body = await refresh.json();
-    cats = body.product_categories ?? cats;
-  }
-
-  const bookCats = cats.filter(
-    (c) =>
-      (c.metadata as Record<string, unknown> | null)?.darnozom === "book" ||
-      BOOK_CATEGORY_SEEDS.some((s) => s.handle === c.handle),
-  );
-  return bookCats.length ? bookCats : cats;
-}
 
 const CreateBookPage = () => {
   const navigate = useNavigate();
   const [channels, setChannels] = useState<SalesChannel[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
   const [description, setDescription] = useState("");
-  const [author, setAuthor] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const [profile, setProfile] = useState<BookProfileFormValue>(EMPTY_PROFILE_FORM);
+  const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>([]);
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [salesChannelId, setSalesChannelId] = useState("");
+  const [hasPrint, setHasPrint] = useState(true);
   const [paperPrice, setPaperPrice] = useState("");
   const [digitalPrice, setDigitalPrice] = useState("");
   const [paperInventoryQty, setPaperInventoryQty] = useState("20");
   // Book images in display order; the first one is the cover.
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [hasDigital, setHasDigital] = useState(true);
+  const [hasDigital, setHasDigital] = useState(false);
   const [digitalFiles, setDigitalFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [chRes, bookCats] = await Promise.all([
-        fetch("/admin/sales-channels?limit=50", { credentials: "include" }),
-        ensureBookCategories(),
-      ]);
+      const chRes = await fetch("/admin/sales-channels?limit=50", { credentials: "include" });
       if (chRes.ok) {
         const body = await chRes.json();
         const list: SalesChannel[] = body.sales_channels ?? [];
         setChannels(list);
         if (list[0]) setSalesChannelId(list[0].id);
       }
-      setCategories(bookCats);
-      if (bookCats[0]) setCategoryId(bookCats[0].id);
     })().catch(() => undefined);
   }, []);
 
@@ -163,32 +94,26 @@ const CreateBookPage = () => {
     setSubmitting(true);
     try {
       const imageUrls = await uploadImages();
-      const selected = categories.find((c) => c.id === categoryId);
       const res = await fetch("/admin/books", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          description: description.trim() || undefined,
-          author: author.trim() || undefined,
-          categoryIds: categoryId ? [categoryId] : undefined,
-          // Legacy metadata mirror of the Medusa category handle (without dashes).
-          category: selected?.handle?.replace(/-/g, "_"),
+          subtitle: subtitle.trim() || null,
+          description: description.trim() || null,
           status,
-          salesChannelId,
-          thumbnailUrl: imageUrls[0],
-          imageUrls: imageUrls.length ? imageUrls : undefined,
-          paperPrice: Number(paperPrice),
-          hasDigital,
-          digitalPrice: hasDigital ? Number(digitalPrice) : undefined,
-          paperInventoryQty: Number(paperInventoryQty),
-          currencyCode: "egp",
+          sales_channel_id: salesChannelId,
+          image_urls: imageUrls,
+          additional_category_ids: additionalCategoryIds,
+          print: hasPrint ? { price: Number(paperPrice), stock: Number(paperInventoryQty) } : null,
+          digital: hasDigital ? { price: Number(digitalPrice) } : null,
+          profile: toProfilePayload(profile),
         }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(body.message || `Create failed (${res.status})`);
+        throw new Error((body.errors as string[] | undefined)?.join("\n") || body.message || `Create failed (${res.status})`);
       }
       if (hasDigital && digitalFiles.length && body.digitalVariantId) {
         try {
@@ -219,9 +144,8 @@ const CreateBookPage = () => {
         <div>
           <Heading level="h1">Create Book</Heading>
           <Text size="small" className="text-ui-fg-subtle">
-            Creates a Book-type product with a Paper variant and, optionally, a
-            Digital variant with its downloadable files. Category uses Medusa
-            product categories (same filters as the storefront).
+            Creates a Book-type product: print, digital or both — each with
+            its own price and availability.
           </Text>
         </div>
       </div>
@@ -239,6 +163,16 @@ const CreateBookPage = () => {
         </div>
 
         <div className="flex flex-col gap-2">
+          <Label htmlFor="subtitle">Subtitle</Label>
+          <Input
+            id="subtitle"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            placeholder="Optional"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
           <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
@@ -246,40 +180,20 @@ const CreateBookPage = () => {
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional"
           />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="author">Author</Label>
-          <Input
-            id="author"
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="Optional — used by storefront search"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label>Category (Medusa)</Label>
-          <Select
-            value={categoryId}
-            onValueChange={setCategoryId}
-            disabled={!categories.length}
-          >
-            <Select.Trigger>
-              <Select.Value placeholder="Select category" />
-            </Select.Trigger>
-            <Select.Content>
-              {categories.map((c) => (
-                <Select.Item key={c.id} value={c.id}>
-                  {c.name}
-                </Select.Item>
-              ))}
-            </Select.Content>
-          </Select>
           <Text size="small" className="text-ui-fg-subtle">
-            Managed in Medusa Admin → Categories. Storefront filters use these.
+            A professional text: the book's subject, main themes, scholarly
+            significance and who it is for.
           </Text>
         </div>
+
+        <CategoryPicker
+          primaryId={profile.primary_category_id}
+          additionalIds={additionalCategoryIds}
+          onPrimaryChange={(id) => setProfile({ ...profile, primary_category_id: id })}
+          onAdditionalChange={setAdditionalCategoryIds}
+        />
+
+        <BookProfileFields value={profile} onChange={setProfile} />
 
         <div className="flex flex-col gap-2">
           <Label>Status</Label>
@@ -377,43 +291,55 @@ const CreateBookPage = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="paperPrice">Paper price (EGP)</Label>
-            <Input
-              id="paperPrice"
-              type="number"
-              min="0.01"
-              step="0.01"
-              required
-              value={paperPrice}
-              onChange={(e) => setPaperPrice(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="paperQty">Paper inventory</Label>
-            <Input
-              id="paperQty"
-              type="number"
-              min="0"
-              step="1"
-              required
-              value={paperInventoryQty}
-              onChange={(e) => setPaperInventoryQty(e.target.value)}
-            />
-          </div>
+        <div className="flex items-center gap-x-3">
+          <Switch id="hasPrint" checked={hasPrint} onCheckedChange={setHasPrint} />
+          <Label htmlFor="hasPrint">Sell a print edition</Label>
         </div>
+        {hasPrint && (
+          <div className="grid grid-cols-2 gap-4 rounded border p-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="paperPrice">Paper price (EGP)</Label>
+              <Input
+                id="paperPrice"
+                type="number"
+                min="0.01"
+                step="0.01"
+                required
+                value={paperPrice}
+                onChange={(e) => setPaperPrice(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="paperQty">Paper inventory</Label>
+              <Input
+                id="paperQty"
+                type="number"
+                min="0"
+                step="1"
+                required
+                value={paperInventoryQty}
+                onChange={(e) => setPaperInventoryQty(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center gap-x-3">
           <Switch
             id="hasDigital"
             checked={hasDigital}
+            disabled={!profile.digital_rights}
             onCheckedChange={setHasDigital}
           />
-          <Label htmlFor="hasDigital">This book has a digital edition</Label>
+          <Label htmlFor="hasDigital">Sell a digital edition</Label>
         </div>
+        {!profile.digital_rights && (
+          <Text size="small" className="text-ui-fg-subtle">
+            Tick "Digital distribution rights are available" above to sell a digital edition.
+          </Text>
+        )}
 
-        {hasDigital && (
+        {hasDigital && profile.digital_rights && (
           <div className="flex flex-col gap-4 rounded border p-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="digitalPrice">Digital price (EGP)</Label>
