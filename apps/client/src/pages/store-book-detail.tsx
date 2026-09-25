@@ -8,9 +8,6 @@ import {
   ShoppingCart,
   ExternalLink,
   Star,
-  Globe,
-  FileText,
-  Hash,
   Layers,
   Sparkles,
   Check,
@@ -23,6 +20,9 @@ import { useCart } from "@/lib/cart-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { productIsFeatured } from "@/lib/product-featured";
 import { getBookVariantInfo } from "@/lib/book-variants";
+import { fetchBookDetails, type BookDetails } from "@/lib/book-catalog";
+import BookProfilePanel, { bookTextDir } from "@/components/store/book-profile-panel";
+import RelatedBooks from "@/components/store/related-books";
 import { SiteFooter } from "@/components/site-footer";
 
 type StoreProduct = HttpTypes.StoreProduct;
@@ -48,17 +48,7 @@ const T = {
     available: "متوفر للطلب الآن",
     description: "نبذة عن الكتاب",
     details: "معلومات الكتاب",
-    pages: "عدد الصفحات",
-    isbn: "ISBN",
-    language: "اللغة",
     format: "الصيغة",
-    cats: {
-      shariah: "الشريعة",
-      management: "الإدارة",
-      digital_transformation: "التحول الرقمي",
-    },
-    formats: { online: "إلكتروني", hardcopy: "ورقي", both: "إلكتروني وورقي" },
-    languages: { ar: "العربية", en: "الإنجليزية", both: "العربية والإنجليزية" },
     chooseEdition: "اختر النسخة",
     paper: "ورقي",
     paperDesc: "نسخة مطبوعة تُشحن إلى عنوانك",
@@ -87,17 +77,7 @@ const T = {
     available: "Available now",
     description: "About this book",
     details: "Book information",
-    pages: "Pages",
-    isbn: "ISBN",
-    language: "Language",
     format: "Format",
-    cats: {
-      shariah: "Shariah",
-      management: "Management",
-      digital_transformation: "Digital Transformation",
-    },
-    formats: { online: "Online", hardcopy: "Hardcopy", both: "Online & Hardcopy" },
-    languages: { ar: "Arabic", en: "English", both: "Arabic & English" },
     chooseEdition: "Choose edition",
     paper: "Paper",
     paperDesc: "Printed copy shipped to your address",
@@ -116,6 +96,7 @@ export default function StoreBookDetailPage() {
   const id = params?.id;
 
   const [book, setBook] = useState<StoreProduct | null>(null);
+  const [details, setDetails] = useState<BookDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
@@ -160,10 +141,25 @@ export default function StoreBookDetailPage() {
     };
   }, [id, reloadKey]);
 
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    setDetails(null);
+    fetchBookDetails(id).then((d) => !cancelled && setDetails(d)).catch(() => undefined);
+    return () => { cancelled = true; };
+  }, [id]);
+  const textDir = bookTextDir(details?.profile?.language);
+
   const meta = (book?.metadata || {}) as Record<string, unknown>;
   const title = book?.title || "";
   const description = book?.description || "";
   const externalLink = (meta.buyLink as string) || (meta.externalUrl as string) || undefined;
+  const authorLine =
+    details?.profile?.authors?.length
+      ? details.profile.authors.join(isArabic ? "، " : ", ")
+      : typeof meta.author === "string"
+        ? meta.author
+        : "";
 
   const { paperEditions, digitalEditions } = book
     ? getBookVariantInfo(book)
@@ -330,28 +326,21 @@ export default function StoreBookDetailPage() {
 
                 {/* Info */}
                 <div className="min-w-0">
-                  {/* Category pill */}
-                  {typeof meta.category === "string" && meta.category in t.cats && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/15 mb-5">
-                      <BookOpen className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-xs font-medium text-primary uppercase tracking-wide">
-                        {t.cats[meta.category as keyof typeof t.cats]}
-                      </span>
-                    </div>
-                  )}
-
                   {/* Title */}
-                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight">
+                  <h1
+                    className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight"
+                    {...textDir}
+                  >
                     {title}
                   </h1>
 
                   {/* Author */}
-                  {typeof meta.author === "string" && meta.author && (
+                  {authorLine && (
                     <p className="text-lg text-muted-foreground mb-6">
                       <span className="text-sm uppercase tracking-wider me-2 opacity-60">
                         {t.by}
                       </span>
-                      <span className="font-medium text-foreground/90">{meta.author as string}</span>
+                      <span className="font-medium text-foreground/90">{authorLine}</span>
                     </p>
                   )}
 
@@ -483,7 +472,7 @@ export default function StoreBookDetailPage() {
 
                   {/* Description */}
                   {description && (
-                    <div className="mb-10">
+                    <div className="mb-10" {...textDir}>
                       <h2 className="text-xs font-semibold text-primary mb-3 uppercase tracking-[0.15em]">
                         {t.description}
                       </h2>
@@ -500,7 +489,7 @@ export default function StoreBookDetailPage() {
                     <h2 className="text-xs font-semibold text-primary mb-4 uppercase tracking-[0.15em]">
                       {t.details}
                     </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                       <DetailRow
                         icon={Layers}
                         label={t.format}
@@ -514,23 +503,14 @@ export default function StoreBookDetailPage() {
                                 : t.notAvailable
                         }
                       />
-                      {typeof meta.language === "string" && meta.language in t.languages && (
-                        <DetailRow
-                          icon={Globe}
-                          label={t.language}
-                          value={t.languages[meta.language as keyof typeof t.languages]}
-                        />
-                      )}
-                      {typeof meta.pages === "number" && (
-                        <DetailRow icon={FileText} label={t.pages} value={String(meta.pages)} />
-                      )}
-                      {typeof meta.isbn === "string" && meta.isbn && (
-                        <DetailRow icon={Hash} label={t.isbn} value={meta.isbn} />
-                      )}
                     </div>
+                    {details?.profile && (
+                      <BookProfilePanel profile={details.profile} categories={details.categories} isArabic={isArabic} />
+                    )}
                   </div>
                 </div>
               </motion.div>
+              {details && <RelatedBooks productIds={details.related_product_ids} isArabic={isArabic} />}
             </div>
           </section>
         </>
