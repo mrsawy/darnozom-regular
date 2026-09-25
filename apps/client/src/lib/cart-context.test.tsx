@@ -144,11 +144,50 @@ describe("CartProvider / useCart", () => {
     );
 
     await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+    // Medusa 2.x: `+items.variant` does NOT expand the relation — format stays
+    // null and EditionBadge never renders on cart/checkout. Star syntax does.
     expect(sdk.store.cart.retrieve).toHaveBeenCalledWith(
       "cart_1",
-      expect.objectContaining({ fields: expect.any(String) }),
+      expect.objectContaining({
+        fields: expect.stringMatching(/\*items\.variant/),
+      }),
       expect.any(Object),
     );
+  });
+
+  // Regression: cart retrieve without *items.variant returns only
+  // variant_title on the line item (no nested variant). mapLineItems must
+  // still resolve paper/digital or the badge stays blank.
+  it("detects format from variant_title when the nested variant relation is missing", async () => {
+    localStorage.setItem("medusa_cart_id", "cart_1");
+    const titleOnlyLine = {
+      id: "li_title_only",
+      title: "DDDD FG",
+      quantity: 1,
+      unit_price: 66,
+      thumbnail: null,
+      variant_id: "variant_digital",
+      product_id: "prod_1",
+      product_title: "DDDD FG",
+      variant_title: "Digital",
+      // No nested variant — the shape Medusa returns with +items.variant
+      product: { metadata: {} },
+    };
+    const sdk = makeSdk(
+      { cart: fakeCartEmpty },
+      { cart: { ...fakeCartWithItems, items: [titleOnlyLine] } },
+    );
+    vi.spyOn(medusaClient, "getMedusaClient").mockReturnValue(sdk as any);
+
+    render(
+      <CartProvider>
+        <TestConsumer />
+      </CartProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+    expect(screen.getByTestId("li_title_only-format").textContent).toBe("digital");
+    expect(screen.getByTestId("has-digital").textContent).toBe("true");
   });
 
   it("exposes computed properties (items, count, total, currency, hasPaperItems, hasDigitalItems)", async () => {

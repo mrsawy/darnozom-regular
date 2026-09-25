@@ -14,14 +14,15 @@ import { variantKind } from "./book-variants";
 
 const CART_ID_STORAGE_KEY = "medusa_cart_id";
 
-// Expansion fields to ensure variant/product metadata is populated on line items.
-// +field syntax adds to defaults. We need variant.metadata.kind and
-// variant.options for format detection (see variantKind in book-variants.ts —
-// a variant created by hand in Medusa Admin has no metadata.kind and is
-// matched by its option value instead) and product.metadata.legacyBookId for
-// hybrid Express order submission.
+// Expansion fields so variant/product metadata is populated on line items.
+// Medusa 2.x: `+items.variant` does NOT expand the relation — only flat
+// fields like variant_title come back, so format stays null and EditionBadge
+// never renders on cart/checkout. Star syntax (`*items.variant`) does expand
+// and includes metadata.kind + options (needed for hand-created Admin
+// products that lack metadata.kind). product.metadata carries legacyBookId
+// for hybrid Express order submission.
 const CART_RETRIEVE_FIELDS =
-  "+items,+items.variant,+items.variant.metadata,+items.variant.options,+items.product,+items.product.metadata";
+  "*items,*items.variant,*items.variant.options,*items.product,*items.product.metadata";
 
 /**
  * A normalised cart line item for consumption by cart.tsx and checkout.tsx.
@@ -107,7 +108,15 @@ function getLegacyBookId(
 function mapLineItems(cart: HttpTypes.StoreCart | null): CartItem[] {
   if (!cart?.items) return [];
   return cart.items.map((li) => {
-    const kind = variantKind(li.variant);
+    // Prefer the expanded variant; fall back to variant_title when the
+    // relation wasn't expanded (e.g. stale fields or a createLineItem
+    // response that skipped retrieveExpanded).
+    const variant =
+      li.variant ??
+      (typeof (li as { variant_title?: string }).variant_title === "string"
+        ? ({ title: (li as { variant_title: string }).variant_title } as HttpTypes.StoreProductVariant)
+        : null);
+    const kind = variantKind(variant);
     return {
       lineItemId: li.id,
       title: li.title || li.product_title || "",
