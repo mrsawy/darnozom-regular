@@ -8,12 +8,21 @@ files are uploaded by staff on the product's Digital variant, never by ChatGPT.
 ## One-time setup (admin)
 1. Generate a key: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
 2. Put it in the Medusa server's environment as `BOOKS_API_KEY=<key>` and restart Medusa.
-3. In ChatGPT: Explore GPTs → Create → Configure → Create new action.
-   - Import from URL: `https://ecommerce.darnozom.com/partner/openapi`
+3. In ChatGPT: GPTs → Create → **Configure** tab.
+4. Paste the **GPT instructions** below into the GPT's **Instructions** box (not into Schema).
+5. Under **Actions** → Create new action:
+   - **Schema** must be OpenAPI JSON only (never the instructions text).
+   - Prefer **Import from URL** (public HTTPS): e.g. your ngrok URL  
+     `https://YOUR-SUBDOMAIN.ngrok-free.app/partner/openapi`  
+     or after deploy: `https://ecommerce.darnozom.com/partner/openapi`
+   - The schema’s `servers[0].url` must be that **same public origin** (not `http://localhost:9010`).
+   - Schema uses OpenAPI **3.1.0** (what ChatGPT Actions currently require).
+   - Or open the OpenAPI URL in a browser, copy all JSON, and paste into Schema.
    - Authentication: API Key → Custom header name `x-api-key` → paste the key.
-4. Paste the instructions below into the GPT's Instructions box.
+6. ChatGPT requires OpenAPI **3.1.0** or **3.1.1**.
 
 ## GPT instructions
+(Put these in the GPT **Instructions** field on Configure — not in Actions → Schema.)
 You add books to the Dar Nozom store through the Books API.
 - Before adding, call listCategories and choose the most specific subcategory
   handle; add up to 3 additional_category_handles for secondary subjects.

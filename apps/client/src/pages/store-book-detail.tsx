@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useRoute } from "wouter";
+import { Link, useRoute, useLocation } from "wouter";
 import { motion } from "framer-motion";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
 import type { HttpTypes } from "@medusajs/types";
 import {
   ChevronLeft,
@@ -11,12 +13,13 @@ import {
   Layers,
   Sparkles,
   Check,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SiteNav from "@/components/site-nav";
 import { FetchError } from "@/components/fetch-error";
 import { useLanguage } from "@/lib/language-context";
-import { useCart } from "@/lib/cart-context";
+import { useCart, createBuyNowCart } from "@/lib/cart-context";
 import { getMedusaClient, getStoreRegionId } from "@/lib/medusa-client";
 import { productIsFeatured } from "@/lib/product-featured";
 import { getBookVariantInfo } from "@/lib/book-variants";
@@ -57,6 +60,9 @@ const T = {
     notAvailable: "غير متاحة",
     selectEdition: "اختر نسخة قبل الإضافة",
     paperShipping: "* تُحسب تكلفة الشحن عند الدفع حسب المدينة",
+    total: "الإجمالي",
+    buyNow: "اشترِ الآن",
+    buyNowError: "تعذّر إتمام الشراء المباشر. حاول مرة أخرى.",
   },
   en: {
     crumbStore: "Store",
@@ -86,6 +92,9 @@ const T = {
     notAvailable: "Not available",
     selectEdition: "Select an edition first",
     paperShipping: "* Shipping is calculated at checkout based on city",
+    total: "Total",
+    buyNow: "Buy now",
+    buyNowError: "Could not start checkout. Please try again.",
   },
 };
 
@@ -94,6 +103,7 @@ export default function StoreBookDetailPage() {
   const t = isArabic ? T.ar : T.en;
   const [, params] = useRoute("/services/store/books/:id");
   const id = params?.id;
+  const [, navigate] = useLocation();
 
   const [book, setBook] = useState<StoreProduct | null>(null);
   const [details, setDetails] = useState<BookDetails | null>(null);
@@ -102,6 +112,10 @@ export default function StoreBookDetailPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [justAdded, setJustAdded] = useState(false);
   const [addError, setAddError] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
+  const [buyNowError, setBuyNowError] = useState(false);
+  const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const cart = useCart();
 
   useEffect(() => {
@@ -109,13 +123,14 @@ export default function StoreBookDetailPage() {
     let cancelled = false;
     setLoading(true);
     setError(false);
+    setActiveImage(0);
     const sdk = getMedusaClient();
     getStoreRegionId()
       .then((regionId) =>
         sdk.store.product.retrieve(id, {
           region_id: regionId,
           fields:
-            "+metadata,*variants,*variants.calculated_price,*variants.metadata,*variants.options,*tags,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
+            "+metadata,*images,*variants,*variants.calculated_price,*variants.metadata,*variants.options,*tags,+variants.inventory_quantity,+variants.manage_inventory,+variants.allow_backorder",
         }),
       )
       .then(({ product }) => {
@@ -161,6 +176,18 @@ export default function StoreBookDetailPage() {
         ? meta.author
         : "";
 
+  const galleryUrls = (() => {
+    const urls: string[] = [];
+    const push = (u?: string | null) => {
+      if (!u) return;
+      if (!urls.includes(u)) urls.push(u);
+    };
+    push(book?.thumbnail);
+    for (const img of book?.images ?? []) push(img.url);
+    return urls;
+  })();
+  const mainImage = galleryUrls[Math.min(activeImage, Math.max(galleryUrls.length - 1, 0))] ?? null;
+
   const { paperEditions, digitalEditions } = book
     ? getBookVariantInfo(book)
     : { paperEditions: [], digitalEditions: [] };
@@ -204,6 +231,25 @@ export default function StoreBookDetailPage() {
     }
     setJustAdded(true);
     window.setTimeout(() => setJustAdded(false), 1400);
+  }
+
+  // "Buy now" must check out only the selected edition, not whatever else is
+  // sitting in the shopper's persisted cart. Medusa has no per-item checkout,
+  // so instead it creates a brand-new, standalone cart holding just this one
+  // line item (createBuyNowCart) and sends checkout there via ?buyNowCart=;
+  // the shopper's real cart is never read or modified.
+  async function handleBuyNow() {
+    if (!selectedVariant) return;
+    setBuyNowError(false);
+    setBuyingNow(true);
+    try {
+      const buyNowCartId = await createBuyNowCart(selectedVariant.id, 1);
+      navigate(`/checkout?buyNowCart=${buyNowCartId}`);
+    } catch {
+      setBuyNowError(true);
+    } finally {
+      setBuyingNow(false);
+    }
   }
 
   return (
@@ -285,17 +331,22 @@ export default function StoreBookDetailPage() {
                 transition={{ duration: 0.5, ease: "easeOut" }}
                 className="grid lg:grid-cols-[380px_1fr] gap-12 lg:gap-16 items-start"
               >
-                {/* Cover with 3D tilt */}
+                {/* Cover gallery */}
                 <div className="relative lg:sticky lg:top-28">
                   <div className="relative group perspective-1000">
                     {/* Glow */}
                     <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-emerald-600/10 to-transparent rounded-3xl blur-2xl opacity-50 group-hover:opacity-70 transition-opacity duration-500" />
 
-                    {/* Cover */}
-                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/10 border border-white/5 shadow-2xl shadow-black/40 transition-transform duration-700 group-hover:scale-[1.02]">
-                      {book.thumbnail ? (
+                    {/* Main image */}
+                    <button
+                      type="button"
+                      onClick={() => mainImage && setLightboxOpen(true)}
+                      disabled={!mainImage}
+                      className="relative aspect-square w-full rounded-2xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/10 border border-white/5 shadow-2xl shadow-black/40 transition-transform duration-700 group-hover:scale-[1.02] text-start cursor-pointer disabled:cursor-default"
+                    >
+                      {mainImage ? (
                         <img
-                          src={book.thumbnail}
+                          src={mainImage}
                           alt={title}
                           className="w-full h-full object-cover"
                         />
@@ -317,52 +368,126 @@ export default function StoreBookDetailPage() {
                           </span>
                         )}
                       </div>
-                    </div>
+                    </button>
 
                     {/* Reflection / shelf */}
                     <div className="absolute -bottom-1 inset-x-6 h-4 bg-gradient-to-b from-black/30 to-transparent rounded-full blur-md" />
                   </div>
+
+                  {galleryUrls.length > 1 && (
+                    <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                      {galleryUrls.map((url, i) => (
+                        <button
+                          key={`${url}-${i}`}
+                          type="button"
+                          onClick={() => setActiveImage(i)}
+                          aria-label={isArabic ? `صورة ${i + 1}` : `Image ${i + 1}`}
+                          aria-pressed={i === activeImage}
+                          className={`relative shrink-0 w-16 h-16 rounded-lg overflow-hidden border transition-colors cursor-pointer ${
+                            i === activeImage
+                              ? "border-primary ring-2 ring-primary/25"
+                              : "border-border hover:border-primary/40"
+                          }`}
+                        >
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <Lightbox
+                    open={lightboxOpen}
+                    close={() => setLightboxOpen(false)}
+                    index={activeImage}
+                    slides={galleryUrls.map((src) => ({ src }))}
+                    on={{ view: ({ index }) => setActiveImage(index) }}
+                    controller={{ closeOnBackdropClick: true }}
+                    styles={{
+                      container: { backgroundColor: "rgba(0, 0, 0, 0.55)" },
+                    }}
+                  />
                 </div>
 
                 {/* Info */}
-                <div className="min-w-0">
-                  {/* Title */}
-                  <h1
-                    className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight"
-                    {...textDir}
-                  >
-                    {title}
-                  </h1>
+                <div className="min-w-0 grid lg:grid-cols-[1fr_320px] gap-10 lg:gap-14 items-start">
+                  <div className="min-w-0">
+                    {/* Title */}
+                    <h1
+                      className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight"
+                      {...textDir}
+                    >
+                      {title}
+                    </h1>
 
-                  {/* Author */}
-                  {authorLine && (
-                    <p className="text-lg text-muted-foreground mb-6">
-                      <span className="text-sm uppercase tracking-wider me-2 opacity-60">
-                        {t.by}
-                      </span>
-                      <span className="font-medium text-foreground/90">{authorLine}</span>
-                    </p>
-                  )}
-
-                  {/* Status indicator */}
-                  <div className="flex items-center gap-2 mb-8">
-                    {paperOk || digitalOk ? (
-                      <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400">
-                        <span className="relative flex h-2 w-2">
-                          <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    {/* Author */}
+                    {authorLine && (
+                      <p className="text-lg text-muted-foreground mb-6">
+                        <span className="text-sm uppercase tracking-wider me-2 opacity-60">
+                          {t.by}
                         </span>
-                        {t.available}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30">
-                        {t.outOfStock}
-                      </span>
+                        <span className="font-medium text-foreground/90">{authorLine}</span>
+                      </p>
                     )}
+
+                    {/* Status indicator */}
+                    <div className="flex items-center gap-2 mb-8">
+                      {paperOk || digitalOk ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm text-emerald-400">
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                          </span>
+                          {t.available}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-red-500/15 text-red-400 border border-red-500/30">
+                          {t.outOfStock}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    {description && (
+                      <div className="mb-10" {...textDir}>
+                        <h2 className="text-xs font-semibold text-primary mb-3 uppercase tracking-[0.15em]">
+                          {t.description}
+                        </h2>
+                        <div className="prose prose-invert max-w-none">
+                          <p className="text-muted-foreground leading-relaxed text-base whitespace-pre-line">
+                            {description}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Details */}
+                    <div>
+                      <h2 className="text-xs font-semibold text-primary mb-4 uppercase tracking-[0.15em]">
+                        {t.details}
+                      </h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-1 gap-3 mb-4">
+                        <DetailRow
+                          icon={Layers}
+                          label={t.format}
+                          value={
+                            paperOk && digitalOk
+                              ? `${t.paper} + ${t.digital}`
+                              : paperOk
+                                ? t.paper
+                                : digitalOk
+                                  ? t.digital
+                                  : t.notAvailable
+                          }
+                        />
+                      </div>
+                      {details?.profile && (
+                        <BookProfilePanel profile={details.profile} categories={details.categories} isArabic={isArabic} />
+                      )}
+                    </div>
                   </div>
 
-                  {/* Purchase panel */}
-                  <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-6 mb-10">
+                  {/* Purchase panel — sticky edition picker */}
+                  <aside className="lg:sticky lg:top-28 rounded-2xl border border-border bg-card/60 backdrop-blur-sm p-6">
                     {/* Edition selector — every paper/digital variant the
                         product actually has, not just one of each. A book
                         can carry more than one edition per format (e.g. two
@@ -372,7 +497,7 @@ export default function StoreBookDetailPage() {
                         <div className="text-xs font-semibold text-primary mb-3 uppercase tracking-[0.15em]">
                           {t.chooseEdition}
                         </div>
-                        <div className="grid sm:grid-cols-2 gap-3">
+                        <div className="flex flex-col gap-3">
                           {paperEditions.map((edition) => (
                             <FormatOption
                               key={edition.variant.id}
@@ -412,13 +537,26 @@ export default function StoreBookDetailPage() {
                       </div>
                     )}
 
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    {canBuy && (
+                      <div className="flex items-baseline justify-between gap-2 pt-1 pb-4 border-t border-border/50 mt-1">
+                        <span className="text-xs text-muted-foreground">{t.total}</span>
+                        <span
+                          className="text-2xl font-medium text-foreground"
+                          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+                        >
+                          {activePrice.toLocaleString()}{" "}
+                          <span className="text-xs font-sans font-medium text-muted-foreground">EGP</span>
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col gap-3">
                       {canBuy && (
                         <Button
                           onClick={handleAddToCart}
                           size="lg"
                           data-testid="btn-add-to-cart"
-                          className={`flex-1 gap-2 h-12 text-base font-semibold shadow-lg shadow-primary/15 ${
+                          className={`gap-2 h-12 text-base font-semibold shadow-lg shadow-primary/15 ${
                             justAdded
                               ? "bg-emerald-600 text-white hover:bg-emerald-600"
                               : inCart
@@ -440,6 +578,21 @@ export default function StoreBookDetailPage() {
                           {isArabic ? "تعذّرت إضافة المنتج إلى السلة. حاول مرة أخرى." : "Could not add this item to your cart. Please try again."}
                         </p>
                       )}
+                      {canBuy && (
+                        <Button
+                          onClick={handleBuyNow}
+                          disabled={buyingNow}
+                          size="lg"
+                          variant="outline"
+                          data-testid="btn-buy-now"
+                          className="gap-2 h-12 text-base font-semibold border-primary/40 text-primary hover:bg-primary/5 disabled:opacity-60"
+                        >
+                          <Zap className="w-5 h-5" /> {t.buyNow}
+                        </Button>
+                      )}
+                      {buyNowError && (
+                        <p className="text-xs text-red-500 self-center">{t.buyNowError}</p>
+                      )}
                       {externalLink && (
                         <Button
                           variant="outline"
@@ -454,7 +607,7 @@ export default function StoreBookDetailPage() {
                     </div>
 
                     {/* Trust strip */}
-                    <div className="mt-5 pt-5 border-t border-border/50 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+                    <div className="mt-5 pt-5 border-t border-border/50 flex flex-col gap-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <Check className="w-3.5 h-3.5 text-emerald-500" />
                         {isArabic ? "طلب آمن" : "Secure request"}
@@ -468,46 +621,7 @@ export default function StoreBookDetailPage() {
                         {isArabic ? "دعم متعدد القنوات" : "Multi-channel support"}
                       </span>
                     </div>
-                  </div>
-
-                  {/* Description */}
-                  {description && (
-                    <div className="mb-10" {...textDir}>
-                      <h2 className="text-xs font-semibold text-primary mb-3 uppercase tracking-[0.15em]">
-                        {t.description}
-                      </h2>
-                      <div className="prose prose-invert max-w-none">
-                        <p className="text-muted-foreground leading-relaxed text-base whitespace-pre-line">
-                          {description}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Details */}
-                  <div>
-                    <h2 className="text-xs font-semibold text-primary mb-4 uppercase tracking-[0.15em]">
-                      {t.details}
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                      <DetailRow
-                        icon={Layers}
-                        label={t.format}
-                        value={
-                          paperOk && digitalOk
-                            ? `${t.paper} + ${t.digital}`
-                            : paperOk
-                              ? t.paper
-                              : digitalOk
-                                ? t.digital
-                                : t.notAvailable
-                        }
-                      />
-                    </div>
-                    {details?.profile && (
-                      <BookProfilePanel profile={details.profile} categories={details.categories} isArabic={isArabic} />
-                    )}
-                  </div>
+                  </aside>
                 </div>
               </motion.div>
               {details && <RelatedBooks productIds={details.related_product_ids} isArabic={isArabic} />}

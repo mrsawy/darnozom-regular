@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import type { HttpTypes } from "@medusajs/types";
-import { Search, BookOpen, X, ArrowRight, ArrowLeft, Filter } from "lucide-react";
+import { Search, BookOpen, X, ArrowRight, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import SiteNav from "@/components/site-nav";
 import ProductCard, { type ProductCardItem } from "@/components/store/product-card";
@@ -26,24 +26,26 @@ const T = {
     back: "العودة للمتجر",
     eyebrow: "مكتبة دار نظم",
     title: "الكتب",
-    subtitle: "إصدارات ورقية وإلكترونية — صفِّ حسب الصيغة والتصنيف من Medusa",
+    subtitle: "إصدارات ورقية وإلكترونية — صفِّ حسب الصيغة والتصنيف من Medusa",
     searchPlaceholder: "ابحث بالعنوان أو المؤلف أو الناشر أو الموضوع أو الكلمات المفتاحية...",
-    filterFormat: "الصيغة",
-    filterCategory: "التصنيف",
+    formatHeading: "الصيغة",
+    formatAll: "الكل",
+    formatPaper: "ورقي",
+    formatDigital: "رقمي",
+    sectionsHeading: "الأقسام العلمية",
+    moreFiltersHeading: "فلاتر إضافية",
     filterAuthor: "المؤلف",
     filterPublisher: "الناشر",
     filterLanguage: "لغة الكتاب",
-    filterSection: "الأقسام العلمية",
     languages: { ar: "العربية", en: "الإنجليزية", both: "العربية والإنجليزية" },
     loadMore: "عرض المزيد",
     all: "الكل",
-    paper: "ورقي",
-    digital: "إلكتروني",
     empty: "لم نعثر على كتب مطابقة",
     emptyHint: "جرّب مسح الفلاتر أو كلمة بحث مختلفة",
     clearFilters: "مسح الفلاتر",
-    countLabel: (n: number) => `${n} كتاب`,
-    results: "النتائج",
+    booksWord: () => "كتاب",
+    sortLabel: "الترتيب:",
+    sortNewest: "الأحدث",
   },
   en: {
     back: "Back to store",
@@ -51,22 +53,24 @@ const T = {
     title: "Books",
     subtitle: "Paper and digital editions — filter by format and Medusa categories",
     searchPlaceholder: "Search by title, author, publisher, subject or keyword...",
-    filterFormat: "Format",
-    filterCategory: "Category",
+    formatHeading: "FORMAT",
+    formatAll: "All",
+    formatPaper: "Paper",
+    formatDigital: "Digital",
+    sectionsHeading: "SECTIONS",
+    moreFiltersHeading: "MORE FILTERS",
     filterAuthor: "Author",
     filterPublisher: "Publisher",
     filterLanguage: "Book language",
-    filterSection: "Sections",
     languages: { ar: "Arabic", en: "English", both: "Arabic & English" },
     loadMore: "Load more",
     all: "All",
-    paper: "Hardcopy",
-    digital: "Online",
     empty: "No matching books found",
     emptyHint: "Try clearing filters or a different search term",
     clearFilters: "Clear filters",
-    countLabel: (n: number) => `${n} book${n === 1 ? "" : "s"}`,
-    results: "Results",
+    booksWord: (n: number) => `book${n === 1 ? "" : "s"}`,
+    sortLabel: "Sort:",
+    sortNewest: "Newest",
   },
 };
 
@@ -231,11 +235,17 @@ export default function StoreBooksPage() {
   const set = (patch: Partial<BookFilters>) => setFilters((f) => ({ ...f, ...patch }));
   const hasActiveFilters = bookFiltersToQuery(filters) !== "";
 
+  const formatOptions: { value: BookFilters["format"]; label: string }[] = [
+    { value: "all", label: t.formatAll },
+    { value: "paper", label: t.formatPaper },
+    { value: "digital", label: t.formatDigital },
+  ];
+
   return (
     <div className="min-h-screen bg-[hsl(150_12%_97%)]">
       <SiteNav />
 
-      {/* Hero */}
+      {/* Hero + search */}
       <section className="relative pt-28 pb-10 px-4 overflow-hidden border-b border-border/50 bg-[hsl(150_12%_97%)]">
         <div
           className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(15,61,46,0.08),_transparent_55%)]"
@@ -258,9 +268,9 @@ export default function StoreBooksPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="flex flex-col md:flex-row md:items-end md:justify-between gap-6"
+            className="grid md:grid-cols-[1.4fr_1fr] gap-8 md:items-end"
           >
-            <div className="max-w-2xl">
+            <div>
               <div className="text-xs font-semibold tracking-[0.18em] uppercase text-primary/80 mb-3">
                 {t.eyebrow}
               </div>
@@ -278,132 +288,144 @@ export default function StoreBooksPage() {
                 {t.subtitle}
               </p>
             </div>
-            <div className="text-sm text-muted-foreground tabular-nums md:text-end">
-              <span className="text-foreground font-semibold text-lg">
-                {loading ? "—" : total}
-              </span>{" "}
-              {t.results}
+            <div className="relative">
+              <Search className="absolute top-1/2 -translate-y-1/2 start-4 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t.searchPlaceholder}
+                className="ps-11 h-14 rounded-full border-border bg-card shadow-sm"
+                aria-label={t.searchPlaceholder}
+              />
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Filters */}
-      <section className="sticky top-16 z-20 px-4 py-4 bg-[hsl(150_12%_97%/0.92)] backdrop-blur-md border-b border-border/60">
-        <div className="container mx-auto max-w-6xl space-y-4">
-          <div className="relative">
-            <Search className="absolute top-1/2 -translate-y-1/2 start-3.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t.searchPlaceholder}
-              className="ps-10 h-12 rounded-xl border-border bg-card shadow-sm"
-              aria-label={t.searchPlaceholder}
-            />
-          </div>
-
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
-            <div className="flex items-center gap-2 shrink-0 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              <Filter className="w-3.5 h-3.5" />
-              {t.filterFormat}
-            </div>
-            <Segmented
-              value={filters.format}
-              onChange={(v) => set({ format: v as BookFilters["format"] })}
-              options={[
-                { v: "all", l: t.all },
-                { v: "paper", l: t.paper },
-                { v: "digital", l: t.digital },
-              ]}
-            />
-          </div>
-
-          {tree.length > 0 && (
-            <div className="bg-background border border-border p-2">
-              <div className="text-xs font-bold text-muted-foreground px-3 py-1">{t.filterSection}</div>
-              <CategoryFilter tree={tree} selectedId={filters.category} onSelect={(id) => set({ category: id })} isArabic={isArabic} allLabel={t.all} />
-            </div>
-          )}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <FacetSelect label={t.filterAuthor} allLabel={t.all} value={filters.author} options={facets.authors} onChange={(v) => set({ author: v })} />
-            <FacetSelect label={t.filterPublisher} allLabel={t.all} value={filters.publisher} options={facets.publishers} onChange={(v) => set({ publisher: v })} />
-            <FacetSelect
-              label={t.filterLanguage}
-              allLabel={t.all}
-              value={filters.language}
-              options={facets.languages}
-              onChange={(v) => set({ language: v as BookFilters["language"] })}
-              format={(v) => t.languages[v as keyof typeof t.languages] ?? v}
-            />
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={clearAll}
-              className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
-            >
-              <X className="w-3.5 h-3.5" /> {t.clearFilters}
-            </button>
-          )}
-        </div>
-      </section>
-
-      {/* Grid */}
-      <section className="px-4 py-12 md:py-16 bg-muted/30">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-sm text-muted-foreground mb-6">
-            {t.countLabel(total)}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="aspect-[3/4] bg-card/80 border border-border/60 rounded-2xl animate-pulse"
-                />
-              ))}
-            </div>
-          ) : error ? (
-            <FetchError
-              className="py-16"
-              onRetry={() => setReloadKey((k) => k + 1)}
-            />
-          ) : items.length === 0 ? (
-            <div className="text-center py-20 text-muted-foreground">
-              <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p className="text-foreground font-medium mb-1">{t.empty}</p>
-              <p className="text-sm mb-4">{t.emptyHint}</p>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearAll}
-                  className="text-sm text-primary underline underline-offset-4"
-                >
-                  {t.clearFilters}
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <motion.div
-                layout
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
-              >
-                {items.map((item) => (
-                  <ProductCard key={item.id} item={item} />
-                ))}
-              </motion.div>
-              {products.length < total && (
-                <div className="flex justify-center pt-6">
-                  <button type="button" onClick={loadMore} disabled={loadingMore} className="px-6 py-2 border border-border font-bold text-sm hover:bg-muted/60 disabled:opacity-50">
-                    {t.loadMore}
+      {/* Filters + results */}
+      <section className="px-4 py-10 md:py-12 bg-muted/30">
+        <div className="container mx-auto max-w-6xl grid lg:grid-cols-[248px_1fr] gap-10">
+          {/* Sidebar */}
+          <aside className="flex flex-col gap-8">
+            <div>
+              <div className="text-[11px] font-bold tracking-[0.14em] text-foreground mb-3">
+                {t.formatHeading}
+              </div>
+              <div className="grid grid-cols-3 bg-muted rounded-full p-1">
+                {formatOptions.map((f) => (
+                  <button
+                    key={f.value}
+                    type="button"
+                    aria-pressed={filters.format === f.value}
+                    onClick={() => set({ format: f.value })}
+                    className={`text-center py-2 rounded-full text-xs font-medium transition-colors ${
+                      filters.format === f.value
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {f.label}
                   </button>
+                ))}
+              </div>
+            </div>
+
+            {tree.length > 0 && (
+              <div>
+                <div className="text-[11px] font-bold tracking-[0.14em] text-foreground mb-2">
+                  {t.sectionsHeading}
                 </div>
-              )}
-            </>
-          )}
+                <CategoryFilter tree={tree} selectedId={filters.category} onSelect={(id) => set({ category: id })} isArabic={isArabic} allLabel={t.all} />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2.5">
+              <div className="text-[11px] font-bold tracking-[0.14em] text-foreground">
+                {t.moreFiltersHeading}
+              </div>
+              <FacetSelect label={t.filterAuthor} allLabel={t.all} value={filters.author} options={facets.authors} onChange={(v) => set({ author: v })} />
+              <FacetSelect label={t.filterPublisher} allLabel={t.all} value={filters.publisher} options={facets.publishers} onChange={(v) => set({ publisher: v })} />
+              <FacetSelect
+                label={t.filterLanguage}
+                allLabel={t.all}
+                value={filters.language}
+                options={facets.languages}
+                onChange={(v) => set({ language: v as BookFilters["language"] })}
+                format={(v) => t.languages[v as keyof typeof t.languages] ?? v}
+              />
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearAll}
+                className="text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 self-start"
+              >
+                <X className="w-3.5 h-3.5" /> {t.clearFilters}
+              </button>
+            )}
+          </aside>
+
+          {/* Results */}
+          <main>
+            <div className="flex items-center justify-between mb-6 text-sm">
+              <span className="text-muted-foreground">
+                <b className="text-foreground">{loading ? "—" : total}</b> {t.booksWord(total)}
+              </span>
+              <span className="text-muted-foreground">
+                {t.sortLabel} <b className="text-foreground font-medium">{t.sortNewest}</b>
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-[3/4] bg-card/80 border border-border/60 rounded-2xl animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : error ? (
+              <FetchError
+                className="py-16"
+                onRetry={() => setReloadKey((k) => k + 1)}
+              />
+            ) : items.length === 0 ? (
+              <div className="text-center py-20 border border-dashed border-border rounded-xl text-muted-foreground">
+                <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p className="text-foreground font-medium mb-1">{t.empty}</p>
+                <p className="text-sm mb-4">{t.emptyHint}</p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="text-sm text-primary underline underline-offset-4"
+                  >
+                    {t.clearFilters}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                <motion.div
+                  layout
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
+                >
+                  {items.map((item) => (
+                    <ProductCard key={item.id} item={item} />
+                  ))}
+                </motion.div>
+                {products.length < total && (
+                  <div className="flex justify-center pt-6">
+                    <button type="button" onClick={loadMore} disabled={loadingMore} className="px-6 py-2 border border-border font-bold text-sm hover:bg-muted/60 disabled:opacity-50">
+                      {t.loadMore}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </main>
         </div>
       </section>
 
@@ -413,35 +435,6 @@ export default function StoreBooksPage() {
         label={{ ar: "إدارة المتجر", en: "Manage Store" }}
       />
       <SiteFooter />
-    </div>
-  );
-}
-
-function Segmented({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { v: string; l: string }[];
-}) {
-  return (
-    <div className="inline-flex flex-wrap p-1 rounded-full bg-muted/60 border border-border/80 gap-0.5">
-      {options.map((opt) => (
-        <button
-          type="button"
-          key={opt.v}
-          onClick={() => onChange(opt.v)}
-          className={`text-sm px-4 py-1.5 rounded-full transition-colors ${
-            value === opt.v
-              ? "bg-primary text-primary-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          {opt.l}
-        </button>
-      ))}
     </div>
   );
 }

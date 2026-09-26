@@ -9,16 +9,16 @@ type Props = {
   format?(value: string): string;
 };
 
-/** A filter dropdown listing the values found in the current results, with counts. */
+/** A filter row listing the values found in the current results, with counts. */
 export default function FacetSelect({ label, allLabel, value, options, onChange, format }: Props) {
   const withCurrent = value && !options.some((o) => o.value === value) ? [{ value, count: 0 }, ...options] : options;
   return (
-    <label className="flex flex-col gap-1 text-xs font-bold text-muted-foreground">
-      {label}
+    <label className="flex items-center justify-between gap-3 border border-border rounded-md bg-card px-3.5 py-2.5 text-sm cursor-pointer hover:border-primary/35 transition-colors">
+      <span className="text-muted-foreground">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border border-input bg-background px-3 py-2 text-sm font-normal text-foreground rounded-none"
+        className="bg-transparent text-foreground text-sm font-medium outline-none cursor-pointer text-end max-w-[55%]"
       >
         <option value="">{allLabel}</option>
         {withCurrent.map((o) => (

@@ -62,12 +62,12 @@ const paperOnly = {
 };
 
 describe("StoreBooks page", () => {
-  it("filters by Medusa variant format (paper / digital)", async () => {
-    const searchSpy = vi.spyOn(bookCatalog, "searchStoreBooks").mockImplementation(async (p) => ({
-      products: (p.format === "paper" ? [paperOnly] : [sampleBook, paperOnly]) as any,
-      total: p.format === "paper" ? 1 : 2,
+  it("lists books from the store search API", async () => {
+    vi.spyOn(bookCatalog, "searchStoreBooks").mockResolvedValue({
+      products: [sampleBook, paperOnly] as any,
+      total: 2,
       facets: { authors: [{ value: "Omar", count: 1 }], publishers: [], languages: [] },
-    }));
+    });
     vi.spyOn(bookCatalog, "listBookCategoryTree").mockResolvedValue([]);
 
     const queryClient = new QueryClient();
@@ -81,11 +81,7 @@ describe("StoreBooks page", () => {
       expect(screen.getByText("Digital Transformation Management")).not.toBeNull(),
     );
     expect(screen.getByText("Fiqh Basics")).not.toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Hardcopy" }));
-    await waitFor(() =>
-      expect(searchSpy).toHaveBeenLastCalledWith(expect.objectContaining({ format: "paper" })),
-    );
+    expect(screen.queryByRole("button", { name: "Hardcopy" })).toBeNull();
   });
 
   it("passes category_id when a section is selected", async () => {

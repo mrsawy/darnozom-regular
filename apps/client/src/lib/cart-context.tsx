@@ -314,3 +314,129 @@ export function useCart(): CartContextValue {
   if (!ctx) throw new Error("useCart must be used within a CartProvider");
   return ctx;
 }
+
+/**
+ * Same shape as useCart(), but bound to one explicit Medusa cart id instead
+ * of the shopper's persisted cart — never reads or writes
+ * CART_ID_STORAGE_KEY, so it's invisible to the nav cart badge, /cart, and
+ * useCart() elsewhere. Backs the "Buy now" checkout flow: checkout can
+ * render/submit against this cart exactly like the normal one, without
+ * pulling in whatever else is sitting in the shopper's real cart.
+ * Pass `null` to get an inert, always-empty instance (e.g. when a page isn't
+ * in buy-now mode but still needs to call the hook unconditionally).
+ */
+export function useStandaloneCart(cartId: string | null): CartContextValue {
+  const [cart, setCart] = useState<HttpTypes.StoreCart | null>(null);
+  const [isLoading, setIsLoading] = useState(!!cartId);
+
+  const authHeaders = useCallback((): ClientHeaders => {
+    const token = getMedusaCustomerToken();
+    const headers: ClientHeaders = {};
+    if (token) headers.authorization = `Bearer ${token}`;
+    return headers;
+  }, []);
+
+  const refreshCart = useCallback(async () => {
+    if (!cartId) {
+      setCart(null);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const sdk = getMedusaClient();
+      const { cart: fetched } = await sdk.store.cart.retrieve(
+        cartId,
+        { fields: CART_RETRIEVE_FIELDS },
+        authHeaders(),
+      );
+      setCart(fetched);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [cartId, authHeaders]);
+
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
+
+  const addItem = useCallback(
+    async (variantId: string, quantity: number) => {
+      if (!cartId) return;
+      const sdk = getMedusaClient();
+      await sdk.store.cart.createLineItem(cartId, { variant_id: variantId, quantity }, {}, authHeaders());
+      await refreshCart();
+    },
+    [cartId, authHeaders, refreshCart],
+  );
+
+  const removeItem = useCallback(
+    async (lineItemId: string) => {
+      if (!cartId) return;
+      const sdk = getMedusaClient();
+      await sdk.store.cart.deleteLineItem(cartId, lineItemId, {}, authHeaders());
+      await refreshCart();
+    },
+    [cartId, authHeaders, refreshCart],
+  );
+
+  const updateQuantity = useCallback(
+    async (lineItemId: string, quantity: number) => {
+      if (!cartId) return;
+      const sdk = getMedusaClient();
+      await sdk.store.cart.updateLineItem(cartId, lineItemId, { quantity }, {}, authHeaders());
+      await refreshCart();
+    },
+    [cartId, authHeaders, refreshCart],
+  );
+
+  // A buy-now cart is scratch state that was never persisted to
+  // localStorage — nothing to clear beyond forgetting it locally.
+  const clear = useCallback(() => setCart(null), []);
+
+  const items = useMemo(() => mapLineItems(cart), [cart]);
+  const count = useMemo(() => items.reduce((sum, i) => sum + i.quantity, 0), [items]);
+  const total = useMemo(() => cart?.total ?? 0, [cart]);
+  const subtotal = useMemo(() => cart?.subtotal ?? 0, [cart]);
+  const currency = useMemo(() => (cart?.currency_code ?? "egp").toUpperCase(), [cart]);
+  const hasPaperItems = useMemo(() => items.some((i) => i.format !== "digital"), [items]);
+  const hasDigitalItems = useMemo(() => items.some((i) => i.format === "digital"), [items]);
+
+  return {
+    cart,
+    isLoading,
+    items,
+    count,
+    total,
+    subtotal,
+    currency,
+    hasPaperItems,
+    hasDigitalItems,
+    addItem,
+    removeItem,
+    updateQuantity,
+    clear,
+    refreshCart,
+  };
+}
+
+/**
+ * Creates a fresh, standalone Medusa cart containing only the given variant.
+ * Backs "Buy now": the returned cart id is passed to checkout via
+ * `?buyNowCart=`, which loads it through useStandaloneCart instead of the
+ * shopper's persisted cart — so completing (or abandoning) it never touches
+ * whatever else the shopper already had in their real cart.
+ */
+export async function createBuyNowCart(variantId: string, quantity = 1): Promise<string> {
+  const sdk = getMedusaClient();
+  const regionId = await getStoreRegionId();
+  const token = getMedusaCustomerToken();
+  const headers: ClientHeaders = token ? { authorization: `Bearer ${token}` } : {};
+  const { cart } = await sdk.store.cart.create(
+    { region_id: regionId, currency_code: "egp" },
+    {},
+    headers,
+  );
+  await sdk.store.cart.createLineItem(cart.id, { variant_id: variantId, quantity }, {}, headers);
+  return cart.id;
+}

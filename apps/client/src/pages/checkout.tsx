@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useSession } from "@/lib/auth-client";
 import {
   CreditCard,
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import SiteNav from "@/components/site-nav";
 import { Button } from "@/components/ui/button";
-import { useCart } from "@/lib/cart-context";
+import { useCart, useStandaloneCart } from "@/lib/cart-context";
 import { useLanguage } from "@/lib/language-context";
 import {
   fetchAvailablePaymentMethods,
@@ -216,7 +216,16 @@ export default function CheckoutPage() {
   const user = session?.user;
   const userLoaded = !isPending;
   const isSignedIn = !!user;
-  const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems, cart } = useCart();
+  // "Buy now" links here with ?buyNowCart=<id> pointing at a standalone,
+  // single-item Medusa cart (see createBuyNowCart) instead of the shopper's
+  // persisted one, so checkout only ever submits that one item. Both hooks
+  // are called unconditionally (rules of hooks); useStandaloneCart is inert
+  // when there's no buyNowCart param.
+  const buyNowCartId = new URLSearchParams(useSearch()).get("buyNowCart");
+  const mainCart = useCart();
+  const standaloneCart = useStandaloneCart(buyNowCartId);
+  const { items, count, total, currency, clear, hasPaperItems, hasDigitalItems } =
+    buyNowCartId ? standaloneCart : mainCart;
   // Digital books go to the account library — the server rejects guest
   // digital orders, so ask for sign-in up front.
   const needsAccount = userLoaded && !isSignedIn && hasDigitalItems;
