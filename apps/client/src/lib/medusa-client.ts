@@ -26,6 +26,16 @@ let cachedRegionId: Promise<string> | null = null;
 
 export function resolveMedusaBackendUrl(): string {
   const envUrl = import.meta.env.VITE_MEDUSA_BACKEND_URL;
+  // A real (non-local) backend URL is used as-is; the hostname:port rewrite
+  // below is only for LAN dev where the env still points at localhost.
+  if (envUrl) {
+    try {
+      const { hostname } = new URL(envUrl);
+      if (hostname !== "localhost" && hostname !== "127.0.0.1") return envUrl;
+    } catch {
+      // malformed env value — fall through to the dev heuristics
+    }
+  }
   if (typeof window !== "undefined" && window.location.hostname && window.location.hostname !== "localhost") {
     try {
       const port = envUrl ? new URL(envUrl).port || "9010" : "9010";
