@@ -15,7 +15,7 @@ export interface SeedDeps {
   createCategory(input: Omit<CategoryRow, "id"> & { rank: number }): Promise<CategoryRow>;
   updateCategory(
     id: string,
-    update: { parent_category_id?: string | null; metadata?: Record<string, unknown> },
+    update: { parent_category_id?: string | null; name?: string; metadata?: Record<string, unknown> },
   ): Promise<void>;
   deleteCategory(id: string): Promise<void>;
   listProductIdsInCategory(categoryId: string): Promise<string[]>;
@@ -55,7 +55,22 @@ export async function seedBookCatalog(deps: SeedDeps): Promise<SeedReport> {
     rank: number,
   ): Promise<CategoryRow> {
     const existing = byHandle.get(node.handle);
-    if (existing) return existing; // never rename/move what staff may have edited
+    if (existing) {
+      const oldNameAr = existing.metadata?.name_ar;
+      if (
+        (node.handle === "islamic-law-thought" && oldNameAr === "الشريعة والفكر الإسلامي") ||
+        (node.handle === "islamic-political-system" && oldNameAr === "النظام السياسي في الإسلام")
+      ) {
+        await deps.updateCategory(existing.id, {
+          name: node.name,
+          metadata: { ...(existing.metadata ?? {}), darnozom: "book", name_ar: node.name_ar },
+        });
+        existing.name = node.name;
+        existing.metadata = { ...(existing.metadata ?? {}), darnozom: "book", name_ar: node.name_ar };
+        deps.log(`updated category ${node.handle} to ${node.name_ar}`);
+      }
+      return existing;
+    }
     const created = await deps.createCategory({
       handle: node.handle,
       name: node.name,

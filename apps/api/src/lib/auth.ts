@@ -9,6 +9,7 @@
  * Mounted in app.ts ABOVE express.json() — Better Auth reads the raw request
  * stream, and a body parser that runs first consumes it.
  */
+import os from "node:os";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
@@ -66,6 +67,38 @@ if (!isGoogleAuthConfigured) {
 const baseURL = (process.env.PUBLIC_SITE_URL ?? "http://localhost:5173").replace(
   /\/+$/,
   "",
+);
+
+function getDevTrustedOrigins(): string[] {
+  if (process.env.NODE_ENV === "production") return [];
+  const ports = ["5173", "5174", "5175", "5176", "4173", "3000", "8087"];
+  const hosts = ["localhost", "127.0.0.1"];
+
+  const ifaces = os.networkInterfaces();
+  for (const name in ifaces) {
+    for (const iface of ifaces[name] ?? []) {
+      if ((iface.family === "IPv4" || (iface.family as unknown) === 4) && iface.address) {
+        hosts.push(iface.address);
+      }
+    }
+  }
+
+  const origins: string[] = [];
+  for (const host of new Set(hosts)) {
+    for (const port of ports) {
+      origins.push(`http://${host}:${port}`);
+    }
+  }
+  return origins;
+}
+
+const envTrustedOrigins = (process.env.TRUSTED_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const trustedOrigins = Array.from(
+  new Set([baseURL, ...getDevTrustedOrigins(), ...envTrustedOrigins]),
 );
 
 export const auth = betterAuth({
@@ -172,7 +205,7 @@ export const auth = betterAuth({
     },
   },
 
-  trustedOrigins: [baseURL, "http://localhost:5173", "http://localhost:4173"],
+  trustedOrigins,
 });
 
 export type Auth = typeof auth;

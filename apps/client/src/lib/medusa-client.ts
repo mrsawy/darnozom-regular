@@ -24,10 +24,23 @@ export function setMedusaCustomerToken(token: string | null): void {
 let cachedClient: Medusa | null = null;
 let cachedRegionId: Promise<string> | null = null;
 
+export function resolveMedusaBackendUrl(): string {
+  const envUrl = import.meta.env.VITE_MEDUSA_BACKEND_URL;
+  if (typeof window !== "undefined" && window.location.hostname && window.location.hostname !== "localhost") {
+    try {
+      const port = envUrl ? new URL(envUrl).port || "9010" : "9010";
+      return `${window.location.protocol}//${window.location.hostname}:${port}`;
+    } catch {
+      return `${window.location.protocol}//${window.location.hostname}:9010`;
+    }
+  }
+  return envUrl || "http://localhost:9010";
+}
+
 export function getMedusaClient(): Medusa {
   if (cachedClient) return cachedClient;
   cachedClient = new Medusa({
-    baseUrl: import.meta.env.VITE_MEDUSA_BACKEND_URL || "http://localhost:9010",
+    baseUrl: resolveMedusaBackendUrl(),
     publishableKey: import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY,
   });
   return cachedClient;
@@ -35,9 +48,7 @@ export function getMedusaClient(): Medusa {
 
 /** Medusa Admin dashboard URL (Create Book, products, regions, …). */
 export function getMedusaAdminUrl(): string {
-  const base = (
-    import.meta.env.VITE_MEDUSA_BACKEND_URL || "http://localhost:9010"
-  ).replace(/\/$/, "");
+  const base = resolveMedusaBackendUrl().replace(/\/$/, "");
   return `${base}/app`;
 }
 

@@ -17,14 +17,25 @@ const resendFromEmail =
   process.env.RESEND_FROM_EMAIL?.trim() ||
   'Darnozom Consulting <noreply@darnozom.com>'
 
+const configuredStoreCors = process.env.MEDUSA_STORE_CORS || ''
+const defaultDevOrigins = [
+  'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5550', 'http://localhost:3000',
+  'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175', 'http://127.0.0.1:5176',
+  'http://192.168.8.3:5173', 'http://192.168.8.3:5174',
+  'http://172.24.16.1:5173', 'http://172.24.16.1:5174',
+  'http://172.26.144.1:5173', 'http://172.26.144.1:5174',
+]
+const mergedStoreCors = Array.from(new Set([
+  ...configuredStoreCors.split(',').map((s) => s.trim()).filter(Boolean),
+  ...defaultDevOrigins,
+])).join(',')
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.MEDUSA_DATABASE_URL,
     redisUrl: process.env.MEDUSA_REDIS_URL,
     http: {
-      storeCors:
-        process.env.MEDUSA_STORE_CORS ||
-        'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176,http://localhost:5550,http://localhost:3000',
+      storeCors: mergedStoreCors,
       adminCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9010',
       authCors: process.env.MEDUSA_ADMIN_CORS || 'http://localhost:9010',
       jwtSecret,

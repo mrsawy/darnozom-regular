@@ -65,7 +65,7 @@ describe("seedBookCatalog", () => {
     const sections = w.categories.filter((c) => c.parent_category_id === null);
     expect(sections.map((s) => s.handle)).toEqual(BOOK_TAXONOMY.map((s) => s.handle));
     const law = sections.find((s) => s.handle === "islamic-law-thought")!;
-    expect(law.metadata).toMatchObject({ darnozom: "book", name_ar: "الشريعة والفكر الإسلامي" });
+    expect(law.metadata).toMatchObject({ darnozom: "book", name_ar: "السياسة الشرعية والفكر الإسلامي" });
     const lawChildren = w.categories.filter((c) => c.parent_category_id === law.id);
     expect(lawChildren.length).toBe(BOOK_TAXONOMY[0].children.length);
   });

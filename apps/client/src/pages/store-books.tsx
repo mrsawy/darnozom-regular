@@ -109,7 +109,7 @@ export default function StoreBooksPage() {
       .then((t) => !cancelled && setTree(t))
       .catch(() => !cancelled && setTree([]));
     return () => { cancelled = true; };
-  }, []);
+  }, [reloadKey]);
 
   const params = (offset: number) => ({
     q: filters.q.length >= 2 ? filters.q : undefined,

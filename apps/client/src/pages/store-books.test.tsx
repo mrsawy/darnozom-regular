@@ -128,7 +128,7 @@ describe("StoreBooks page", () => {
       </QueryClientProvider>,
     );
 
-    await waitFor(() => expect(screen.getByText("Books")).not.toBeNull());
-    expect(screen.getByText("Book language")).not.toBeNull();
+    await waitFor(() => expect(screen.getByText("الكتب")).not.toBeNull());
+    expect(screen.getByText("لغة الكتاب")).not.toBeNull();
   });
 });

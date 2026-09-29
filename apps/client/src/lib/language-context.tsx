@@ -9,15 +9,27 @@ interface LanguageContextType {
 }
 
 const LanguageContext = createContext<LanguageContextType>({
-  language: "en",
+  language: "ar",
   toggleLanguage: () => {},
-  isArabic: false,
+  isArabic: true,
 });
 
+const STORAGE_KEY = "darnozom_lang";
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>("en");
+  const [language, setLanguage] = useState<Language>(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === "ar" || stored === "en") return stored;
+    } catch {}
+    return "ar";
+  });
 
   useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, language);
+    } catch {}
+
     const dir = language === "ar" ? "rtl" : "ltr";
     document.documentElement.dir = dir;
     document.documentElement.lang = language;
