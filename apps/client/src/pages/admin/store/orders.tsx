@@ -13,13 +13,20 @@ import {
   MapPin,
   Mail,
   StickyNote,
-  Trash2,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getMedusaAdminUrl } from "@/lib/medusa-client";
 import { PageHeader, Toast, useToast } from "../layout";
 
 const API_BASE = "/api";
+
+// Orders are read-only here; editing happens in the Medusa dashboard.
+function medusaOrderUrl(o: { medusaOrderId?: string | null }): string {
+  const base = getMedusaAdminUrl();
+  return o.medusaOrderId ? `${base}/orders/${o.medusaOrderId}` : `${base}/orders`;
+}
 
 interface OrderItem {
   id: number;
@@ -60,6 +67,7 @@ interface Order {
   exchangeRate: string | null;
   paidAt: string | null;
   adminNote: string | null;
+  medusaOrderId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -199,102 +207,6 @@ export default function AdminOrdersPage() {
     }
   }
 
-  async function updateStatus(id: number, status: string) {
-    try {
-      const r = await adminFetch(`${API_BASE}/admin/orders/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (r.ok) {
-        const updated = (await r.json()) as Order;
-        show("تم تحديث الحالة");
-        setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...updated } : o)));
-        if (expanded[id] && expanded[id] !== "loading") {
-          void loadDetails(id);
-        }
-      } else {
-        show("فشل التحديث", "error");
-      }
-    } catch {
-      show("خطأ في الشبكة", "error");
-    }
-  }
-
-  async function saveAdminNote(id: number, adminNote: string) {
-    try {
-      const r = await adminFetch(`${API_BASE}/admin/orders/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminNote }),
-      });
-      if (r.ok) {
-        const updated = (await r.json()) as Order;
-        show("تم حفظ الملاحظة");
-        setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...updated } : o)));
-        if (expanded[id] && expanded[id] !== "loading") {
-          void loadDetails(id);
-        }
-      } else {
-        show("تعذر حفظ الملاحظة", "error");
-      }
-    } catch {
-      show("خطأ في الشبكة", "error");
-    }
-  }
-
-  const [cleaning, setCleaning] = useState(false);
-  // One-click "clean up stuck orders": rescues actually-paid pending orders
-  // (PayPal + Paymob reconcile), then cancels stale abandoned online-payment
-  // orders (>1h old, COD untouched).
-  // Vodafone Cash / InstaPay: staff verified the WhatsApp proof. Marks the
-  // order paid in Medusa first, then here (unlocks digital access + emails).
-  async function confirmPayment(id: number) {
-    if (!window.confirm("تأكيد استلام الدفع لهذا الطلب؟ سيتم تفعيل الطلب وإرسال بريد للعميل.")) return;
-    const r = await adminFetch(`${API_BASE}/admin/orders/${id}/confirm-payment`, { method: "POST" });
-    const body = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      show(body.error || "تعذر تأكيد الدفع", "error");
-      return;
-    }
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...body } : o)));
-    show("تم تأكيد الدفع");
-  }
-
-  async function cleanupStuck() {
-    if (!window.confirm("تنظيف الطلبات العالقة؟ سيتم أولاً التحقق من المدفوعات ثم إلغاء الطلبات غير المدفوعة المهجورة (أقدم من ساعة).")) {
-      return;
-    }
-    setCleaning(true);
-    try {
-      const r = await adminFetch(`${API_BASE}/admin/orders/cleanup-stuck`, {
-        method: "POST",
-        credentials: "include",
-      });
-      if (r.ok) {
-        const data = (await r.json()) as {
-          expired?: { expired: number };
-          paypal?: { recovered?: number };
-        };
-        const expiredCount = data.expired?.expired ?? 0;
-        show(
-          expiredCount > 0
-            ? `تم التنظيف: أُلغي ${expiredCount} طلب عالق`
-            : "تم التنظيف: لا توجد طلبات عالقة",
-        );
-        await load();
-      } else {
-        show("فشل تنظيف الطلبات العالقة", "error");
-      }
-    } catch {
-      show("خطأ في الشبكة", "error");
-    } finally {
-      setCleaning(false);
-    }
-  }
-
   function exportCsv() {
     const rows = [
       [
@@ -379,20 +291,6 @@ export default function AdminOrdersPage() {
         }`}
         actions={
           <div className="flex gap-2">
-            <Button
-              onClick={cleanupStuck}
-              disabled={cleaning}
-              variant="outline"
-              className="gap-2 rounded-none font-bold"
-              data-testid="btn-cleanup-stuck"
-            >
-              {cleaning ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <Trash2 size={16} />
-              )}
-              تنظيف الطلبات العالقة
-            </Button>
             <Button onClick={exportCsv} variant="outline" className="gap-2 rounded-none font-bold">
               <Download size={16} /> تصدير CSV
             </Button>
@@ -517,32 +415,29 @@ export default function AdminOrdersPage() {
                         {o.exchangeRate ? ` @ ${o.exchangeRate}` : ""}
                       </div>
                     )}
-                    {(o.paymentMethod === "vodafone_cash" || o.paymentMethod === "instapay") &&
-                      o.paymentStatus !== "paid" &&
-                      o.status !== "cancelled" && (
-                        <Button
-                          size="sm"
-                          onClick={() => confirmPayment(o.id)}
-                          className="rounded-none font-bold"
-                          data-testid={`btn-confirm-payment-${o.id}`}
-                        >
-                          تأكيد الدفع
-                        </Button>
-                      )}
-                    <select
-                      value={o.status}
-                      onChange={(e) => updateStatus(o.id, e.target.value)}
+                    <span
                       className={`border px-3 py-1.5 text-sm rounded-none font-bold ${statusClasses(
                         o.status,
                       )}`}
-                      data-testid={`select-status-${o.id}`}
+                      data-testid={`text-status-${o.id}`}
                     >
-                      {Object.entries(STATUS_AR).map(([k, v]) => (
-                        <option key={k} value={k}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                      {STATUS_AR[o.status] || o.status}
+                    </span>
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 rounded-none font-bold"
+                    >
+                      <a
+                        href={medusaOrderUrl(o)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        data-testid={`link-edit-order-${o.id}`}
+                      >
+                        <Pencil size={14} /> تعديل
+                      </a>
+                    </Button>
                     <button
                       onClick={() => toggle(o.id)}
                       className="text-xs font-bold text-primary hover:underline inline-flex items-center gap-1"
@@ -568,7 +463,7 @@ export default function AdminOrdersPage() {
                         <Loader2 className="w-4 h-4 animate-spin" /> جارٍ تحميل التفاصيل...
                       </div>
                     ) : detailObj ? (
-                      <OrderDetailBlock order={detailObj} onSaveNote={saveAdminNote} />
+                      <OrderDetailBlock order={detailObj} />
                     ) : null}
                   </div>
                 )}
@@ -581,17 +476,7 @@ export default function AdminOrdersPage() {
   );
 }
 
-function OrderDetailBlock({
-  order,
-  onSaveNote,
-}: {
-  order: OrderWithItems;
-  onSaveNote: (id: number, note: string) => void;
-}) {
-  const [note, setNote] = useState(order.adminNote || "");
-  useEffect(() => {
-    setNote(order.adminNote || "");
-  }, [order.id, order.adminNote]);
+function OrderDetailBlock({ order }: { order: OrderWithItems }) {
   return (
     <div className="space-y-4">
       <div>
@@ -649,29 +534,14 @@ function OrderDetailBlock({
         </div>
       )}
 
-      <div className="border border-border p-3">
-        <div className="text-xs font-bold text-muted-foreground mb-2">
-          ملاحظات المسؤول (داخلية)
+      {order.adminNote && (
+        <div className="border border-border p-3 text-sm">
+          <div className="text-xs font-bold text-muted-foreground mb-1">
+            ملاحظات المسؤول (داخلية)
+          </div>
+          <div className="text-primary whitespace-pre-wrap">{order.adminNote}</div>
         </div>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          className="w-full border border-input bg-background p-2 text-sm rounded-none"
-          placeholder="ملاحظة داخلية لفريقك..."
-          data-testid={`textarea-admin-note-${order.id}`}
-        />
-        <div className="mt-2 flex justify-end">
-          <Button
-            size="sm"
-            onClick={() => onSaveNote(order.id, note.trim())}
-            className="rounded-none font-bold"
-            data-testid={`btn-save-admin-note-${order.id}`}
-          >
-            حفظ الملاحظة
-          </Button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
