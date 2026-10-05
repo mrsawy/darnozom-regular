@@ -128,7 +128,7 @@ describe("StoreBooks page", () => {
       </QueryClientProvider>,
     );
 
-    await waitFor(() => expect(screen.getByText("الكتب")).not.toBeNull());
+    await waitFor(() => expect(screen.getByRole("heading", { level: 1, name: "الكتب" })).not.toBeNull());
     expect(screen.getByText("لغة الكتاب")).not.toBeNull();
   });
 });
