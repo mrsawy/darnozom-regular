@@ -23,7 +23,7 @@ Re-skin the whole public site to the approved navy/ivory/gold identity, rebuild 
 
 - `/en/` URL-based localisation, hreflang, sitemap (language stays the current localStorage toggle).
 - Unified Arabic search, topic pages, reading list, AI editor assistant.
-- Newsletter backend (double opt-in, sending). Round 1 renders the newsletter block UI only; submit shows a "coming soon"/success toast without storing.
+- Newsletter backend (double opt-in, sending). Round 1 renders the newsletter block UI only; submit shows a "launching soon" toast and never claims the email was saved.
 - Restructuring of About / Services / Research Center / Academy / Consulting / Nozom Platform pages per brief §6–13 — they only receive the new styling.
 - Public Policy + Public Administration merge redirects.
 - Editorial workflow roles (reviewer, editor, etc.) — all admins can do everything, as today.
@@ -53,7 +53,7 @@ Tokens from brief §2, replacing the "Premium Islamic Green" palette in `apps/cl
 | border | `#D7E0E8` | card/field borders |
 
 - shadcn HSL variables (`--primary`, `--background`, `--accent`, …) are remapped to these values so existing components restyle automatically. Old emerald tokens are removed; any direct uses are replaced.
-- Fonts: Noto Sans Arabic (Arabic) and Inter (English), self-hosted under `apps/client/public/fonts` via `@font-face`. Body 18px desktop / 16px mobile, line-height 1.8 for Arabic.
+- Fonts: Noto Sans Arabic (Arabic) and Inter (English), self-hosted via `@fontsource-variable/noto-sans-arabic` and `@fontsource-variable/inter` (bundled). Body 18px desktop / 16px mobile, line-height 1.8 for Arabic.
 - Max content width 1200px, 24px gutters, 20px mobile side padding, card radius 4px, thin borders, minimal shadows, touch targets ≥ 44px.
 - Respect `prefers-reduced-motion`.
 
@@ -96,7 +96,7 @@ New Drizzle schema file `packages/db/src/schema/contentItems.ts` (exported via s
 |---|---|---|
 | id | serial PK | |
 | type | enum `content_type`: `observatory, article, study, publication, news, event` | |
-| slug | varchar(200), unique per type | auto-generated from English title (fallback: id-based) if blank; editable |
+| slug | varchar(200), globally unique | auto-generated from English title (fallback: id-based) if blank; editable |
 | status | enum `content_status`: `draft, review, published, archived` | only `published` is public |
 | titleAr / titleEn | varchar(500) | titleAr required |
 | summaryAr / summaryEn | text | |
@@ -110,16 +110,16 @@ New Drizzle schema file `packages/db/src/schema/contentItems.ts` (exported via s
 | details | jsonb default `{}` | type-specific, see below; validated with zod per type |
 | createdAt / updatedAt | timestamp | |
 
-Indexes: `(type, status, publishedAt desc)`, unique `(type, slug)`.
+Indexes: `(type, status, publishedAt desc)`, unique `(slug)`.
 
-### `details` shape per type (zod schemas in `packages/api-zod`)
+### `details` shape per type (zod schemas in `apps/api/src/lib/cms/schemas.ts`; client uses plain TS types in `apps/client/src/lib/cms-types.ts`)
 
 - **observatory**: `kind: "daily_brief" | "weekly_review" | "research_output" | "follow_up_file"`, `region?: "egypt" | "middle_east" | "islamic_world" | "rest_of_world"`, `whatHappenedAr/En?`, `ourReadingAr/En?`, `researchQuestionsAr/En?` (HTML), `sources: {title, url}[]`.
 - **article**: `relatedLinks: {title, url}[]`.
 - **study**: `questionAr/En?`, `methodAr/En?`, `findingsAr/En?`, `recommendationsAr/En?`, `keywords: string[]`, `pdfUrl?`.
 - **publication**: `kind: "report" | "periodical" | "research"`, `issueNumber?`, `pdfUrl?`. (Books are never stored here.)
 - **news**: `relatedLinks: {title, url}[]`.
-- **event**: `kind: "training" | "workshop" | "seminar" | "conference" | "exhibition"`, `startsAt` (ISO), `endsAt?`, `timezone` (default `Africa/Cairo`), `mode: "in_person" | "online" | "hybrid"`, `venueAr/En?`, `registration: "open" | "closed" | "interest"`, `registrationUrl?`, `isExternalEvent: boolean`, `organizerName?`, `organizerUrl?`. Upcoming/past is derived from `startsAt`, not stored.
+- **event**: `kind: "training" | "workshop" | "seminar" | "conference" | "exhibition"`, `startsAt?` (ISO; optional — an event without it counts as upcoming and shows "سجّل اهتمامك"), `endsAt?`, `timezone` (default `Africa/Cairo`), `mode: "in_person" | "online" | "hybrid"`, `venueAr/En?`, `registration: "open" | "closed" | "interest"`, `registrationUrl?`, `isExternalEvent: boolean`, `organizerName?`, `organizerUrl?`. Upcoming/past is derived from `startsAt`, not stored.
 
 ### `featured_slides`
 
@@ -138,7 +138,7 @@ Public endpoint resolves linked slides to final card data; slides whose linked i
 
 ### Events migration
 
-One-off script `apps/api/src/scripts/migrateEventsToContent.ts`: copies every `events` row into `content_items` (`type=event`, `status=published`). Old free-text `dateAr/dateEn` cannot be reliably parsed; the script attempts ISO/`d MMMM yyyy` parsing (Arabic + English month names) and, if it fails, sets `startsAt` from `createdAt` and moves the original text into `details.legacyDateText` and the item to `status=review` so an admin fixes it. Old `events` table and `/api/events` endpoints remain read-only until a later cleanup; the admin events screen is replaced by the new one. Script is idempotent (skips rows already migrated, tracked via `details.legacyEventId`).
+Idempotent function `apps/api/src/lib/seed/migrateEventsToContent.ts`, run at API startup: copies every `events` row into `content_items` (`type=event`, `status=published`). Old free-text `dateAr/dateEn` cannot be reliably parsed; the script attempts ISO/`d MMMM yyyy` parsing (Arabic + English month names) and, if it fails, leaves `startsAt` unset and moves the original text into `details.legacyDateText` and the item to `status=review` so an admin fixes it. Old `events` table and `/api/events` endpoints remain read-only until a later cleanup; the admin events screen is replaced by the new one. Script is idempotent (skips rows already migrated, tracked via `details.legacyEventId`).
 
 ## 5. API (`apps/api/src/routes/cms/`)
 
@@ -146,13 +146,13 @@ Public (no auth, only `status=published`):
 
 - `GET /api/cms/items?type=&area=&kind=&region=&when=upcoming|past&q=&page=&pageSize=` → `{items, total}`; sorted by `publishedAt desc`, except events with `when=upcoming` sorted by `startsAt asc`.
 - `GET /api/cms/items/:type/:slug` → item + `related` (up to 3 same-type, same-area, published).
-- `GET /api/cms/home` → one round-trip for the home page: `{featured, observatory: {lead, others[3]}, articles[3], studies[2], publications[4], newsEvents[3]}`. Publications merges admin publications with featured Medusa books (via the existing Medusa admin helper, publisher = Dar Nozom or `featured` tag), newest first, books mapped to `{kind:"book", href:"/services/store/books/:id"}`. A Medusa failure degrades to admin publications only (logged, not 500).
+- `GET /api/cms/home` → one round-trip for the home page: `{featured, observatory: {lead, others[3]}, articles[3], studies[2], publications[4], newsEvents[3]}`. `publications` contains admin publications only; the client merges Dar Nozom books from Medusa (store search by publisher) newest-first, and a Medusa failure degrades to admin publications only.
 
 Admin (`requireAdmin`):
 
-- `GET/POST /api/admin/cms/items`, `GET/PATCH/DELETE /api/admin/cms/items/:id` — any status; zod validation of shared fields + per-type `details`; body HTML sanitised server-side (`sanitize-html`, allow-list of headings, lists, links, images, blockquote, tables).
-- `GET/POST /api/admin/cms/featured`, `PATCH/DELETE /api/admin/cms/featured/:id`, `PUT /api/admin/cms/featured/order` (array of ids).
-- `GET /api/admin/cms/book-options?q=` — Medusa product search for the featured picker.
+- `GET/POST /api/admin/cms/items`, `GET/PUT/DELETE /api/admin/cms/items/:id` (PUT = full replace of editable fields), `GET /api/admin/cms/preview/:slug` — any status; zod validation of shared fields + per-type `details`; body HTML sanitised server-side (`sanitize-html`, allow-list of headings, lists, links, images, blockquote, tables).
+- `GET/POST /api/admin/cms/featured`, `PUT/DELETE /api/admin/cms/featured/:id`, `PUT /api/admin/cms/featured/order` (array of ids).
+- Featured book picker and book slide data use the client-side Medusa store helpers; the API stores only `medusaProductId`.
 - File upload: reuse existing `/api/admin/upload-image` for images; add a PDF variant (`/api/admin/upload-file`, `application/pdf`, ≤ 25 MB) on the same local object store.
 
 Errors: 400 with zod issue list, 404 for unknown id/slug, 409 on duplicate slug.
@@ -204,7 +204,7 @@ Old home sections (stats, partners, etc.) are removed from the home page; their 
 
 ## 9. Seed data
 
-Script `apps/api/src/scripts/seedHomeContent.ts` (idempotent by `(type, slug)`), run once on deploy via the existing deploy hook pattern:
+Function `apps/api/src/lib/seed/seedCmsContent.ts`, run at API startup after the events migration, once per database (guarded by `site_settings` key `cms_seed_v1`, so deleted seed items never return):
 
 - Image crops: a one-time local script (`scripts/crop-reference-images.mjs`, `sharp` as a root devDependency) cuts regions from `DarNozom_Homepage_Reference.png` using `assets/reference-regions.json` into `apps/client/public/seed/*.webp`, which are committed. The seed script only references those paths; it does not need `sharp` at runtime.
 - Creates **published** items mirroring the reference: observatory lead "مستجدات السياسات والإدارة والشأن العام" + الموجز اليومي / الإنتاج الفكري والبحثي / ملفات المتابعة; articles "القيمة العامة وجودة القرار", "القيادة وبناء المؤسسات", "التأصيل الشرعي وفهم الواقع"; studies "الحوكمة وجودة الخدمات العامة", "السياسة الشرعية وبناء المؤسسات"; publications (report "السياسات العامة", periodical "الإدارة العامة"); news "جديد دار نظم"; events seminar "السياسات العامة وتطوير المؤسسات", workshop "القيادة والإدارة والحوكمة"; featured slides: project "نحو تأسيس علم السياسة الشرعية المعاصرة" (custom), program "القيادة والإدارة والحوكمة" (custom → academy), publications "كتب السياسة الشرعية والإدارة" (custom → publications), solutions "حلول نظم بلاتفورم" (custom → services).
@@ -222,7 +222,7 @@ Script `apps/api/src/scripts/seedHomeContent.ts` (idempotent by `(type, slug)`),
 
 1. Branch `feat/redesign-cms`; schema pushed to local DB.
 2. Merge to `production` only after user review of a local run.
-3. Deploy runs `db:push`, then `migrateEventsToContent`, then `seedHomeContent` (both idempotent).
+3. Deploy runs `db:push`; on startup the API runs `migrateEventsToContent` then `seedCmsContent` (both idempotent).
 4. Before the first deploy of this branch, take a manual `pg_dump` of the production DB on the server. `deploy.sh` only *restores* `backup.sql` on first run; it does not create backups.
 
 ## 12. New dependencies
@@ -230,4 +230,4 @@ Script `apps/api/src/scripts/seedHomeContent.ts` (idempotent by `(type, slug)`),
 - API: `sanitize-html` (+ types).
 - Client: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-link`, `@tiptap/extension-image`; `@dnd-kit/core`, `@dnd-kit/sortable`.
 - Root dev: `sharp` (one-time image cropping script only).
-- Fonts: Noto Sans Arabic + Inter `.woff2` files committed under `apps/client/public/fonts`.
+- Fonts: `@fontsource-variable/noto-sans-arabic`, `@fontsource-variable/inter`.
