@@ -26,3 +26,4 @@ export * from "./jobApplications.js";
 export * from "./jobOpenings.js";
 export * from "./consultationSlots.js";
 export * from "./consultationBookings.js";
+export * from "./contentItems.js";
