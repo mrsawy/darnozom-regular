@@ -166,6 +166,9 @@ export const PUBLIC_OBJECT_PREFIXES = [
   "academy/",
   "store/",
   "uploads/",
+  // CMS covers, inline images, slide images and PDFs shown on public pages.
+  "cms/",
+  "featured/",
 ] as const;
 
 export function isPublicObjectKey(relativeKey: string): boolean {
