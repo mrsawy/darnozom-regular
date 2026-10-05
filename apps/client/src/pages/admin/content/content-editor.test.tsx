@@ -52,4 +52,25 @@ describe("AdminContentEditor", () => {
     fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
     expect(await screen.findByText("details.kind: Required")).toBeTruthy();
   });
+
+  it("shows and saves event times in the event's timezone, not the device's", async () => {
+    const existing = {
+      id: 5, type: "event", slug: "e", status: "draft", titleAr: "ندوة", titleEn: "", summaryAr: "", summaryEn: "", bodyAr: "", bodyEn: "",
+      coverImageUrl: "", area: null, authorAr: "", authorEn: "", isExternal: false, externalUrl: "", publishedAt: null,
+      details: { kind: "seminar", startsAt: "2026-11-01T08:00:00.000Z", timezone: "Africa/Cairo" }, createdAt: "", updatedAt: "",
+    };
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) =>
+      init?.method === "PUT" ? new Response(JSON.stringify(existing)) : new Response(JSON.stringify(existing)),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const loc = memoryLocation({ path: "/admin/content/event/5" });
+    render(<Router hook={loc.hook}><AdminContentEditor type={"event" as any} id="5" /></Router>);
+    const input = (await screen.findByDisplayValue("2026-11-01T10:00")) as HTMLInputElement;
+    expect(input.getAttribute("aria-label")).toBe("تبدأ في");
+    fireEvent.change(input, { target: { value: "2026-11-02T10:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
+    await waitFor(() => expect(fetchMock.mock.calls.some(([, i]) => i?.method === "PUT")).toBe(true));
+    const put = fetchMock.mock.calls.find(([, i]) => i?.method === "PUT")!;
+    expect(JSON.parse(String(put[1]!.body)).details.startsAt).toBe("2026-11-02T08:00:00.000Z");
+  });
 });

@@ -92,7 +92,7 @@ export function EventFacts({ item, lang }: { item: ContentItem; lang: Lang }) {
   return (
     <dl className="bg-white border border-line rounded-[4px] p-5 space-y-3 text-sm">
       <div><dt className="text-ink-muted">{L(lang, "النوع", "Type")}</dt><dd className="font-semibold">{EVENT_KINDS[d.kind]?.[lang]}</dd></div>
-      <div><dt className="text-ink-muted">{L(lang, "الموعد", "Date")}</dt><dd className="font-semibold">{d.startsAt ? `${formatDate(d.startsAt, lang, true)} (${d.timezone ?? "Africa/Cairo"})` : L(lang, "يُعلن لاحقًا", "To be announced")}</dd></div>
+      <div><dt className="text-ink-muted">{L(lang, "الموعد", "Date")}</dt><dd className="font-semibold">{d.startsAt ? `${formatDate(d.startsAt, lang, true, d.timezone || "Africa/Cairo")} (${d.timezone || "Africa/Cairo"})` : L(lang, "يُعلن لاحقًا", "To be announced")}</dd></div>
       {mode && <div><dt className="text-ink-muted">{L(lang, "نمط الحضور", "Attendance")}</dt><dd className="font-semibold">{mode}{venue ? ` — ${venue}` : ""}</dd></div>}
       {d.isExternalEvent && d.organizerName && (
         <div><dt className="text-ink-muted">{L(lang, "فعالية خارجية — الجهة المنظمة", "External event — organiser")}</dt>

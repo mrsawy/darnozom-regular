@@ -89,7 +89,7 @@ export function contentPath(type: ContentType, slug: string): string {
   return `${BASE[type]}/${slug}`;
 }
 
-export function formatDate(iso: string | null | undefined, lang: Lang, withTime = false): string {
+export function formatDate(iso: string | null | undefined, lang: Lang, withTime = false, timeZone?: string): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -98,6 +98,7 @@ export function formatDate(iso: string | null | undefined, lang: Lang, withTime 
     month: "long",
     year: "numeric",
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
+    ...(timeZone ? { timeZone } : {}),
   }).format(d);
 }
 

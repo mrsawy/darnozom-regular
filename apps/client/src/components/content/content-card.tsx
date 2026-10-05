@@ -17,7 +17,7 @@ export function ContentCard({ item, variant = "vertical" }: { item: ContentItem;
   const date = itemDate(item);
   const dateText = item.type === "event" && !item.details?.startsAt
     ? (isArabic ? "الموعد يُعلن لاحقًا" : "Date to be announced")
-    : formatDate(date, lang);
+    : formatDate(date, lang, false, item.type === "event" ? item.details?.timezone || "Africa/Cairo" : undefined);
 
   const image = item.coverImageUrl ? (
     <img

@@ -11,6 +11,7 @@ import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { FileUploadField } from "@/components/admin/file-upload-field";
 import { Button } from "@/components/ui/button";
 import { STATUS_LABELS } from "./content-list";
+import { DEFAULT_EVENT_TZ, browserTimeZone, fromZonedInput, toZonedInput } from "@/lib/datetime";
 import NotFound from "@/pages/not-found";
 
 type Form = Omit<ContentItem, "id" | "createdAt" | "updatedAt">;
@@ -22,8 +23,6 @@ const blank = (type: ContentType): Form => ({
 });
 
 const inputCls = "w-full min-h-10 px-3 border border-line rounded bg-white";
-const toLocalInput = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 16) : "");
-const fromLocalInput = (v: string) => (v ? new Date(v).toISOString() : undefined);
 
 function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const cfg = TYPE_CONFIG[type];
@@ -127,13 +126,16 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
             <FileUploadField value={d[f.key] ?? ""} onChange={(v) => setD(f.key, v)} folder="cms" />
           </div>
         );
-      case "datetime":
+      case "datetime": {
+        // Event times are entered in the event's own timezone (default Cairo).
+        const tz = d.timezone || DEFAULT_EVENT_TZ;
         return (
           <label key={f.key} className="block">
-            <span className="text-sm font-semibold">{f.labelAr} (بتوقيت جهازك)</span>
-            <input type="datetime-local" aria-label={f.labelAr} className={inputCls} value={toLocalInput(d[f.key])} onChange={(e) => setD(f.key, fromLocalInput(e.target.value))} />
+            <span className="text-sm font-semibold">{f.labelAr} (بتوقيت {tz})</span>
+            <input type="datetime-local" aria-label={f.labelAr} className={inputCls} value={toZonedInput(d[f.key], tz)} onChange={(e) => setD(f.key, fromZonedInput(e.target.value, tz))} />
           </label>
         );
+      }
       case "checkbox":
         return (
           <label key={f.key} className="flex items-center gap-2">
@@ -178,7 +180,7 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
         </label>
         <label className="block">
           <span className="text-sm font-semibold">تاريخ النشر</span>
-          <input type="datetime-local" aria-label="تاريخ النشر" className={inputCls} value={toLocalInput(form.publishedAt ?? undefined)} onChange={(e) => set("publishedAt", fromLocalInput(e.target.value) ?? null)} />
+          <input type="datetime-local" aria-label="تاريخ النشر" className={inputCls} value={toZonedInput(form.publishedAt, browserTimeZone())} onChange={(e) => set("publishedAt", fromZonedInput(e.target.value, browserTimeZone()) ?? null)} />
         </label>
         <label className="block sm:col-span-2">
           <span className="text-sm font-semibold">الرابط المختصر (slug) — يُولَّد تلقائيًا إن تُرك فارغًا</span>
