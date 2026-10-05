@@ -5,6 +5,7 @@ import { attachAdminSocket } from "./lib/admin-socket";
 import { seedStoreApps } from "./lib/seed/seedStoreApps";
 import { seedJobOpenings } from "./lib/seed/seedJobOpenings";
 import { seedAdminUsers } from "./lib/seed/seedAdminUsers";
+import { migrateEventsToContent } from "./lib/seed/migrateEventsToContent";
 import { startPayPalReconciliationJob } from "./lib/payments/reconcilePayPalOrders";
 import { startPaymobReconciliationJob } from "./lib/payments/reconcilePaymobOrders";
 
@@ -30,6 +31,9 @@ server.listen(port, () => {
   void seedStoreApps();
   void seedJobOpenings();
   void seedAdminUsers();
+  void (async () => {
+    await migrateEventsToContent();
+  })();
   // Server-side safety net: periodically flip any PayPal order that was paid on
   // PayPal's side but left stuck "pending" (e.g. buyer closed the tab before
   // the return capture ran) to paid + confirmed. Idempotent, never re-charges.
