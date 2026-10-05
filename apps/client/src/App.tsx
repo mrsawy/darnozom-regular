@@ -54,6 +54,7 @@ import AdminBooks from "@/pages/admin/store/books";
 import AdminStoreCourses from "@/pages/admin/store/store-courses";
 import AdminAcademy from "@/pages/admin/academy/academy";
 import AdminContentList from "@/pages/admin/content/content-list";
+import AdminFeatured from "@/pages/admin/content/featured";
 import AdminContentEditor from "@/pages/admin/content/content-editor";
 import AdminConsultationSlots from "@/pages/admin/consultation-slots";
 import AdminConsultationBookings from "@/pages/admin/consultation-bookings";
@@ -82,6 +83,7 @@ function AdminRouter() {
         <Route path="/admin/books" component={AdminBooks} />
         <Route path="/admin/store-courses" component={AdminStoreCourses} />
         <Route path="/admin/academy" component={AdminAcademy} />
+        <Route path="/admin/featured" component={AdminFeatured} />
         <Route path="/admin/events"><Redirect to="/admin/content/event" /></Route>
         <Route path="/admin/content/:type/:id">{(p) => <AdminContentEditor key={`${p.type}-${p.id}`} type={p.type as ContentType} id={p.id} />}</Route>
         <Route path="/admin/content/:type">{(p) => <AdminContentList key={p.type} type={p.type as ContentType} />}</Route>
