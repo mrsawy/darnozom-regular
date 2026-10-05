@@ -4,14 +4,14 @@ import { db } from "@workspace/db";
 import {
   books,
   storeCourses,
-  events,
+  contentItems,
   academyCourses,
   courseRegistrations,
   adminUserEvents,
   orders,
   users,
 } from "@workspace/db";
-import { count, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import multer from "multer";
 import { randomUUID } from "crypto";
 import {
@@ -65,6 +65,46 @@ router.post(
   }
 );
 
+const MAX_PDF_SIZE = 25 * 1024 * 1024;
+const uploadPdf = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_PDF_SIZE },
+  fileFilter(_req, file, cb) {
+    if (file.mimetype === "application/pdf") cb(null, true);
+    else cb(new Error("Only PDF files are allowed"));
+  },
+});
+
+router.post(
+  "/admin/upload-file",
+  requireAdmin,
+  (req: Request, res: Response, next: NextFunction) => {
+    uploadPdf.single("file")(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") return res.status(400).json({ error: "File too large (max 25 MB)" });
+        return res.status(400).json({ error: err.message });
+      }
+      if (err) return res.status(400).json({ error: (err as Error).message });
+      return next();
+    });
+  },
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No file provided" });
+      const folderRaw = (req.query.folder as string | undefined) || "files";
+      const folder = folderRaw.replace(/[^a-z0-9_-]/gi, "").slice(0, 32) || "files";
+      const objectId = randomUUID();
+      await savePrivateObject(`${folder}/${objectId}`, req.file.buffer, req.file.mimetype, {
+        cacheControl: "public, max-age=31536000",
+      });
+      return res.json({ url: `/api/storage/objects/${folder}/${objectId}` });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Failed to upload file" });
+    }
+  },
+);
+
 router.get("/admin/me", async (req, res) => {
   try {
     const status = await checkAdminStatus(req);
@@ -95,8 +135,17 @@ router.get("/admin/stats", requireAdmin, async (_req, res) => {
       db.select({ c: count() }).from(books),
       db.select({ c: count() }).from(storeCourses),
       db.select({ c: count() }).from(academyCourses),
-      db.select({ c: count() }).from(events).where(eq(events.status, "upcoming")),
-      db.select({ c: count() }).from(events),
+      db
+        .select({ c: count() })
+        .from(contentItems)
+        .where(
+          and(
+            eq(contentItems.type, "event"),
+            eq(contentItems.status, "published"),
+            sql`((${contentItems.details}->>'startsAt') is null or (${contentItems.details}->>'startsAt')::timestamptz >= now())`,
+          ),
+        ),
+      db.select({ c: count() }).from(contentItems).where(eq(contentItems.type, "event")),
       db
         .select({ c: count() })
         .from(courseRegistrations)
