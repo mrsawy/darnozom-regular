@@ -1,9 +1,10 @@
 import { randomUUID } from "crypto";
-import { and, count, desc, eq, ilike, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
-import { db, contentItems, type ContentItem } from "@workspace/db";
+import { and, asc, count, desc, eq, ilike, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
+import { db, contentItems, featuredSlides, type ContentItem, type FeaturedSlide } from "@workspace/db";
 import { sanitizeItem } from "./sanitize";
 import { slugify, withSuffix } from "./slug";
-import type { ContentArea, ContentItemInput, ContentStatus, ContentType } from "./schemas";
+import { contentPath } from "./paths";
+import type { ContentArea, ContentItemInput, ContentStatus, ContentType, FeaturedSlideInput } from "./schemas";
 
 export class SlugConflictError extends Error {
   constructor(slug: string) {
@@ -196,7 +197,8 @@ export async function getRelated(item: ContentItem, limit = 3): Promise<ContentI
 
 export async function getHome() {
   const take = (types: ContentType[], n: number) => listPublished({ types, pageSize: n }).then((r) => r.items);
-  const [observatory, articles, studies, publications, newsEvents] = await Promise.all([
+  const [featured, observatory, articles, studies, publications, newsEvents] = await Promise.all([
+    resolveFeatured(),
     take(["observatory"], 4),
     take(["article"], 3),
     take(["study"], 2),
@@ -204,10 +206,140 @@ export async function getHome() {
     take(["news", "event"], 3),
   ]);
   return {
+    featured,
     observatory: { lead: observatory[0] ?? null, others: observatory.slice(1) },
     articles,
     studies,
     publications,
     newsEvents,
   };
+}
+
+export type FeaturedCard = {
+  id: number;
+  sourceKind: "content" | "book" | "custom";
+  medusaProductId: string | null;
+  contentType: ContentType | null;
+  contentKind: string | null;
+  badgeAr: string;
+  badgeEn: string;
+  titleAr: string;
+  titleEn: string;
+  summaryAr: string;
+  summaryEn: string;
+  imageUrl: string;
+  ctaLabelAr: string;
+  ctaLabelEn: string;
+  href: string;
+};
+
+const pick = (override: string, fallback: string) => (override.trim() ? override : fallback);
+
+export async function resolveFeatured(limit = 6): Promise<FeaturedCard[]> {
+  const slides = await db
+    .select()
+    .from(featuredSlides)
+    .where(eq(featuredSlides.isActive, true))
+    .orderBy(asc(featuredSlides.position), asc(featuredSlides.id));
+  const ids = slides.map((s) => s.contentItemId).filter((x): x is number => x != null);
+  const linked = ids.length
+    ? await db
+        .select()
+        .from(contentItems)
+        .where(and(inArray(contentItems.id, ids), eq(contentItems.status, "published")))
+    : [];
+  const byId = new Map(linked.map((i) => [i.id, i]));
+  const cards: FeaturedCard[] = [];
+  for (const s of slides) {
+    if (cards.length >= limit) break;
+    const base = {
+      id: s.id,
+      sourceKind: s.sourceKind,
+      medusaProductId: s.medusaProductId,
+      contentType: null as ContentType | null,
+      contentKind: null as string | null,
+      badgeAr: s.badgeAr,
+      badgeEn: s.badgeEn,
+      titleAr: s.titleAr,
+      titleEn: s.titleEn,
+      summaryAr: s.summaryAr,
+      summaryEn: s.summaryEn,
+      imageUrl: s.imageUrl,
+      ctaLabelAr: s.ctaLabelAr,
+      ctaLabelEn: s.ctaLabelEn,
+      href: s.href,
+    };
+    if (s.sourceKind === "content") {
+      const item = s.contentItemId != null ? byId.get(s.contentItemId) : undefined;
+      if (!item) continue;
+      cards.push({
+        ...base,
+        contentType: item.type,
+        contentKind: typeof item.details.kind === "string" ? item.details.kind : null,
+        titleAr: pick(s.titleAr, item.titleAr),
+        titleEn: pick(s.titleEn, item.titleEn),
+        summaryAr: pick(s.summaryAr, item.summaryAr),
+        summaryEn: pick(s.summaryEn, item.summaryEn),
+        imageUrl: pick(s.imageUrl, item.coverImageUrl),
+        href: pick(s.href, contentPath(item.type, item.slug)),
+      });
+    } else if (s.sourceKind === "book") {
+      if (!s.medusaProductId) continue;
+      cards.push({ ...base, href: pick(s.href, `/services/store/books/${s.medusaProductId}`) });
+    } else {
+      if (!s.titleAr || !s.href) continue;
+      cards.push(base);
+    }
+  }
+  return cards;
+}
+
+export async function listSlidesAdmin() {
+  const slides = await db.select().from(featuredSlides).orderBy(asc(featuredSlides.position), asc(featuredSlides.id));
+  const ids = slides.map((s) => s.contentItemId).filter((x): x is number => x != null);
+  const linked = ids.length
+    ? await db
+        .select({ id: contentItems.id, titleAr: contentItems.titleAr, status: contentItems.status })
+        .from(contentItems)
+        .where(inArray(contentItems.id, ids))
+    : [];
+  const byId = new Map(linked.map((i) => [i.id, i]));
+  return slides.map((s) => ({
+    ...s,
+    linkedTitleAr: s.contentItemId != null ? (byId.get(s.contentItemId)?.titleAr ?? null) : null,
+    linkedStatus: s.contentItemId != null ? (byId.get(s.contentItemId)?.status ?? null) : null,
+  }));
+}
+
+export async function createSlide(v: FeaturedSlideInput): Promise<FeaturedSlide> {
+  const [{ max }] = await db
+    .select({ max: sql<number>`coalesce(max(${featuredSlides.position}), -1)` })
+    .from(featuredSlides);
+  const [row] = await db
+    .insert(featuredSlides)
+    .values({ ...v, position: Number(max) + 1 })
+    .returning();
+  return row;
+}
+
+export async function updateSlide(id: number, v: FeaturedSlideInput): Promise<FeaturedSlide | null> {
+  const [row] = await db
+    .update(featuredSlides)
+    .set({ ...v, updatedAt: new Date() })
+    .where(eq(featuredSlides.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function deleteSlide(id: number): Promise<boolean> {
+  const rows = await db.delete(featuredSlides).where(eq(featuredSlides.id, id)).returning({ id: featuredSlides.id });
+  return rows.length > 0;
+}
+
+export async function reorderSlides(ids: number[]): Promise<void> {
+  await db.transaction(async (tx) => {
+    for (const [position, id] of ids.entries()) {
+      await tx.update(featuredSlides).set({ position, updatedAt: new Date() }).where(eq(featuredSlides.id, id));
+    }
+  });
 }
