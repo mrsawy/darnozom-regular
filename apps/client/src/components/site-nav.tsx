@@ -58,7 +58,7 @@ export default function SiteNav(_props: Props) {
             {t("متجر الكتب", "Book store")}
           </Link>
           <CartButton language={language} />
-          <div className="hidden lg:flex items-center gap-2"><AuthSlot isRTL={isArabic} language={language} onNavigate={navigate} /></div>
+          <div className="hidden xl:flex items-center gap-2"><AuthSlot isRTL={isArabic} language={language} onNavigate={navigate} /></div>
           <button type="button" onClick={toggleLanguage} className="min-h-11 px-2 font-semibold hover:text-gold-light" lang={isArabic ? "en" : "ar"}>
             {isArabic ? "English" : "العربية"}
           </button>
@@ -66,7 +66,7 @@ export default function SiteNav(_props: Props) {
       </div>
 
       <header className="sticky top-0 z-40 bg-white border-b border-line">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 h-20 flex items-center gap-6">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 h-20 flex items-center gap-4 xl:gap-6">
           <Link href="/" className="flex items-center gap-3 shrink-0" aria-label={t(BRAND.nameAr, BRAND.nameEn)}>
             <img src={LOGO} alt="" className="h-11 w-auto" />
             <span className="flex flex-col leading-tight">
@@ -75,7 +75,7 @@ export default function SiteNav(_props: Props) {
             </span>
           </Link>
 
-          <nav ref={navRef} aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden lg:flex flex-1 items-stretch justify-center h-full">
+          <nav ref={navRef} aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden xl:flex flex-1 items-stretch justify-center h-full">
             {MAIN_NAV.map((entry) => (
               <DesktopItem
                 key={entry.key}
@@ -94,11 +94,11 @@ export default function SiteNav(_props: Props) {
             ))}
           </nav>
 
-          <span className="hidden xl:block ms-auto text-sm font-bold tracking-[0.35em] text-navy" dir="ltr">DARNOZOM</span>
+          <span className="hidden 2xl:block ms-auto text-sm font-bold tracking-[0.35em] text-navy" dir="ltr">DARNOZOM</span>
 
           <button
             type="button"
-            className="lg:hidden ms-auto inline-flex items-center justify-center w-11 h-11 text-navy"
+            className="xl:hidden ms-auto inline-flex items-center justify-center w-11 h-11 text-navy"
             onClick={() => setMobileOpen(true)}
             aria-label={t("فتح القائمة", "Open menu")}
           >
@@ -158,7 +158,7 @@ function DesktopItem({
       <Link
         href={entry.href}
         aria-current={isActive ? "page" : undefined}
-        className={`px-2 xl:px-3 h-full inline-flex items-center text-[15px] font-semibold border-b-2 transition-colors ${
+        className={`ps-1.5 h-full inline-flex items-center whitespace-nowrap text-sm font-semibold border-b-2 transition-colors ${
           isActive ? "text-navy border-gold" : "text-ink border-transparent hover:text-navy"
         }`}
       >
@@ -171,7 +171,7 @@ function DesktopItem({
         aria-controls={panelId}
         aria-label={isArabic ? `فتح قائمة ${entry.labelAr}` : `Open ${entry.labelEn} menu`}
         onClick={onToggle}
-        className="w-6 h-11 inline-flex items-center justify-center text-ink-muted hover:text-navy"
+        className="w-4 h-11 inline-flex items-center justify-center text-ink-muted hover:text-navy"
       >
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden />
       </button>

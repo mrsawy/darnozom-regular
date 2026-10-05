@@ -53,7 +53,7 @@ export function ContentCard({ item, variant = "vertical" }: { item: ContentItem;
             {author && dateText && <span aria-hidden>·</span>}
             {dateText && <span>{dateText}</span>}
           </span>
-          <Link href={href} className="inline-flex items-center gap-1 text-sm font-semibold text-navy min-h-11">
+          <Link href={href} className="shrink-0 whitespace-nowrap inline-flex items-center gap-1 text-sm font-semibold text-navy min-h-11">
             {ctaLabel(item.type, item.details, lang)} <Arrow className="w-4 h-4" aria-hidden />
           </Link>
         </div>
