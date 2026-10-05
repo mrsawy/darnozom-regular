@@ -11,16 +11,19 @@ import NotFound from "@/pages/not-found";
 
 export const STATUS_LABELS: Record<ContentStatus, string> = { draft: "مسودة", review: "قيد المراجعة", published: "منشور", archived: "مؤرشف" };
 
+const PAGE_SIZE = 50;
+
 function ContentList({ type }: { type: ContentType }) {
   const cfg = TYPE_CONFIG[type];
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const [data, setData] = useState<ListResponse | null>(null);
   const [error, setError] = useState("");
   const { toast, show } = useToast();
 
-  const load = async () => {
-    const qs = new URLSearchParams({ type, pageSize: "100" });
+  const load = async (targetPage = page) => {
+    const qs = new URLSearchParams({ type, page: String(targetPage), pageSize: String(PAGE_SIZE) });
     if (status) qs.set("status", status);
     if (q.trim()) qs.set("q", q.trim());
     try {
@@ -30,7 +33,8 @@ function ContentList({ type }: { type: ContentType }) {
       setError((e as Error).message);
     }
   };
-  useEffect(() => { void load(); }, [type, status]);
+  useEffect(() => { void load(page); }, [type, status, page]);
+  const totalPages = data ? Math.max(Math.ceil(data.total / PAGE_SIZE), 1) : 1;
 
   const remove = async (item: ContentItem) => {
     if (!window.confirm(`حذف «${item.titleAr}» نهائيًا؟`)) return;
@@ -46,9 +50,9 @@ function ContentList({ type }: { type: ContentType }) {
         description={`إدارة ${cfg.pluralAr}: إضافة وتعديل ونشر وأرشفة.`}
         actions={<Button asChild className="rounded-none gap-2"><Link href={`/admin/content/${type}/new`}><Plus className="w-4 h-4" /> {`${cfg.labelAr} جديد`}</Link></Button>}
       />
-      <form className="flex flex-wrap gap-2 mb-4" onSubmit={(e) => { e.preventDefault(); void load(); }}>
+      <form className="flex flex-wrap gap-2 mb-4" onSubmit={(e) => { e.preventDefault(); if (page === 1) void load(1); else setPage(1); }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث في العناوين والملخصات" className="min-h-10 px-3 border border-line rounded flex-1 min-w-[220px]" />
-        <select aria-label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)} className="min-h-10 px-3 border border-line rounded">
+        <select aria-label="الحالة" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="min-h-10 px-3 border border-line rounded">
           <option value="">كل الحالات</option>
           {Object.entries(STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
@@ -77,6 +81,13 @@ function ContentList({ type }: { type: ContentType }) {
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <nav aria-label="الصفحات" className="flex items-center justify-center gap-4 mt-4">
+          <Button type="button" variant="outline" className="rounded-none" disabled={page <= 1} onClick={() => setPage(page - 1)}>السابق</Button>
+          <span className="text-sm text-ink-muted">{page} / {totalPages}</span>
+          <Button type="button" variant="outline" className="rounded-none" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>التالي</Button>
+        </nav>
+      )}
     </div>
   );
 }
