@@ -2102,7 +2102,7 @@ export default function Academy() {
             <span>{t.backHome}</span>
           </Link>
           <Link
-            href="/events"
+            href="/news-events?tab=events"
             className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm border border-border px-4 py-2 hover:border-primary"
           >
             <span>{t.academyEvents}</span>

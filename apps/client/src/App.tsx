@@ -17,7 +17,6 @@ import AcademyCareerPaths from "@/pages/academy-career-paths";
 import AcademyForOrganizations from "@/pages/academy-for-organizations";
 import AcademyDiplomas from "@/pages/academy-diplomas";
 import AcademyCourses from "@/pages/academy-courses";
-import Events from "@/pages/events";
 import ServiceRegistration from "@/pages/service-registration";
 import StoreBooksPage from "@/pages/store-books";
 import StoreBookDetailPage from "@/pages/store-book-detail";
@@ -47,6 +46,8 @@ import CheckoutPayPalReturnPage from "@/pages/checkout-paypal-return";
 import CheckoutPaymobPayPage from "@/pages/checkout-paymob-pay";
 import CheckoutPaymobWalletPage from "@/pages/checkout-paymob-wallet";
 import CheckoutManualPage from "@/pages/checkout-manual";
+import ContentListPage from "@/pages/content/content-list-page";
+import ContentDetailPage from "@/pages/content/content-detail-page";
 import { AdminGate } from "@/pages/admin/layout";
 import AdminOverview from "@/pages/admin/overview";
 import AdminBooks from "@/pages/admin/store/books";
@@ -129,7 +130,6 @@ function Router() {
       <Route path="/academy/for-organizations" component={AcademyForOrganizations} />
       <Route path="/academy/apply" component={AcademyApply} />
       <Route path="/academy/register" component={AcademyRegister} />
-      <Route path="/events" component={Events} />
       <Route path="/rfp" component={RfpRedirect} />
       <Route path="/service-registration" component={ServiceRegistration} />
 
@@ -166,6 +166,18 @@ function Router() {
       {/* Unified admin (role-gated by AdminGate) */}
       <Route path="/admin" component={AdminRouter} />
       <Route path="/admin/:rest*" component={AdminRouter} />
+
+      <Route path="/events"><Redirect to="/news-events?tab=events" replace /></Route>
+      <Route path="/observatory">{() => <ContentListPage section="observatory" />}</Route>
+      <Route path="/observatory/:slug">{(p) => <ContentDetailPage key={p.slug} section="observatory" slug={p.slug} />}</Route>
+      <Route path="/articles">{() => <ContentListPage section="articles" />}</Route>
+      <Route path="/articles/:slug">{(p) => <ContentDetailPage key={p.slug} section="articles" slug={p.slug} />}</Route>
+      <Route path="/studies">{() => <ContentListPage section="studies" />}</Route>
+      <Route path="/studies/:slug">{(p) => <ContentDetailPage key={p.slug} section="studies" slug={p.slug} />}</Route>
+      <Route path="/publications">{() => <ContentListPage section="publications" />}</Route>
+      <Route path="/publications/:slug">{(p) => <ContentDetailPage key={p.slug} section="publications" slug={p.slug} />}</Route>
+      <Route path="/news-events">{() => <ContentListPage section="news-events" />}</Route>
+      <Route path="/news-events/:slug">{(p) => <ContentDetailPage key={p.slug} section="news-events" slug={p.slug} />}</Route>
 
       <Route path="/services/store"><Redirect to="/services/store/books" /></Route>
       <Route path="/services/store/books" component={StoreBooksPage} />

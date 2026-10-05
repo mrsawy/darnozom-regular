@@ -35,7 +35,7 @@ const EVENTS_RESULTS: SearchResult[] = EVENTS.map(e => ({
   descAr: e.desc.ar,
   descEn: e.desc.en,
   category: "event",
-  href: "/events",
+  href: "/news-events?tab=events",
 }));
 
 const ACADEMY_RESULTS: SearchResult[] = PROGRAMS.map(p => ({
