@@ -36,4 +36,13 @@ describe("FeaturedShowcase", () => {
     expect(mainTitle()).toBe("الثاني");
     expect(screen.getByTestId("featured-live").getAttribute("aria-live")).toBe("polite");
   });
+  it("opens external card links in a new tab instead of client-side routing", () => {
+    const ext = [{ ...card(1, "خارجي"), href: "https://partner.example/page" }, card(2, "داخلي")] as any;
+    render(<FeaturedShowcase cards={ext} />);
+    const cta = screen.getAllByRole("link").find((a) => a.getAttribute("href") === "https://partner.example/page")!;
+    expect(cta).toBeTruthy();
+    expect(cta.getAttribute("href")).toBe("https://partner.example/page");
+    expect(cta.getAttribute("target")).toBe("_blank");
+    expect(cta.getAttribute("rel")).toContain("noopener");
+  });
 });

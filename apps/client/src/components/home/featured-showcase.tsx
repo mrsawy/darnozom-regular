@@ -103,6 +103,14 @@ export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
   );
 }
 
+/** Site paths use client-side routing; slide hrefs may also be external http(s) URLs. */
+function CardLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+  if (/^https?:\/\//i.test(href)) {
+    return <a href={href} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>;
+  }
+  return <Link href={href} className={className}>{children}</Link>;
+}
+
 function LiveTitle({ card, lang }: { card: FeaturedCard; lang: "ar" | "en" }) {
   const { title } = useCardText(card, lang);
   return <p data-testid="featured-live" aria-live="polite" className="sr-only">{title}</p>;
@@ -122,9 +130,9 @@ function MainCard({ card, lang, isArabic, controls }: { card: FeaturedCard; lang
         {c.badge && <CategoryBadge>{c.badge}</CategoryBadge>}
         <h2 data-testid="featured-main-title" className="mt-3 text-2xl lg:text-[28px] font-bold leading-snug">{c.title}</h2>
         {c.summary && <p className="mt-2 text-white/85">{c.summary}</p>}
-        <Link href={card.href} className="mt-4 inline-flex items-center gap-2 min-h-11 px-5 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
+        <CardLink href={card.href} className="mt-4 inline-flex items-center gap-2 min-h-11 px-5 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
           {c.cta} <Arrow className="w-4 h-4" aria-hidden />
-        </Link>
+        </CardLink>
       </div>
     </>
   );
@@ -141,7 +149,7 @@ function SideCard({ card, lang, isArabic, current, onSelect }: { card: FeaturedC
         {c.summary && <span className="block mt-1 text-sm text-ink-muted line-clamp-2">{c.summary}</span>}
       </button>
       {c.image && <img src={c.image} alt="" loading="lazy" className="w-32 object-cover" />}
-      <Link href={card.href} className="sr-only focus:not-sr-only">{c.cta} <Arrow className="inline w-3 h-3" /></Link>
+      <CardLink href={card.href} className="sr-only focus:not-sr-only">{c.cta} <Arrow className="inline w-3 h-3" /></CardLink>
     </div>
   );
 }
