@@ -53,7 +53,8 @@ import AdminOverview from "@/pages/admin/overview";
 import AdminBooks from "@/pages/admin/store/books";
 import AdminStoreCourses from "@/pages/admin/store/store-courses";
 import AdminAcademy from "@/pages/admin/academy/academy";
-import AdminEvents from "@/pages/admin/events";
+import AdminContentList from "@/pages/admin/content/content-list";
+import AdminContentEditor from "@/pages/admin/content/content-editor";
 import AdminConsultationSlots from "@/pages/admin/consultation-slots";
 import AdminConsultationBookings from "@/pages/admin/consultation-bookings";
 import BookConsultationPage from "@/pages/book-consultation";
@@ -69,6 +70,7 @@ import AdminAdmins from "@/pages/admin/people/admins";
 import { LanguageProvider } from "@/lib/language-context";
 import { CartProvider } from "@/lib/cart-context";
 import { ScrollToTop } from "@/components/scroll-to-top";
+import type { ContentType } from "@/lib/cms-types";
 
 const queryClient = new QueryClient();
 
@@ -80,7 +82,9 @@ function AdminRouter() {
         <Route path="/admin/books" component={AdminBooks} />
         <Route path="/admin/store-courses" component={AdminStoreCourses} />
         <Route path="/admin/academy" component={AdminAcademy} />
-        <Route path="/admin/events" component={AdminEvents} />
+        <Route path="/admin/events"><Redirect to="/admin/content/event" /></Route>
+        <Route path="/admin/content/:type/:id">{(p) => <AdminContentEditor key={`${p.type}-${p.id}`} type={p.type as ContentType} id={p.id} />}</Route>
+        <Route path="/admin/content/:type">{(p) => <AdminContentList key={p.type} type={p.type as ContentType} />}</Route>
         <Route path="/admin/consultation-slots" component={AdminConsultationSlots} />
         <Route path="/admin/consultation-bookings" component={AdminConsultationBookings} />
         <Route path="/admin/orders" component={AdminOrders} />

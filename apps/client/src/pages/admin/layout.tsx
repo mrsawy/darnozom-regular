@@ -4,8 +4,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import {
   LayoutDashboard, BookOpen, GraduationCap, School, CalendarDays,
   Users, LogOut, Loader2, Menu, X, ShieldAlert, ShieldCheck,
-  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet,
-} from "lucide-react";
+  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet, Star, Radar, Newspaper, FileSearch, Library, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderNotificationsBell } from "@/components/admin/order-notifications";
 import { useAdminStatus } from "@/lib/use-admin-status";
@@ -22,10 +21,16 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
+  { href: "/admin/featured", label: "مختارات الرئيسية", icon: Star },
+  { href: "/admin/content/observatory", label: "المرصد", icon: Radar },
+  { href: "/admin/content/article", label: "المقالات", icon: Newspaper },
+  { href: "/admin/content/study", label: "الدراسات", icon: FileSearch },
+  { href: "/admin/content/publication", label: "الإصدارات", icon: Library },
+  { href: "/admin/content/news", label: "الأخبار", icon: Megaphone },
+  { href: "/admin/content/event", label: "الفعاليات", icon: CalendarDays },
   { href: "/admin/books", label: "الكتب", icon: BookOpen },
   { href: "/admin/store-courses", label: "دورات المتجر", icon: GraduationCap },
   { href: "/admin/academy", label: "الأكاديمية", icon: School },
-  { href: "/admin/events", label: "الفعاليات", icon: CalendarDays },
   { href: "/admin/consultation-slots", label: "مواعيد الاستشارات", icon: Clock },
   { href: "/admin/consultation-bookings", label: "حجوزات الاستشارات", icon: Video },
   { href: "/admin/orders", label: "طلبات المتجر", icon: Package },
