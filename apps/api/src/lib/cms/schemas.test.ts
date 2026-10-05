@@ -38,6 +38,18 @@ describe("parseContentItem", () => {
     const ok = parseContentItem({ type: "news", titleAr: "x", slug: "Good-Slug" });
     expect(ok.ok && ok.value.slug).toBe("good-slug");
   });
+  it("rejects javascript: and data: URLs in source and related links", () => {
+    for (const url of ["javascript:alert(1)", "JavaScript:alert(1)", "data:text/html,<script>x()</script>", "vbscript:x"]) {
+      const r = parseContentItem({ type: "observatory", titleAr: "x", details: { kind: "daily_brief", sources: [{ title: "s", url }] } });
+      expect(r.ok, url).toBe(false);
+      expect(parseContentItem({ type: "article", titleAr: "x", details: { relatedLinks: [{ title: "s", url }] } }).ok, url).toBe(false);
+    }
+    expect(parseContentItem({ type: "article", titleAr: "x", details: { relatedLinks: [{ title: "s", url: "https://ok.org" }] } }).ok).toBe(true);
+  });
+  it("rejects protocol-relative URLs posing as site paths", () => {
+    expect(parseContentItem({ type: "news", titleAr: "x", coverImageUrl: "//evil.example/x.png" }).ok).toBe(false);
+    expect(parseContentItem({ type: "news", titleAr: "x", externalUrl: "/\\evil.example" }).ok).toBe(false);
+  });
   it("rejects non-http, non-path image URLs", () => {
     expect(parseContentItem({ type: "news", titleAr: "x", coverImageUrl: "javascript:alert(1)" }).ok).toBe(false);
     expect(parseContentItem({ type: "news", titleAr: "x", coverImageUrl: "/seed/news.webp" }).ok).toBe(true);

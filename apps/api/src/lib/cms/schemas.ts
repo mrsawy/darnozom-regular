@@ -9,14 +9,21 @@ export type ContentArea = (typeof CONTENT_AREAS)[number];
 
 const optText = (max: number) => z.string().trim().max(max).optional().default("");
 const html = z.string().max(200_000).optional().default("");
+// Only http(s) URLs or same-site paths. "//host" and "/\host" are protocol-relative
+// (another origin), so they are rejected as paths. Values are rendered as href/src.
+const isSitePath = (v: string) => v.startsWith("/") && !/^\/[\/\\]/.test(v);
+const isHttpUrl = (v: string) => /^https?:\/\/[^\s/\\]/i.test(v);
 const urlOrPath = z
   .string()
   .trim()
   .max(1000)
-  .refine((v) => v === "" || v.startsWith("/") || /^https?:\/\//i.test(v), "Must be an http(s) URL or a site path")
+  .refine((v) => v === "" || isSitePath(v) || isHttpUrl(v), "Must be an http(s) URL or a site path")
   .optional()
   .default("");
-const link = z.object({ title: z.string().trim().min(1).max(300), url: z.string().trim().url().max(1000) });
+const link = z.object({
+  title: z.string().trim().min(1).max(300),
+  url: z.string().trim().max(1000).refine(isHttpUrl, "Link must be an http(s) URL"),
+});
 const links = z.array(link).max(50).optional().default([]);
 const isoDate = z.string().datetime({ offset: true });
 
