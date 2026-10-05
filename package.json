@@ -17,7 +17,6 @@
     "dev:medusa:redis:down": "docker compose --project-directory . -f deploy/medusa/docker-compose.yml down",
     "db:push": "pnpm --filter @workspace/db push",
     "db:seed:users": "pnpm --filter @workspace/api-server run seed:dev-users",
-
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "build:client": "pnpm --filter @workspace/client build",
     "build:api": "pnpm --filter @workspace/api-server build",
@@ -27,6 +26,7 @@
     "test": "pnpm -r --if-present run test"
   },
   "devDependencies": {
+    "sharp": "^0.35.5",
     "typescript": "~5.9.2"
   },
   "pnpm": {
