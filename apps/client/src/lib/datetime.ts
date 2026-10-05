@@ -8,8 +8,19 @@ export function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-/** Milliseconds to add to a UTC instant to get wall-clock time in `tz`. */
+export function isValidTimeZone(tz: string | undefined): tz is string {
+  if (!tz) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Milliseconds to add to a UTC instant to get wall-clock time in `tz` (0 for an invalid zone). */
 function tzOffsetMs(date: Date, tz: string): number {
+  if (!isValidTimeZone(tz)) return 0;
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     hourCycle: "h23",

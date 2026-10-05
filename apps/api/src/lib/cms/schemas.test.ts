@@ -33,6 +33,10 @@ describe("parseContentItem", () => {
     });
     expect(bad.ok).toBe(false);
   });
+  it("rejects an unknown event timezone (it would crash date formatting)", () => {
+    expect(parseContentItem({ type: "event", titleAr: "x", details: { kind: "seminar", timezone: "Not/AZone" } }).ok).toBe(false);
+    expect(parseContentItem({ type: "event", titleAr: "x", details: { kind: "seminar", timezone: "Asia/Riyadh" } }).ok).toBe(true);
+  });
   it("rejects slugs with spaces or uppercase after trimming", () => {
     expect(parseContentItem({ type: "news", titleAr: "x", slug: "bad slug" }).ok).toBe(false);
     const ok = parseContentItem({ type: "news", titleAr: "x", slug: "Good-Slug" });

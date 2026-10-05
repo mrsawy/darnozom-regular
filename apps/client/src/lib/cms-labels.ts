@@ -1,4 +1,5 @@
 import type { ContentArea, ContentItem, ContentType, Lang } from "./cms-types";
+import { isValidTimeZone } from "./datetime";
 
 type Pair = { ar: string; en: string };
 const pair = (ar: string, en: string): Pair => ({ ar, en });
@@ -98,7 +99,7 @@ export function formatDate(iso: string | null | undefined, lang: Lang, withTime 
     month: "long",
     year: "numeric",
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
-    ...(timeZone ? { timeZone } : {}),
+    ...(isValidTimeZone(timeZone) ? { timeZone } : {}),
   }).format(d);
 }
 

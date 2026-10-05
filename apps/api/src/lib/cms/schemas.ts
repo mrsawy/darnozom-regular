@@ -26,6 +26,14 @@ const link = z.object({
 });
 const links = z.array(link).max(50).optional().default([]);
 const isoDate = z.string().datetime({ offset: true });
+const isTimeZone = (tz: string) => {
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 export const DETAILS_SCHEMAS = {
   observatory: z.object({
@@ -63,7 +71,7 @@ export const DETAILS_SCHEMAS = {
       kind: z.enum(["training", "workshop", "seminar", "conference", "exhibition"]),
       startsAt: isoDate.optional(),
       endsAt: isoDate.optional(),
-      timezone: z.string().trim().max(64).optional().default("Africa/Cairo"),
+      timezone: z.string().trim().max(64).refine(isTimeZone, "Unknown timezone").optional().default("Africa/Cairo"),
       mode: z.enum(["in_person", "online", "hybrid"]).optional().default("in_person"),
       venueAr: optText(500),
       venueEn: optText(500),

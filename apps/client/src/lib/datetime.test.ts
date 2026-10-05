@@ -23,4 +23,10 @@ describe("formatDate with an explicit timezone", () => {
     expect(formatDate("2026-11-01T08:00:00Z", "en", true, "Africa/Cairo")).toMatch(/10:00/);
     expect(formatDate("2026-11-01T08:00:00Z", "en", true, "Asia/Riyadh")).toMatch(/11:00/);
   });
+  it("falls back instead of throwing on an invalid timezone", () => {
+    expect(() => formatDate("2026-11-01T08:00:00Z", "en", true, "Not/AZone")).not.toThrow();
+    expect(formatDate("2026-11-01T08:00:00Z", "en", true, "Not/AZone")).toMatch(/2026/);
+    expect(toZonedInput("2026-11-01T08:00:00Z", "Not/AZone")).toBe("2026-11-01T08:00");
+    expect(fromZonedInput("2026-11-01T08:00", "Not/AZone")).toBe("2026-11-01T08:00:00.000Z");
+  });
 });
