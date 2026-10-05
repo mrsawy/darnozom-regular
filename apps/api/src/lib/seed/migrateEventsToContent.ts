@@ -1,5 +1,5 @@
-import { db, events, contentItems } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { db, events, contentItems, siteSettings } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
 import { logger } from "../logger";
 import { createItem } from "../cms/repo";
 import { parseContentItem } from "../cms/schemas";
@@ -44,12 +44,24 @@ export function mapLegacyKind(categoryEn: string | null, categoryAr: string | nu
   return "seminar";
 }
 
+const MARKER = "events_migrated_v1";
+
+/**
+ * One-time copy of legacy `events` rows into content_items. Guarded by a
+ * site_settings marker so events an admin later deletes are not recreated on
+ * restart; per-row legacyEventId tracking makes an interrupted run resumable.
+ */
 export async function migrateEventsToContent(): Promise<{ migrated: number; needsReview: number }> {
   let migrated = 0;
   let needsReview = 0;
   try {
+    const [alreadyRun] = await db.select().from(siteSettings).where(eq(siteSettings.key, MARKER));
+    if (alreadyRun) return { migrated, needsReview };
     const legacy = await db.select().from(events);
-    if (!legacy.length) return { migrated, needsReview };
+    if (!legacy.length) {
+      await markDone();
+      return { migrated, needsReview };
+    }
     const done = await db
       .select({ id: sql<number>`(${contentItems.details}->>'legacyEventId')::int` })
       .from(contentItems)
@@ -87,15 +99,27 @@ export async function migrateEventsToContent(): Promise<{ migrated: number; need
         logger.warn({ eventId: e.id, issues: parsed.issues }, "Skipping legacy event that fails validation");
         continue;
       }
-      await createItem(parsed.value);
-      migrated++;
-      if (!date) needsReview++;
+      try {
+        await createItem(parsed.value);
+        migrated++;
+        if (!date) needsReview++;
+      } catch (err) {
+        logger.warn({ err, eventId: e.id }, "Skipping legacy event that failed to migrate");
+      }
     }
+    await markDone();
     if (migrated) logger.info({ migrated, needsReview }, "Migrated legacy events to content_items");
   } catch (err) {
     logger.error({ err }, "Legacy events migration failed");
   }
   return { migrated, needsReview };
+}
+
+async function markDone() {
+  await db
+    .insert(siteSettings)
+    .values({ key: MARKER, value: new Date().toISOString(), valueType: "string" })
+    .onConflictDoNothing();
 }
 
 function escapeHtml(s: string): string {

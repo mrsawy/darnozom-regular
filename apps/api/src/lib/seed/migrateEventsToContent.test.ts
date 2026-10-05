@@ -1,5 +1,5 @@
-import { afterAll, describe, expect, it } from "vitest";
-import { db, events, contentItems } from "@workspace/db";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { db, events, contentItems, siteSettings } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { mapLegacyKind, migrateEventsToContent, parseLegacyEventDate } from "./migrateEventsToContent";
 
@@ -32,6 +32,10 @@ describe("migrateEventsToContent", () => {
     await db.delete(events).where(eq(events.titleAr, TITLE));
     await db.delete(contentItems).where(eq(contentItems.titleAr, TITLE));
   });
+  // The migration runs once per database; reset its marker so each test exercises it.
+  beforeEach(async () => {
+    await db.delete(siteSettings).where(eq(siteSettings.key, "events_migrated_v1"));
+  });
 
   it("copies rows once and flags unparseable dates for review", async () => {
     await db.insert(events).values({ titleAr: TITLE, titleEn: TITLE, dateAr: "قريبًا", dateEn: "Soon", status: "upcoming" });
@@ -42,5 +46,16 @@ describe("migrateEventsToContent", () => {
     expect(rows[0].type).toBe("event");
     expect(rows[0].status).toBe("review");
     expect(rows[0].details.legacyDateText).toBe("قريبًا / Soon");
+  });
+
+  it("does not resurrect a migrated event the admin deleted", async () => {
+    await db.delete(contentItems).where(eq(contentItems.titleAr, TITLE));
+    await db.delete(events).where(eq(events.titleAr, TITLE));
+    await db.insert(events).values({ titleAr: TITLE, titleEn: TITLE, dateAr: "1 مارس 2026", dateEn: "1 March 2026", status: "past" });
+    await migrateEventsToContent();
+    expect(await db.select().from(contentItems).where(eq(contentItems.titleAr, TITLE))).toHaveLength(1);
+    await db.delete(contentItems).where(eq(contentItems.titleAr, TITLE));
+    await migrateEventsToContent(); // e.g. the next API restart
+    expect(await db.select().from(contentItems).where(eq(contentItems.titleAr, TITLE))).toHaveLength(0);
   });
 });
