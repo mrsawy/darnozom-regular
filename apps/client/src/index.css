@@ -56,6 +56,16 @@
   --color-sidebar-accent-border: var(--sidebar-accent-border);
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 
+  --color-navy: hsl(var(--navy));
+  --color-navy-deep: hsl(var(--navy-deep));
+  --color-ivory: hsl(var(--ivory));
+  --color-mist: hsl(var(--mist));
+  --color-gold: hsl(var(--gold));
+  --color-gold-light: hsl(var(--gold-light));
+  --color-ink: hsl(var(--ink));
+  --color-ink-muted: hsl(var(--ink-muted));
+  --color-line: hsl(var(--line));
+
   --font-sans: var(--app-font-sans);
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
@@ -66,88 +76,78 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* LIGHT MODE — Premium Islamic Green (palette from Task #242) */
+/* LIGHT MODE — DarNozom navy / ivory / gold (design brief §2) */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
-
   --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(24, 54, 80, .04);
+  --elevate-2: rgba(24, 54, 80, .09);
 
-  --elevate-1: rgba(15, 61, 46, .04);
-  --elevate-2: rgba(15, 61, 46, .09);
-
-  /* Reusable brand tokens — emerald, ivory, gold */
-  --emerald-deep: 157 61% 15%;     /* #0F3D2E almost-black deep forest */
-  --emerald-dark: 155 60% 18%;     /* #134A38 slightly lifted dark green */
-  --emerald-forest: 154 53% 24%;   /* #1D5E48 mid emerald */
-  --gold-warm: 40 60% 52%;         /* #CFA63D rich premium antique gold */
-  --gold-soft: 40 70% 88%;         /* #F6E7BD soft gold tint */
-  --ivory:     44 45% 96%;         /* #F8F4E8 warm cream canvas */
-  --pure-white: 0 0% 100%;         /* card / pop surface */
-  --sand-line: 40 28% 84%;         /* #DDD4BD warm border line */
-  --ink-deep:  157 35% 12%;        /* #14302A near-black, slight emerald tint */
+  --navy: 209 51% 29%;        /* #244B70 primary */
+  --navy-deep: 208 54% 20%;   /* #183650 supporting dark */
+  --ivory: 43 33% 96%;        /* #F8F6F1 page background */
+  --pure-white: 0 0% 100%;    /* #FFFFFF cards, inputs */
+  --mist: 210 40% 94%;        /* #EAF0F6 highlight / selected */
+  --gold: 39 33% 56%;         /* #B59B6B accents, dividers */
+  --gold-light: 35 43% 69%;   /* #D2B68F badges, gold buttons */
+  --ink: 210 38% 18%;         /* #1C2D3E text */
+  --ink-muted: 211 18% 39%;   /* #526477 secondary text */
+  --line: 208 27% 88%;        /* #D7E0E8 borders */
 
   --background: var(--ivory);
-  --foreground: var(--ink-deep);
-
-  --border: var(--sand-line);
+  --foreground: var(--ink);
+  --border: var(--line);
 
   --card: var(--pure-white);
-  --card-foreground: var(--ink-deep);
-  --card-border: var(--sand-line);
+  --card-foreground: var(--ink);
+  --card-border: var(--line);
 
   --sidebar: var(--ivory);
-  --sidebar-foreground: var(--ink-deep);
-  --sidebar-border: var(--sand-line);
-  --sidebar-primary: var(--emerald-deep);
-  --sidebar-primary-foreground: var(--ivory);
-  --sidebar-accent: var(--gold-soft);
-  --sidebar-accent-foreground: var(--emerald-deep);
-  --sidebar-ring: var(--gold-warm);
+  --sidebar-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-primary: var(--navy);
+  --sidebar-primary-foreground: var(--pure-white);
+  --sidebar-accent: var(--mist);
+  --sidebar-accent-foreground: var(--navy);
+  --sidebar-ring: var(--gold);
 
   --popover: var(--pure-white);
-  --popover-foreground: var(--ink-deep);
-  --popover-border: var(--sand-line);
+  --popover-foreground: var(--ink);
+  --popover-border: var(--line);
 
-  --primary: var(--emerald-deep);
-  --primary-foreground: var(--ivory);
-
-  /* Gold accent for eyebrow labels, bullets, the Search button, etc.
-     Premium and clearly visible against ivory and emerald alike. */
-  --secondary: var(--gold-warm);
-  --secondary-foreground: var(--emerald-deep);
-
-  --muted: 44 30% 92%;             /* warm sand muted surface */
-  --muted-foreground: 157 20% 28%; /* deep emerald-tinted body copy */
-
-  --accent: var(--gold-warm);
-  --accent-foreground: var(--emerald-deep);
-
+  --primary: var(--navy);
+  --primary-foreground: var(--pure-white);
+  --secondary: var(--gold-light);
+  --secondary-foreground: var(--ink);
+  --muted: var(--mist);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--gold);
+  --accent-foreground: var(--ink);
   --destructive: 0 70% 42%;
   --destructive-foreground: 0 0% 98%;
-
   --input: var(--pure-white);
-  --ring: var(--gold-warm);
+  --ring: var(--gold);
 
-  --chart-1: var(--emerald-deep);
-  --chart-2: var(--gold-warm);
-  --chart-3: var(--emerald-forest);
-  --chart-4: var(--emerald-dark);
-  --chart-5: 28 55% 55%;
+  --chart-1: var(--navy);
+  --chart-2: var(--gold);
+  --chart-3: var(--navy-deep);
+  --chart-4: var(--gold-light);
+  --chart-5: var(--ink-muted);
 
-  --app-font-sans: 'Cairo', sans-serif;
-  --app-font-serif: 'IBM Plex Sans Arabic', serif;
+  --app-font-sans: 'Noto Sans Arabic Variable', 'Inter Variable', system-ui, sans-serif;
+  --app-font-serif: 'Noto Sans Arabic Variable', 'Inter Variable', serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem;
+  --radius: 0.25rem;
 
-  --shadow-2xs: 0px 2px 0px 0px hsl(150 60% 14% / 0.05);
-  --shadow-xs: 0px 2px 0px 0px hsl(150 60% 14% / 0.05);
-  --shadow-sm: 0px 2px 0px 0px hsl(150 60% 14% / 0.05), 0px 1px 2px -1px hsl(150 60% 14% / 0.08);
-  --shadow: 0px 2px 0px 0px hsl(150 60% 14% / 0.05), 0px 1px 2px -1px hsl(150 60% 14% / 0.08);
-  --shadow-md: 0px 2px 0px 0px hsl(150 60% 14% / 0.05), 0px 4px 6px -1px hsl(150 60% 14% / 0.10);
-  --shadow-lg: 0px 2px 4px hsl(36 60% 50% / 0.14), 0px 4px 16px -1px hsl(150 60% 14% / 0.12);
-  --shadow-xl: 0px 2px 0px 0px hsl(150 60% 14% / 0.05), 0px 8px 20px -1px hsl(150 60% 14% / 0.14);
-  --shadow-2xl: 0px 2px 0px 0px hsl(150 60% 14% / 0.08);
+  --shadow-2xs: 0 1px 0 0 hsl(208 54% 20% / 0.04);
+  --shadow-xs: 0 1px 2px 0 hsl(208 54% 20% / 0.05);
+  --shadow-sm: 0 1px 2px 0 hsl(208 54% 20% / 0.06);
+  --shadow: 0 1px 3px 0 hsl(208 54% 20% / 0.08);
+  --shadow-md: 0 4px 8px -2px hsl(208 54% 20% / 0.10);
+  --shadow-lg: 0 8px 16px -4px hsl(208 54% 20% / 0.12);
+  --shadow-xl: 0 12px 24px -6px hsl(208 54% 20% / 0.14);
+  --shadow-2xl: 0 16px 32px -8px hsl(208 54% 20% / 0.16);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -160,71 +160,48 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* Dark surfaces (e.g. sections with className="dark") use navy-deep. */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
-
   --opaque-button-border-intensity: 9;
-
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --emerald-deep: 157 61% 15%;
-  --emerald-dark: 155 60% 18%;
-  --emerald-forest: 154 53% 24%;
-  --gold-warm: 40 65% 58%;               /* slightly brighter for dark bg */
-  --gold-soft: 40 70% 88%;
-  --ivory:     44 45% 96%;
-  --pure-white: 0 0% 100%;
-  --sand-line: 40 28% 84%;
-
-  --background: var(--emerald-deep);     /* deep forest hero base */
+  --background: var(--navy-deep);
   --foreground: var(--ivory);
-
-  --border: 154 35% 22%;
-
-  --card: var(--emerald-dark);
+  --border: 208 35% 30%;
+  --card: var(--navy);
   --card-foreground: var(--ivory);
-  --card-border: 154 35% 22%;
-
-  --sidebar: var(--emerald-deep);
+  --card-border: 208 35% 30%;
+  --sidebar: var(--navy-deep);
   --sidebar-foreground: var(--ivory);
-  --sidebar-border: 154 35% 22%;
-  --sidebar-primary: var(--gold-warm);
-  --sidebar-primary-foreground: var(--emerald-deep);
-  --sidebar-accent: var(--emerald-forest);
+  --sidebar-border: 208 35% 30%;
+  --sidebar-primary: var(--gold-light);
+  --sidebar-primary-foreground: var(--ink);
+  --sidebar-accent: var(--navy);
   --sidebar-accent-foreground: var(--ivory);
-  --sidebar-ring: var(--gold-warm);
-
-  --popover: var(--emerald-dark);
+  --sidebar-ring: var(--gold);
+  --popover: var(--navy);
   --popover-foreground: var(--ivory);
-  --popover-border: 154 35% 22%;
-
-  --primary: var(--emerald-deep);        /* keep emerald so bg-primary stays dark */
-  --primary-foreground: var(--ivory);
-
-  /* On dark hero surfaces, secondary accent is gold — premium and
-     clearly visible (eyebrows, dots, borders) against deep emerald. */
-  --secondary: var(--gold-warm);
-  --secondary-foreground: var(--emerald-deep);
-
-  --muted: var(--emerald-dark);
-  --muted-foreground: 44 30% 82%;        /* warm cream body copy on dark */
-
-  --accent: var(--gold-warm);
-  --accent-foreground: var(--emerald-deep);
-
+  --popover-border: 208 35% 30%;
+  --primary: var(--navy);
+  --primary-foreground: var(--pure-white);
+  --secondary: var(--gold-light);
+  --secondary-foreground: var(--ink);
+  --muted: var(--navy);
+  --muted-foreground: 210 30% 82%;
+  --accent: var(--gold-light);
+  --accent-foreground: var(--ink);
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-
-  --input: var(--emerald-forest);
-  --ring: var(--gold-warm);
-
-  --chart-1: var(--gold-warm);
-  --chart-2: var(--emerald-forest);
-  --chart-3: 154 30% 55%;
+  --input: var(--navy);
+  --ring: var(--gold);
+  --chart-1: var(--gold-light);
+  --chart-2: var(--mist);
+  --chart-3: var(--gold);
   --chart-4: var(--ivory);
-  --chart-5: 28 55% 60%;
+  --chart-5: 210 30% 70%;
 }
 
 @layer base {
@@ -234,16 +211,32 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background: 
-      radial-gradient(circle at 15% 0%, hsl(155 45% 92% / 0.8), transparent 35%),
-      radial-gradient(circle at 85% 100%, hsl(40 60% 90% / 0.8), transparent 35%),
-      linear-gradient(135deg, hsl(44 55% 97%), hsl(150 25% 95%), hsl(44 45% 95%));
-    background-attachment: fixed;
+    background: hsl(var(--background));
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  @media (min-width: 1024px) {
+    body {
+      font-size: 18px;
+    }
+  }
+
+  html[lang="en"] body {
+    font-family: 'Inter Variable', system-ui, sans-serif;
+    line-height: 1.65;
   }
 
   .dark body {
-    background: linear-gradient(135deg, hsl(157 65% 12%), hsl(155 60% 16%), hsl(157 65% 12%));
-    background-attachment: fixed;
+    background: hsl(var(--navy-deep));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -256,7 +249,7 @@
 
 /* Subtle Islamic geometric pattern utility (low-opacity SVG) */
 .islamic-pattern {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><g fill='none' stroke='%231D5E48' stroke-width='0.6' stroke-opacity='0.18'><path d='M30 0 L60 30 L30 60 L0 30 Z'/><path d='M30 10 L50 30 L30 50 L10 30 Z'/><circle cx='30' cy='30' r='6'/></g></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><g fill='none' stroke='%23244B70' stroke-width='0.6' stroke-opacity='0.18'><path d='M30 0 L60 30 L30 60 L0 30 Z'/><path d='M30 10 L50 30 L30 50 L10 30 Z'/><circle cx='30' cy='30' r='6'/></g></svg>");
   background-repeat: repeat;
   background-size: 60px 60px;
 }

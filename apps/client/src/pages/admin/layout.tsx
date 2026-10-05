@@ -45,7 +45,7 @@ function VerifyingScreen({ onRetry }: { onRetry?: () => void }) {
     return () => clearTimeout(id);
   }, [onRetry]);
   return (
-    <div className="min-h-[100dvh] flex items-center justify-center dark bg-[#0F3D2E] text-white" dir="rtl">
+    <div className="min-h-[100dvh] flex items-center justify-center dark bg-[#183650] text-white" dir="rtl">
       <div className="flex items-center gap-2 text-sm text-white/70">
         <Loader2 className="w-4 h-4 animate-spin" /> جارٍ التحقق...
       </div>
@@ -82,7 +82,7 @@ export function AdminGate({ children }: { children: ReactNode }) {
   if (!status.isAdmin) {
     const displayEmail = status.email || user?.email;
     return (
-      <div className="min-h-[100dvh] flex items-center justify-center dark bg-[#0F3D2E] px-4" dir="rtl">
+      <div className="min-h-[100dvh] flex items-center justify-center dark bg-[#183650] px-4" dir="rtl">
         <div className="bg-background border border-red-400/30 max-w-md w-full p-8 text-center">
           <ShieldAlert className="w-10 h-10 text-red-500 mx-auto mb-4" />
           <h1 className="text-xl font-black text-primary mb-2">ليس لديك صلاحية الوصول إلى لوحة الإدارة</h1>

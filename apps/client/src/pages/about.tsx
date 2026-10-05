@@ -134,7 +134,7 @@ export default function About() {
       </section>
 
       {/* Vision & Mission */}
-      <section id="vision" className="py-24 dark bg-[#0F3D2E] text-white scroll-mt-24">
+      <section id="vision" className="py-24 dark bg-[#183650] text-white scroll-mt-24">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 grid md:grid-cols-2 gap-10">
           <div className="border border-secondary/20 p-10 bg-primary/40">
             <Eye className="text-secondary mb-6" size={40} />
@@ -178,7 +178,7 @@ export default function About() {
       </section>
 
       {/* Team */}
-      <section id="team" className="py-24 dark bg-[#0F3D2E] text-white scroll-mt-24">
+      <section id="team" className="py-24 dark bg-[#183650] text-white scroll-mt-24">
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
           <div className="text-secondary text-xs font-bold tracking-[0.2em] uppercase mb-3">
             {isAr ? "فريقنا" : "Our Team"}
@@ -228,7 +228,7 @@ export default function About() {
         </div>
       </section>
 
-      <section className="bg-[#F4ECD7] border-y border-border py-16" data-testid="about-credentials">
+      <section className="bg-[#EAF0F6] border-y border-border py-16" data-testid="about-credentials">
         <div className="container mx-auto px-6 md:px-12 max-w-5xl">
           <div className="text-center mb-8">
             <div className="text-secondary text-[11px] font-bold tracking-[0.25em] uppercase mb-3">

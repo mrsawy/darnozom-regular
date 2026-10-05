@@ -656,8 +656,8 @@ export default function SiteNav({ mode = "page", theme = "light" }: SiteNavProps
             ? "bg-gradient-to-r from-[hsl(150_42%_95%)]/75 via-[hsl(150_42%_97%)]/85 to-[hsl(150_42%_95%)]/75 backdrop-blur-2xl border-b border-primary/10 shadow-[0_4px_30px_rgba(20,80,60,0.06)]"
             : "bg-gradient-to-b from-[hsl(150_42%_95%)]/80 to-transparent"
           : solid
-            ? "bg-gradient-to-r from-[#082219]/90 via-[#0A2A1F]/90 to-[#082219]/90 backdrop-blur-2xl border-b border-secondary/30 shadow-[0_10px_40px_rgba(0,0,0,0.4)]"
-            : "bg-gradient-to-b from-[#082219]/90 to-transparent"
+            ? "bg-gradient-to-r from-[#122A3F]/90 via-[#122A3F]/90 to-[#122A3F]/90 backdrop-blur-2xl border-b border-secondary/30 shadow-[0_10px_40px_rgba(0,0,0,0.4)]"
+            : "bg-gradient-to-b from-[#122A3F]/90 to-transparent"
       }`}
     >
       <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
@@ -665,7 +665,7 @@ export default function SiteNav({ mode = "page", theme = "light" }: SiteNavProps
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <img
-              src={`${import.meta.env.BASE_URL}${light ? "darnozom-n-logo-green.png" : "darnozom-n-logo.png"}`}
+              src={`${import.meta.env.BASE_URL}${light ? "darnozom-n-logo-navy.png" : "darnozom-n-logo.png"}`}
               alt="Darnozom"
               className="h-12 w-auto rounded-xl"
             />

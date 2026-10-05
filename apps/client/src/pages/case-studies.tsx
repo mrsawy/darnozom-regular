@@ -306,7 +306,7 @@ export default function CaseStudies() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-[#F4ECD7] py-24 relative overflow-hidden">
+      <section className="bg-[#EAF0F6] py-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
           <span className="text-primary/[0.04] font-black text-[18rem] leading-none">ن</span>

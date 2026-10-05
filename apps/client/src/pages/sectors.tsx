@@ -92,7 +92,7 @@ export default function Sectors() {
       <SiteNav mode="page" />
 
       <section className="dark pt-40 pb-20 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,#CFA63D_0%,transparent_60%)]" />
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,#B59B6B_0%,transparent_60%)]" />
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 relative">
           <div className="text-secondary text-xs font-bold tracking-[0.3em] uppercase mb-4">
             {t.sectionLabel}
@@ -137,7 +137,7 @@ export default function Sectors() {
       </section>
 
       {/* Case studies from our sector portfolio */}
-      <section className="py-24 bg-[#F4ECD7] border-t border-border">
+      <section className="py-24 bg-[#EAF0F6] border-t border-border">
         <div className="container mx-auto px-6 md:px-12">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
             <div>

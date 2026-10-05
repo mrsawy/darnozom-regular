@@ -202,7 +202,7 @@ export default function Services() {
         </div>
       </section>
 
-      <section className="py-20 bg-[#F4ECD7] text-primary text-center">
+      <section className="py-20 bg-[#EAF0F6] text-primary text-center">
         <div className="max-w-2xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">
             {isAr ? "لديك مشروع محدد؟" : "Have a specific project?"}

@@ -229,7 +229,7 @@ export default function ServiceRegistration() {
     return (
       <div className="min-h-screen bg-background text-foreground font-sans" dir={dir}>
         <SiteNav mode="page" />
-        <section className="min-h-screen flex items-center justify-center dark bg-[#0F3D2E] relative overflow-hidden" data-testid="service-registration-success">
+        <section className="min-h-screen flex items-center justify-center dark bg-[#183650] relative overflow-hidden" data-testid="service-registration-success">
           <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
           <motion.div
@@ -275,7 +275,7 @@ export default function ServiceRegistration() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#0F3D2E] text-primary-foreground pt-36 pb-20 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-20 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className={`absolute top-36 ${isArabic ? "right-0" : "left-0"} w-1 h-24 bg-secondary`} />
         <div className={`absolute top-36 ${isArabic ? "right-0" : "left-0"} h-1 w-16 bg-secondary`} />
@@ -327,7 +327,7 @@ export default function ServiceRegistration() {
       </section>
 
       {/* Form Section */}
-      <section className="py-20 bg-[#F4ECD7]">
+      <section className="py-20 bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12">
           <div className="max-w-3xl mx-auto">
             <form onSubmit={handleSubmit} noValidate data-testid="service-registration-form">

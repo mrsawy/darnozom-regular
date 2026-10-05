@@ -278,7 +278,7 @@ export default function AcademyCoursesPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="py-24 bg-[#F4ECD7] text-primary">
+      <section className="py-24 bg-[#EAF0F6] text-primary">
         <div className="container mx-auto px-6 md:px-12 max-w-4xl text-center">
           <h2 className="font-black mb-4 leading-tight" style={{ fontSize: "clamp(1.75rem, 3vw, 2.5rem)" }}>
             {t.ctaTitle}

@@ -151,7 +151,7 @@ export default function SearchSection() {
   };
 
   return (
-    <section className="relative dark bg-[#0F3D2E] py-16 border-b border-secondary/15 overflow-hidden">
+    <section className="relative dark bg-[#183650] py-16 border-b border-secondary/15 overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[250px] bg-secondary/5 rounded-full blur-3xl" />
       </div>
@@ -216,7 +216,7 @@ export default function SearchSection() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute top-full left-0 right-0 dark bg-[#0F3D2E] border border-secondary/20 border-t-0 shadow-2xl shadow-black/40 z-50 max-h-[420px] overflow-y-auto"
+                  className="absolute top-full left-0 right-0 dark bg-[#183650] border border-secondary/20 border-t-0 shadow-2xl shadow-black/40 z-50 max-h-[420px] overflow-y-auto"
                 >
                   {loading && (
                     <div className="flex items-center justify-center py-8 text-white/30 text-sm">

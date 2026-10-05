@@ -129,7 +129,7 @@ export default function ResetPasswordPage() {
   if (done) {
     return (
       <div
-        className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0F3D2E] px-4 py-12"
+        className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#183650] px-4 py-12"
         dir={isAr ? "rtl" : "ltr"}
       >
         <div className="w-full max-w-md bg-white shadow-xl border border-white/10 p-6 md:p-8 text-center">
@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
 
   return (
     <div
-      className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0F3D2E] px-4 py-12"
+      className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#183650] px-4 py-12"
       dir={isAr ? "rtl" : "ltr"}
     >
       <div className={`mb-6 max-w-md w-full ${isAr ? "text-right" : "text-left"}`}>

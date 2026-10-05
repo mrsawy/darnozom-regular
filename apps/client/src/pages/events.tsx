@@ -61,7 +61,7 @@ function EventCard({ event, index }: { event: EventItem; index: number }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
-      className={`border ${event.status === "upcoming" ? "border-secondary/20 dark bg-[#0F3D2E]" : "border-secondary/15 bg-card"} p-6 md:p-8 group hover:border-secondary/40 transition-colors`}
+      className={`border ${event.status === "upcoming" ? "border-secondary/20 dark bg-[#183650]" : "border-secondary/15 bg-card"} p-6 md:p-8 group hover:border-secondary/40 transition-colors`}
     >
       <div className="flex flex-col md:flex-row md:items-start gap-6">
         <div className={`shrink-0 w-20 h-20 flex flex-col items-center justify-center border ${event.status === "upcoming" ? "border-secondary/30 bg-secondary/5" : "border-border bg-background"}`}>
@@ -276,18 +276,18 @@ export default function Events() {
       </section>
 
       {loading ? (
-        <section className="py-32 dark bg-[#0F3D2E] flex items-center justify-center gap-3 text-white/40">
+        <section className="py-32 dark bg-[#183650] flex items-center justify-center gap-3 text-white/40">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span>{t.loading}</span>
         </section>
       ) : error ? (
-        <section className="py-32 dark bg-[#0F3D2E] border-b border-secondary/10">
+        <section className="py-32 dark bg-[#183650] border-b border-secondary/10">
           <div className="container mx-auto px-6 md:px-12">
             <FetchError onRetry={loadEvents} />
           </div>
         </section>
       ) : allEvents.length === 0 ? (
-        <section className="py-32 dark bg-[#0F3D2E] border-b border-secondary/10">
+        <section className="py-32 dark bg-[#183650] border-b border-secondary/10">
           <div className="container mx-auto px-6 md:px-12 text-center">
             <CalendarDays className="w-16 h-16 text-secondary/30 mx-auto mb-6" />
             <p className="text-white/40 text-xl font-bold">{t.noEvents}</p>
@@ -296,7 +296,7 @@ export default function Events() {
       ) : (
         <>
           {/* Upcoming Events */}
-          <section className="py-24 dark bg-[#0F3D2E] border-b border-secondary/10">
+          <section className="py-24 dark bg-[#183650] border-b border-secondary/10">
             <div className="container mx-auto px-6 md:px-12">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -368,7 +368,7 @@ export default function Events() {
       )}
 
       {/* Newsletter / Stay Updated */}
-      <section className="py-20 dark bg-[#0F3D2E] border-t border-secondary/20">
+      <section className="py-20 dark bg-[#183650] border-t border-secondary/20">
         <div className="container mx-auto px-6 md:px-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -408,7 +408,7 @@ export default function Events() {
       </section>
 
       {/* Back */}
-      <section className="py-10 border-t border-border bg-[#F4ECD7]">
+      <section className="py-10 border-t border-border bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between gap-4">
           <Link
             href="/"

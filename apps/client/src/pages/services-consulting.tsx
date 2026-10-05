@@ -375,7 +375,7 @@ export default function ServicesConsulting() {
       <SiteNav mode="page" />
 
       {/* ════════════════════ HERO ════════════════════ */}
-      <section className="dark bg-[#0F3D2E] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -740,7 +740,7 @@ export default function ServicesConsulting() {
       <FAQSection language={language} title={t.faqTitle} label={t.faqLabel} />
 
       {/* ════════════════════ FINAL CTA ════════════════════ */}
-      <section className="py-24 dark bg-[#0F3D2E] text-primary-foreground relative overflow-hidden">
+      <section className="py-24 dark bg-[#183650] text-primary-foreground relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -769,7 +769,7 @@ export default function ServicesConsulting() {
       </section>
 
       {/* Back link */}
-      <section className="py-10 border-t border-border bg-[#F4ECD7]">
+      <section className="py-10 border-t border-border bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12">
           <Link
             href="/services"

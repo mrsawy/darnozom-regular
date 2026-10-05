@@ -94,7 +94,7 @@ export default function AcademyDiplomasPage() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#0F3D2E] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute -bottom-20 left-0 text-[14rem] font-black text-secondary/5 leading-none select-none pointer-events-none">D</div>
         <div className="container mx-auto px-6 md:px-12 relative z-10">
@@ -319,7 +319,7 @@ export default function AcademyDiplomasPage() {
       </section>
 
       {/* Back */}
-      <section className="py-10 border-t border-border bg-[#F4ECD7]">
+      <section className="py-10 border-t border-border bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12">
           <Link
             href="/academy"

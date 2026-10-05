@@ -391,7 +391,7 @@ export default function Careers() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="bg-[#F4ECD7] py-16 mt-8">
+      <section className="bg-[#EAF0F6] py-16 mt-8">
         <div className="container mx-auto px-6 md:px-12 text-center">
           <h2 className="text-2xl md:text-3xl font-black text-primary mb-4">
             {isAr ? "لم تجد ما تبحث عنه؟" : "Didn't find what you're looking for?"}

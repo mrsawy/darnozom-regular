@@ -291,7 +291,7 @@ export function ProfileDialog({
                 type="checkbox"
                 checked={revokeOthers}
                 onChange={(e) => setRevokeOthers(e.target.checked)}
-                className="accent-[#0F3D2E]"
+                className="accent-[#183650]"
               />
               {t.signOutOthers}
             </label>

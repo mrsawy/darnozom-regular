@@ -109,7 +109,7 @@ export default function Contact() {
       </section>
 
       {/* INFO + FORM */}
-      <section id="form" className="py-24 bg-[#F4ECD7] scroll-mt-24">
+      <section id="form" className="py-24 bg-[#EAF0F6] scroll-mt-24">
         <div className="container mx-auto px-6 md:px-12 max-w-[1300px]">
           <div className="grid lg:grid-cols-[45fr_55fr] gap-16">
             {/* LEFT — info */}

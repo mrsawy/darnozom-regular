@@ -239,7 +239,7 @@ export default function StoreCourseDetailPage() {
             <div className="absolute -top-20 right-1/4 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl" />
           </div>
 
-          <section className="relative pt-28 pb-16 px-4 bg-[#F4ECD7]">
+          <section className="relative pt-28 pb-16 px-4 bg-[#EAF0F6]">
             <div className="container mx-auto max-w-6xl">
               {/* Breadcrumb */}
               <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-10">

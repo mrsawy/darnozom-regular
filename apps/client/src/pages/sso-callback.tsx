@@ -25,7 +25,7 @@ export default function SsoCallbackPage() {
   }, [navigate]);
 
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[#0F3D2E] gap-3">
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[#183650] gap-3">
       <Loader2 className="w-4 h-4 animate-spin text-white/60" />
       <div className="text-white/60 text-sm">جارٍ تسجيل الدخول...</div>
     </div>

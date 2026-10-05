@@ -309,7 +309,7 @@ export default function AcademyRegisterPage() {
     <div className="min-h-screen bg-background text-foreground font-sans" dir={dir}>
       <SiteNav mode="page" />
 
-      <section className="dark bg-[#0F3D2E] text-primary-foreground pt-32 pb-16 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-32 pb-16 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <nav className="flex items-center gap-2 text-xs text-white/60 mb-8" aria-label="breadcrumb">
@@ -335,7 +335,7 @@ export default function AcademyRegisterPage() {
         </div>
       </section>
 
-      <section className="py-14 bg-[#F4ECD7] islamic-pattern">
+      <section className="py-14 bg-[#EAF0F6] islamic-pattern">
         <div className="container mx-auto px-6 md:px-12 max-w-3xl">
           {success ? (
             <motion.div

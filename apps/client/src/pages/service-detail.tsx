@@ -1465,7 +1465,7 @@ export default function ServiceDetail() {
 
 
       {/* Prev / Next */}
-      <section className="py-12 border-t border-border bg-[#F4ECD7]">
+      <section className="py-12 border-t border-border bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between gap-4">
           {nextSlug ? (
             <Link href={`/services/${nextSlug}`}

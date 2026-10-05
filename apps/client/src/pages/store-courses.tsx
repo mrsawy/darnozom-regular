@@ -182,7 +182,7 @@ export default function StoreCoursesPage() {
         </div>
       </section>
 
-      <section className="px-4 pb-16 bg-[#F4ECD7]">
+      <section className="px-4 pb-16 bg-[#EAF0F6]">
         <div className="container mx-auto max-w-6xl">
           <div className="text-sm text-muted-foreground mb-4">{t.countLabel(courses.length)}</div>
           {loading ? (

@@ -963,7 +963,7 @@ export default function Home() {
       {/* ══════════════════════════════════════
           SERVICES — Big 4 Editorial Grid 2026
       ══════════════════════════════════════ */}
-      <section id="services" className="py-32 dark bg-[#0F3D2E] relative overflow-hidden">
+      <section id="services" className="py-32 dark bg-[#183650] relative overflow-hidden">
 
         {/* Modern atmospheric background image */}
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
@@ -977,8 +977,8 @@ export default function Home() {
         </div>
 
         {/* Soft overlay to keep cards readable while letting the image show through */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0F3D2E]/85 via-[#0F3D2E]/55 to-[#0F3D2E]/90 pointer-events-none" aria-hidden="true" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0F3D2E_85%)] pointer-events-none" aria-hidden="true" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#183650]/85 via-[#183650]/55 to-[#183650]/90 pointer-events-none" aria-hidden="true" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#183650_85%)] pointer-events-none" aria-hidden="true" />
 
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between mb-10 gap-4">
@@ -1155,7 +1155,7 @@ export default function Home() {
       {/* ══════════════════════════════════════
           CONTACT
       ══════════════════════════════════════ */}
-      <section id="contact" className="py-32 bg-[#F4ECD7]">
+      <section id="contact" className="py-32 bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12">
           <div className="grid lg:grid-cols-[45fr_55fr] gap-16 lg:gap-24">
             {/* Left info */}

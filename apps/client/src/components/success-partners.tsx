@@ -3,7 +3,7 @@ import { SUCCESS_PARTNERS, type SuccessPartner } from "@/data/success-partners";
 
 function LogoCard({ p, name }: { p: SuccessPartner; name: string }) {
   const cardBg = p.darkBackground
-    ? "dark bg-[#134A38] hover:dark bg-[#134A38]"
+    ? "dark bg-[#244B70] hover:dark bg-[#244B70]"
     : "bg-white hover:bg-white";
   const card = (
     <div
@@ -38,7 +38,7 @@ export default function SuccessPartners() {
   const items = [...SUCCESS_PARTNERS, ...SUCCESS_PARTNERS];
 
   return (
-    <section id="success-partners" className="py-24 dark bg-[#0F3D2E] text-white scroll-mt-24 overflow-hidden">
+    <section id="success-partners" className="py-24 dark bg-[#183650] text-white scroll-mt-24 overflow-hidden">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
         <div className="text-secondary text-xs font-bold tracking-[0.2em] uppercase mb-3">
           {isAr ? "شركاء النجاح" : "Success Partners"}

@@ -105,7 +105,7 @@ export default function CaseStudyDetail() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#0F3D2E] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -306,7 +306,7 @@ export default function CaseStudyDetail() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-[#F4ECD7] py-24 relative overflow-hidden">
+      <section className="bg-[#EAF0F6] py-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <div className="max-w-3xl mx-auto text-center">

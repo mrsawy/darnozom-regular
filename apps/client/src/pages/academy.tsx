@@ -1922,7 +1922,7 @@ export default function Academy() {
                           />
                         </div>
                       ) : (
-                        <div className="aspect-video w-full dark bg-[#0F3D2E] flex items-center justify-center">
+                        <div className="aspect-video w-full dark bg-[#183650] flex items-center justify-center">
                           <Megaphone className="w-14 h-14 text-secondary/40" />
                         </div>
                       )}
@@ -2092,7 +2092,7 @@ export default function Academy() {
       </section>
 
       {/* Back */}
-      <section className="py-10 border-t border-border bg-[#F4ECD7]">
+      <section className="py-10 border-t border-border bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12 flex items-center justify-between gap-4">
           <Link
             href="/"

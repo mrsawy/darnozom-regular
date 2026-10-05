@@ -129,7 +129,7 @@ export default function BookConsultationPage() {
           </div>
         </section>
 
-        <section className="max-w-5xl mx-auto px-4 py-10 bg-[#F4ECD7]">
+        <section className="max-w-5xl mx-auto px-4 py-10 bg-[#EAF0F6]">
           {result ? (
             <SuccessCard result={result} />
           ) : loading ? (
