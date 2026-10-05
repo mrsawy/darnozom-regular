@@ -1,9 +1,9 @@
 import { randomUUID } from "crypto";
-import { and, count, desc, eq, ilike, like, ne, or, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, like, ne, or, sql, type SQL } from "drizzle-orm";
 import { db, contentItems, type ContentItem } from "@workspace/db";
 import { sanitizeItem } from "./sanitize";
 import { slugify, withSuffix } from "./slug";
-import type { ContentItemInput, ContentStatus, ContentType } from "./schemas";
+import type { ContentArea, ContentItemInput, ContentStatus, ContentType } from "./schemas";
 
 export class SlugConflictError extends Error {
   constructor(slug: string) {
@@ -132,4 +132,82 @@ export async function adminList(p: {
     db.select({ total: count() }).from(contentItems).where(where),
   ]);
   return { items, total, page, pageSize };
+}
+
+export type ListParams = {
+  types: ContentType[];
+  area?: ContentArea;
+  kind?: string;
+  region?: string;
+  when?: "upcoming" | "past";
+  q?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+const startsAt = sql`(${contentItems.details}->>'startsAt')::timestamptz`;
+
+export async function listPublished(p: ListParams) {
+  const pageSize = Math.min(Math.max(p.pageSize ?? 12, 1), 48);
+  const page = Math.max(p.page ?? 1, 1);
+  const conds: SQL[] = [eq(contentItems.status, "published"), inArray(contentItems.type, p.types)];
+  if (p.area) conds.push(eq(contentItems.area, p.area));
+  if (p.kind) conds.push(sql`${contentItems.details}->>'kind' = ${p.kind}`);
+  if (p.region) conds.push(sql`${contentItems.details}->>'region' = ${p.region}`);
+  if (p.when === "upcoming") conds.push(sql`(${startsAt} is null or ${startsAt} >= now())`);
+  if (p.when === "past") conds.push(sql`${startsAt} < now()`);
+  if (p.q) conds.push(searchCondition(p.q));
+  const where = and(...conds);
+  const order =
+    p.when === "upcoming"
+      ? [sql`${startsAt} asc nulls last`, desc(contentItems.id)]
+      : p.when === "past"
+        ? [sql`${startsAt} desc`, desc(contentItems.id)]
+        : [sql`${contentItems.publishedAt} desc nulls last`, desc(contentItems.id)];
+  const [items, [{ total }]] = await Promise.all([
+    db.select().from(contentItems).where(where).orderBy(...order).limit(pageSize).offset((page - 1) * pageSize),
+    db.select({ total: count() }).from(contentItems).where(where),
+  ]);
+  return { items, total, page, pageSize };
+}
+
+export async function getPublishedBySlug(slug: string): Promise<ContentItem | null> {
+  const [row] = await db
+    .select()
+    .from(contentItems)
+    .where(and(eq(contentItems.slug, slug), eq(contentItems.status, "published")));
+  return row ?? null;
+}
+
+export async function getRelated(item: ContentItem, limit = 3): Promise<ContentItem[]> {
+  const conds: SQL[] = [
+    eq(contentItems.status, "published"),
+    eq(contentItems.type, item.type),
+    ne(contentItems.id, item.id),
+  ];
+  if (item.area) conds.push(eq(contentItems.area, item.area));
+  return db
+    .select()
+    .from(contentItems)
+    .where(and(...conds))
+    .orderBy(sql`${contentItems.publishedAt} desc nulls last`)
+    .limit(limit);
+}
+
+export async function getHome() {
+  const take = (types: ContentType[], n: number) => listPublished({ types, pageSize: n }).then((r) => r.items);
+  const [observatory, articles, studies, publications, newsEvents] = await Promise.all([
+    take(["observatory"], 4),
+    take(["article"], 3),
+    take(["study"], 2),
+    take(["publication"], 4),
+    take(["news", "event"], 3),
+  ]);
+  return {
+    observatory: { lead: observatory[0] ?? null, others: observatory.slice(1) },
+    articles,
+    studies,
+    publications,
+    newsEvents,
+  };
 }

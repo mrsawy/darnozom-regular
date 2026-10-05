@@ -7,6 +7,8 @@ import {
   createItem,
   deleteItem,
   getItemById,
+  getItemBySlug,
+  getRelated,
   SlugConflictError,
   TypeChangeError,
   updateItem,
@@ -77,6 +79,12 @@ router.delete("/admin/cms/items/:id", requireAdmin, async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
   return (await deleteItem(id)) ? res.status(204).end() : res.status(404).json({ error: "Not found" });
+});
+
+router.get("/admin/cms/preview/:slug", requireAdmin, async (req, res) => {
+  const item = await getItemBySlug(String(req.params.slug));
+  if (!item) return res.status(404).json({ error: "Not found" });
+  return res.json({ item, related: await getRelated(item) });
 });
 
 export default router;

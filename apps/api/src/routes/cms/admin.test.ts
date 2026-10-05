@@ -49,6 +49,10 @@ describe("admin CMS items", () => {
     expect(updated.body.status).toBe("published");
     expect(updated.body.publishedAt).not.toBeNull();
 
+    const preview = await admin(request(app).get(`/admin/cms/preview/test-cms-crud`));
+    expect(preview.status).toBe(200);
+    expect(preview.body.item.id).toBe(id);
+
     expect((await admin(request(app).delete(`/admin/cms/items/${id}`))).status).toBe(204);
     expect((await admin(request(app).get(`/admin/cms/items/${id}`))).status).toBe(404);
   });
