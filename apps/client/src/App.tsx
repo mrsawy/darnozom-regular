@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter, Redirect, useSearch } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -53,9 +54,6 @@ import AdminOverview from "@/pages/admin/overview";
 import AdminBooks from "@/pages/admin/store/books";
 import AdminStoreCourses from "@/pages/admin/store/store-courses";
 import AdminAcademy from "@/pages/admin/academy/academy";
-import AdminContentList from "@/pages/admin/content/content-list";
-import AdminFeatured from "@/pages/admin/content/featured";
-import AdminContentEditor from "@/pages/admin/content/content-editor";
 import AdminConsultationSlots from "@/pages/admin/consultation-slots";
 import AdminConsultationBookings from "@/pages/admin/consultation-bookings";
 import BookConsultationPage from "@/pages/book-consultation";
@@ -73,11 +71,16 @@ import { CartProvider } from "@/lib/cart-context";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import type { ContentType } from "@/lib/cms-types";
 
+const AdminContentList = lazy(() => import("@/pages/admin/content/content-list"));
+const AdminFeatured = lazy(() => import("@/pages/admin/content/featured"));
+const AdminContentEditor = lazy(() => import("@/pages/admin/content/content-editor"));
 const queryClient = new QueryClient();
 
 function AdminRouter() {
   return (
     <AdminGate>
+      {/* Content admin pages are lazy so TipTap/dnd-kit stay out of the public bundle. */}
+      <Suspense fallback={null}>
       <Switch>
         <Route path="/admin" component={AdminOverview} />
         <Route path="/admin/books" component={AdminBooks} />
@@ -99,6 +102,7 @@ function AdminRouter() {
         <Route path="/admin/admins" component={AdminAdmins} />
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </AdminGate>
   );
 }
