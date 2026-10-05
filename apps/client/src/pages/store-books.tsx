@@ -242,13 +242,13 @@ export default function StoreBooksPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[hsl(150_12%_97%)]">
+    <div className="min-h-screen bg-[hsl(43_33%_97%)]">
       <SiteNav />
 
       {/* Hero + search */}
-      <section className="relative pt-28 pb-10 px-4 overflow-hidden border-b border-border/50 bg-[hsl(150_12%_97%)]">
+      <section className="relative pt-28 pb-10 px-4 overflow-hidden border-b border-border/50 bg-[hsl(43_33%_97%)]">
         <div
-          className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(15,61,46,0.08),_transparent_55%)]"
+          className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(24,54,80,0.08),_transparent_55%)]"
           aria-hidden
         />
         <div className="container mx-auto max-w-6xl relative">

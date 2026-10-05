@@ -47,7 +47,7 @@ export default function AccountLibraryPage() {
             <h1 className="text-3xl md:text-4xl font-black text-primary mt-2 mb-1">{t.title}</h1>
             <p className="text-sm md:text-base text-muted-foreground">{t.subtitle}</p>
           </header>
-          <section className="bg-card border border-secondary/20 p-5 shadow-[0_12px_40px_rgba(15,61,46,0.06)]">
+          <section className="bg-card border border-secondary/20 p-5 shadow-[0_12px_40px_rgba(24,54,80,0.06)]">
             <MyLibrary lang={isAr ? "ar" : "en"} />
           </section>
         </div>

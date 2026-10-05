@@ -168,7 +168,7 @@ export default function CartPage() {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Items list */}
             <div className="lg:col-span-2">
-              <div className="bg-card border border-secondary/20 shadow-[0_12px_40px_rgba(15,61,46,0.06)]">
+              <div className="bg-card border border-secondary/20 shadow-[0_12px_40px_rgba(24,54,80,0.06)]">
                 <div className="hidden md:grid grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-3 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b border-secondary/15 bg-secondary/[0.04]">
                   <div>{t.item}</div>
                   <div className="text-center w-32">{t.qty}</div>

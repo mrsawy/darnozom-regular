@@ -4,7 +4,7 @@ import path from "node:path";
 
 const ROOT = path.resolve(__dirname);
 const LEGACY =
-  /#(0F3D2E|F4ECD7|134A38|082219|0A2A1F|F8F4E8|F6E7BD|DDD4BD|CFA63D|1D5E48|14302A)\b|darnozom-n-logo-green|--emerald-|--gold-warm|--gold-soft|--ink-deep|--sand-line/i;
+  /#(0F3D2E|F4ECD7|134A38|082219|0A2A1F|F8F4E8|F6E7BD|DDD4BD|CFA63D|1D5E48|14302A)\b|darnozom-n-logo-green|--emerald-|--gold-warm|--gold-soft|--ink-deep|--sand-line|hsl\(1[4-6][0-9]_|rgba\(15, ?61, ?46/i;
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

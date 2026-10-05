@@ -366,7 +366,7 @@ export default function AcademyRegisterPage() {
               </div>
             </motion.div>
           ) : (
-            <form onSubmit={onSubmit} className="bg-card border border-secondary/20 shadow-[0_12px_40px_rgba(15,61,46,0.06)] p-8 md:p-10" data-testid="apply-form">
+            <form onSubmit={onSubmit} className="bg-card border border-secondary/20 shadow-[0_12px_40px_rgba(24,54,80,0.06)] p-8 md:p-10" data-testid="apply-form">
               {(ctx.contextLabelAr || ctx.contextLabelEn) && (
                 <div className="mb-8 pb-6 border-b border-border">
                   <div className="text-[10px] font-bold tracking-[0.2em] uppercase text-secondary mb-2">

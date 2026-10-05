@@ -1091,7 +1091,7 @@ export default function ServiceDetail() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="relative pt-36 pb-24 overflow-hidden bg-gradient-to-br from-[hsl(150_40%_95%)] via-[hsl(150_44%_92%)] to-[hsl(152_46%_86%)]">
+      <section className="relative pt-36 pb-24 overflow-hidden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]">
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           {/* Breadcrumb */}
           <motion.div

@@ -212,13 +212,13 @@ export default function StorePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[hsl(150_12%_97%)]">
+    <div className="min-h-screen bg-[hsl(43_33%_97%)]">
       <SiteNav />
 
       {/* Editorial Hero */}
-      <section className="relative pt-28 pb-14 px-4 overflow-hidden border-b border-border/60 bg-[hsl(150_12%_97%)]">
+      <section className="relative pt-28 pb-14 px-4 overflow-hidden border-b border-border/60 bg-[hsl(43_33%_97%)]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(15,61,46,0.10),_transparent_60%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(24,54,80,0.10),_transparent_60%)]" />
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/25 to-transparent" />
         </div>
         <div className="container mx-auto max-w-6xl relative">

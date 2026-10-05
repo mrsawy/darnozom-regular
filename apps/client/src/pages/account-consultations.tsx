@@ -109,7 +109,7 @@ export default function AccountConsultationsPage() {
             {items.map(b => {
               const upcoming = new Date(b.startsAt).getTime() > Date.now();
               return (
-                <div key={b.id} className="border border-secondary/20 bg-card shadow-[0_12px_40px_rgba(15,61,46,0.06)] p-4">
+                <div key={b.id} className="border border-secondary/20 bg-card shadow-[0_12px_40px_rgba(24,54,80,0.06)] p-4">
                   <div className="flex justify-between items-start gap-3 flex-wrap">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">

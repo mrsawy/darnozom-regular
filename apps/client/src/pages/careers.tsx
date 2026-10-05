@@ -153,7 +153,7 @@ export default function Careers() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="relative pt-36 pb-20 overflow-hidden bg-gradient-to-br from-[hsl(150_40%_95%)] via-[hsl(150_44%_92%)] to-[hsl(152_46%_86%)]">
+      <section className="relative pt-36 pb-20 overflow-hidden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]">
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <div className="text-xs font-bold tracking-[0.25em] uppercase text-muted-foreground mb-4 flex items-center gap-2">
             <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">

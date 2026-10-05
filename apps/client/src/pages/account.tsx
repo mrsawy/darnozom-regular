@@ -342,7 +342,7 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-card border border-secondary/20 shadow-[0_12px_40px_rgba(15,61,46,0.06)]">
+    <section className="bg-card border border-secondary/20 shadow-[0_12px_40px_rgba(24,54,80,0.06)]">
       <div className="flex items-center gap-3 px-5 py-4 border-b border-secondary/15 bg-secondary/[0.04]">
         <div className="w-9 h-9 bg-secondary flex items-center justify-center text-primary">
           <Icon className="w-4 h-4" />

@@ -253,7 +253,7 @@ export default function StoreBookDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[hsl(150_12%_97%)]">
+    <div className="min-h-screen bg-[hsl(43_33%_97%)]">
       <SiteNav />
 
       {/* Loading skeleton */}
@@ -310,7 +310,7 @@ export default function StoreBookDetailPage() {
             <div className="absolute -top-20 right-1/4 w-80 h-80 rounded-full bg-emerald-600/8 blur-3xl" />
           </div>
 
-          <section className="relative pt-28 pb-16 px-4 bg-[hsl(150_12%_97%)]">
+          <section className="relative pt-28 pb-16 px-4 bg-[hsl(43_33%_97%)]">
             <div className="container mx-auto max-w-6xl">
               {/* Breadcrumb */}
               <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-10">
