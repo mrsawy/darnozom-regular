@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import { CONTENT_STATUSES, CONTENT_TYPES, parseContentItem } from "../../lib/cms/schemas";
+import { areaExists } from "../../lib/cms/areas";
 import {
   adminList,
   createItem,
@@ -50,6 +51,9 @@ router.get("/admin/cms/items/:id", requireAdmin, async (req, res) => {
 router.post("/admin/cms/items", requireAdmin, async (req, res) => {
   const parsed = parseContentItem(req.body);
   if (!parsed.ok) return res.status(400).json({ error: "Invalid content", issues: parsed.issues });
+  if (parsed.value.area && !(await areaExists(parsed.value.area))) {
+    return res.status(400).json({ error: "Invalid content", issues: [{ path: ["area"], message: "Unknown area" }] });
+  }
   try {
     return res.status(201).json(await createItem(parsed.value));
   } catch (err) {
@@ -64,6 +68,9 @@ router.put("/admin/cms/items/:id", requireAdmin, async (req, res) => {
   if (!id) return res.status(400).json({ error: "Invalid id" });
   const parsed = parseContentItem(req.body);
   if (!parsed.ok) return res.status(400).json({ error: "Invalid content", issues: parsed.issues });
+  if (parsed.value.area && !(await areaExists(parsed.value.area))) {
+    return res.status(400).json({ error: "Invalid content", issues: [{ path: ["area"], message: "Unknown area" }] });
+  }
   try {
     const item = await updateItem(id, parsed.value);
     return item ? res.json(item) : res.status(404).json({ error: "Not found" });

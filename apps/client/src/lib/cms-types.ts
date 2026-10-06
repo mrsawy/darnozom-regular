@@ -1,6 +1,7 @@
 export type ContentType = "observatory" | "article" | "study" | "publication" | "news" | "event";
 export type ContentStatus = "draft" | "review" | "published" | "archived";
-export type ContentArea = "sharia_policy" | "public_policy_admin" | "leadership_governance";
+/** Slug of an admin-managed content area (see /admin/content-areas). */
+export type ContentArea = string;
 export type Lang = "ar" | "en";
 export type CmsLink = { title: string; url: string };
 

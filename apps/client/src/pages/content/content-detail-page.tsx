@@ -4,7 +4,8 @@ import { ExternalLink, Share2 } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { NotFoundError, useCmsItem } from "@/lib/cms-api";
 import { SECTIONS, type SectionKey } from "@/lib/cms-sections";
-import { AREA_LABELS, formatDate, pickLang, typeBadge } from "@/lib/cms-labels";
+import { useAreas } from "@/lib/cms-areas";
+import { formatDate, pickLang, typeBadge } from "@/lib/cms-labels";
 import { PageShell } from "@/components/content/page-shell";
 import { CategoryBadge } from "@/components/content/category-badge";
 import { ContentCard } from "@/components/content/content-card";
@@ -20,6 +21,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
   const preview = new URLSearchParams(useSearch()).get("preview") === "1";
   const cfg = SECTIONS[section];
   const q = useCmsItem(slug, preview);
+  const { labelFor } = useAreas();
   const item = q.data?.item;
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
@@ -56,7 +58,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <CategoryBadge>{typeBadge(item.type, item.details, lang)}</CategoryBadge>
                 <CategoryBadge tone="outline">{item.isExternal ? t("مرجع من جهة أخرى", "External reference") : t("إصدار دار نظم", "DarNozom publication")}</CategoryBadge>
-                {item.area && <span className="text-sm text-ink-muted">{AREA_LABELS[item.area][lang]}</span>}
+                {item.area && <span className="text-sm text-ink-muted">{labelFor(item.area, lang)}</span>}
                 <RegionTag item={item} lang={lang} />
               </div>
               <h1 className="text-3xl lg:text-4xl font-bold text-navy leading-tight">{pickLang(item, "title", lang)}</h1>

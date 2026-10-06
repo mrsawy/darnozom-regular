@@ -3,15 +3,15 @@ import type { ContentItem } from "@/lib/cms-types";
 import { ContentCard } from "@/components/content/content-card";
 import { SectionHeader } from "@/components/content/section-header";
 
-function Block({ title, subtitle, href, items, cols, variant }: {
-  title: string; subtitle: string; href: string; items: ContentItem[]; cols: string; variant: "vertical" | "horizontal";
+function Block({ title, subtitle, href, items, cols, variant, imageEnd }: {
+  title: string; subtitle: string; href: string; items: ContentItem[]; cols: string; variant: "vertical" | "horizontal"; imageEnd?: boolean;
 }) {
   const { isArabic } = useLanguage();
   if (items.length === 0) return null;
   return (
-    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-14">
+    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-10">
       <SectionHeader title={title} subtitle={subtitle} href={href} linkLabel={isArabic ? "عرض الكل" : "View all"} />
-      <div className={`grid gap-5 ${cols}`}>{items.map((i) => <ContentCard key={i.id} item={i} variant={variant} />)}</div>
+      <div className={`grid gap-5 ${cols}`}>{items.map((i) => <ContentCard key={i.id} item={i} variant={variant} bare imageEnd={imageEnd} />)}</div>
     </section>
   );
 }
@@ -23,7 +23,7 @@ export function ArticlesSection({ items }: { items: ContentItem[] }) {
 
 export function StudiesSection({ items }: { items: ContentItem[] }) {
   const { isArabic: ar } = useLanguage();
-  return <Block title={ar ? "الدراسات" : "Studies"} subtitle={ar ? "دراسات متخصصة تسهم في فهم الواقع واستشراف المستقبل" : "Specialised studies to understand the present and anticipate the future"} href="/studies" items={items} cols="lg:grid-cols-2" variant="horizontal" />;
+  return <Block title={ar ? "الدراسات" : "Studies"} subtitle={ar ? "دراسات متخصصة تسهم في فهم الواقع واستشراف المستقبل" : "Specialised studies to understand the present and anticipate the future"} href="/studies" items={items} cols="lg:grid-cols-2" variant="horizontal" imageEnd />;
 }
 
 export function NewsEventsSection({ items }: { items: ContentItem[] }) {

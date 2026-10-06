@@ -3,7 +3,8 @@ import { Link, useLocation, useSearch } from "wouter";
 import { useLanguage } from "@/lib/language-context";
 import { useCmsList } from "@/lib/cms-api";
 import { SECTIONS, type SectionKey } from "@/lib/cms-sections";
-import { AREA_LABELS, PUBLICATION_KINDS, REGION_LABELS } from "@/lib/cms-labels";
+import { useAreas, areaLabel } from "@/lib/cms-areas";
+import { PUBLICATION_KINDS, REGION_LABELS } from "@/lib/cms-labels";
 import { useDarNozomBooks } from "@/lib/darnozom-books";
 import { DARNOZOM_PUBLISHER } from "@/lib/site-constants";
 import { PageShell } from "@/components/content/page-shell";
@@ -19,6 +20,7 @@ const selectCls = "min-h-11 px-3 rounded-[4px] border border-line bg-white text-
 export default function ContentListPage({ section }: { section: SectionKey }) {
   const cfg = SECTIONS[section];
   const { language: lang, isArabic } = useLanguage();
+  const { active: activeAreas } = useAreas();
   const search = useSearch();
   const [, navigate] = useLocation();
   const params = new URLSearchParams(search);
@@ -86,7 +88,7 @@ export default function ContentListPage({ section }: { section: SectionKey }) {
             {cfg.filters.includes("area") && (
               <select aria-label={t("المجال", "Field")} value={area} onChange={(e) => setParams({ area: e.target.value })} className={selectCls}>
                 <option value="">{t("كل المجالات", "All fields")}</option>
-                {Object.entries(AREA_LABELS).map(([v, l]) => <option key={v} value={v}>{l[lang]}</option>)}
+                {activeAreas.map((a) => <option key={a.slug} value={a.slug}>{areaLabel(a, lang)}</option>)}
               </select>
             )}
             {cfg.filters.includes("region") && (

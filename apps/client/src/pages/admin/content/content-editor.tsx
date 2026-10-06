@@ -3,7 +3,8 @@ import { Link, useLocation } from "wouter";
 import { Plus, Trash2 } from "lucide-react";
 import { adminFetch, adminFetchJson, adminJsonHeaders } from "@/lib/admin-api";
 import type { CmsLink, ContentItem, ContentType } from "@/lib/cms-types";
-import { AREA_LABELS, contentPath } from "@/lib/cms-labels";
+import { contentPath } from "@/lib/cms-labels";
+import { useAreas } from "@/lib/cms-areas";
 import { TYPE_CONFIG, emptyDetails, type FieldDef } from "@/lib/content-types";
 import { PageHeader, Toast, useToast } from "@/pages/admin/layout";
 import { ImageUploadField } from "@/pages/admin/_image-upload";
@@ -28,6 +29,7 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const cfg = TYPE_CONFIG[type];
   const isNew = id === "new";
   const [, navigate] = useLocation();
+  const { areas } = useAreas();
   const [form, setForm] = useState<Form>(() => blank(type));
   const [lang, setLang] = useState<"ar" | "en">("ar");
   const [issues, setIssues] = useState<string[]>([]);
@@ -175,7 +177,7 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
           <span className="text-sm font-semibold">المجال</span>
           <select aria-label="المجال" className={inputCls} value={form.area ?? ""} onChange={(e) => set("area", (e.target.value || null) as Form["area"])}>
             <option value="">— بدون —</option>
-            {Object.entries(AREA_LABELS).map(([v, l]) => <option key={v} value={v}>{l.ar}</option>)}
+            {areas.filter((a) => a.isActive || a.slug === form.area).map((a) => <option key={a.slug} value={a.slug}>{a.labelAr}{a.isActive ? "" : " (معطّل)"}</option>)}
           </select>
         </label>
         <label className="block">

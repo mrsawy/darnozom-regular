@@ -72,6 +72,7 @@ import { ScrollToTop } from "@/components/scroll-to-top";
 import type { ContentType } from "@/lib/cms-types";
 
 const AdminContentList = lazy(() => import("@/pages/admin/content/content-list"));
+const AdminContentAreas = lazy(() => import("@/pages/admin/content/areas"));
 const AdminFeatured = lazy(() => import("@/pages/admin/content/featured"));
 const AdminContentEditor = lazy(() => import("@/pages/admin/content/content-editor"));
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ function AdminRouter() {
         <Route path="/admin/store-courses" component={AdminStoreCourses} />
         <Route path="/admin/academy" component={AdminAcademy} />
         <Route path="/admin/featured" component={AdminFeatured} />
+        <Route path="/admin/content-areas" component={AdminContentAreas} />
         <Route path="/admin/events"><Redirect to="/admin/content/event" /></Route>
         <Route path="/admin/content/:type/:id">{(p) => <AdminContentEditor key={`${p.type}-${p.id}`} type={p.type as ContentType} id={p.id} />}</Route>
         <Route path="/admin/content/:type">{(p) => <AdminContentList key={p.type} type={p.type as ContentType} />}</Route>
@@ -175,7 +177,8 @@ function Router() {
 
       {/* Unified admin (role-gated by AdminGate) */}
       <Route path="/admin" component={AdminRouter} />
-      <Route path="/admin/:rest*" component={AdminRouter} />
+      {/* `:rest*` only matches one segment, so use a real wildcard for /admin/content/:type[/:id]. */}
+      <Route path="/admin/*?" component={AdminRouter} />
 
       <Route path="/events"><Redirect to="/news-events?tab=events" replace /></Route>
       <Route path="/observatory">{() => <ContentListPage section="observatory" />}</Route>

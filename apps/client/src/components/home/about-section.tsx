@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { BookOpen, Laptop, MessageSquare, Users } from "lucide-react";
+import { ArrowLeft, BookOpen, Laptop, MessageSquare, Users } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { BRAND } from "@/lib/site-constants";
 
@@ -14,7 +14,7 @@ export function AboutSection() {
   const { isArabic } = useLanguage();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   return (
-    <section className="mt-12">
+    <section className="mt-8 bg-[#FFFFFF] py-8">
       <div className="mx-auto max-w-[1200px] px-5 lg:px-6 grid gap-8 lg:grid-cols-2 lg:items-center">
         <div>
           <h2 className="text-lg font-bold text-navy">{t("عن دار نظم", "About DarNozom")}</h2>
@@ -28,15 +28,18 @@ export function AboutSection() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/about" className="min-h-12 px-6 inline-flex items-center rounded-[4px] bg-navy text-white font-semibold hover:bg-navy-deep">{t("تعرّف على دار نظم", "Discover DarNozom")}</Link>
-            <Link href="/services" className="min-h-12 px-6 inline-flex items-center rounded-[4px] border border-navy text-navy font-semibold hover:bg-mist">{t("خدماتنا", "Our services")}</Link>
+            <Link href="/services" className="min-h-12 px-6 inline-flex items-center gap-2 rounded-[4px] border border-navy text-navy font-semibold hover:bg-mist">
+              {t("خدماتنا", "Our services")}
+              <ArrowLeft className={`w-4 h-4 transition-transform ${isArabic ? "" : "rotate-180"}`} aria-hidden />
+            </Link>
           </div>
         </div>
-        <img src="/seed/about.webp" alt="" className="w-full aspect-[2/1] object-cover rounded-[4px]" />
+        <img src="/seed/about.webp" alt="" className="w-full aspect-[2.2/1] object-cover rounded-[4px]" />
       </div>
-      <div className="mt-10 bg-white border-y border-line">
-        <ul className="mx-auto max-w-[1200px] px-5 lg:px-6 grid grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10  border-y border-line bg-[#F8F6F1]">
+        <ul className="mx-auto max-w-[1200px] px-5 lg:px-6 grid grid-cols-2 lg:grid-cols-4 ">
           {SERVICES.map(({ icon: Icon, ar, en, href }, i) => (
-            <li key={href} className={`py-5 ${i > 0 ? "lg:border-s lg:border-gold/50" : ""}`}>
+            <li key={href} className={`py-5 ${i > 0 ? "lg:border-s lg:border-gold/60" : ""}`}>
               <Link href={href} className="flex items-center justify-center gap-3 min-h-11 text-navy font-semibold hover:text-gold">
                 <Icon className="w-6 h-6" strokeWidth={1.5} aria-hidden /> {t(ar, en)}
               </Link>

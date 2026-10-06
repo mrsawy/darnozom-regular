@@ -73,27 +73,22 @@ export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
               <button type="button" onClick={next} aria-label={t("العنصر التالي", "Next item")} className="absolute top-1/2 -translate-y-1/2 end-3 w-11 h-11 rounded-full bg-navy/80 text-white flex items-center justify-center hover:bg-navy">
                 <NextIcon className="w-5 h-5" />
               </button>
+                    <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1">
+                      {cards.map((c, i) => (
+                        <button key={c.id} type="button" onClick={() => go(i)} aria-label={t(`عرض العنصر ${i + 1}`, `Show item ${i + 1}`)} aria-current={i === index} className="w-5 h-5 flex items-center justify-center">
+                          <span className={`block rounded-full ${i === index ? "w-2.5 h-2.5 bg-gold-light" : "w-2 h-2 bg-white/60"}`} />
+                        </button>
+                      ))}
+                    </div>
                   </>
                 )
               }
             />
           </motion.div>
-          {cards.length > 1 && (
-            <div className="flex justify-center gap-2 py-3 bg-navy">
-              {cards.map((c, i) => (
-                <button
-                  key={c.id} type="button" onClick={() => go(i)} aria-label={t(`عرض العنصر ${i + 1}`, `Show item ${i + 1}`)} aria-current={i === index}
-                  className="w-6 h-6 flex items-center justify-center"
-                >
-                  <span className={`block rounded-full ${i === index ? "w-2.5 h-2.5 bg-gold-light" : "w-2 h-2 bg-white/50"}`} />
-                </button>
-              ))}
-            </div>
-          )}
           <LiveTitle card={cards[index]} lang={lang} />
         </div>
 
-        <div className="min-w-0 flex lg:flex-col gap-4 overflow-x-auto snap-x lg:overflow-visible -mx-5 px-5 lg:mx-0 lg:px-0">
+        <div className="min-w-0 flex lg:flex-col gap-4 overflow-x-auto snap-x lg:overflow-visible -mx-5 px-5 lg:mx-0 lg:px-0 justify-between">
           {cards.slice(1).map((card, i) => (
             <SideCard key={card.id} card={card} lang={lang} isArabic={isArabic} current={index === i + 1} onSelect={() => go(i + 1)} />
           ))}
@@ -123,7 +118,7 @@ function MainCard({ card, lang, isArabic, controls }: { card: FeaturedCard; lang
     <>
       {/* Arrows sit over the image, as in the reference. */}
       <div className="relative">
-        {c.image ? <img src={c.image} alt="" className="w-full aspect-[2/1] object-cover" /> : <div className="aspect-[4/1]" />}
+        {c.image ? <img src={c.image} alt="" className="w-full aspect-[2.15/1] object-cover" /> : <div className="aspect-[4/1]" />}
         {controls}
       </div>
       <div className="p-5 lg:p-7">
@@ -143,13 +138,15 @@ function SideCard({ card, lang, isArabic, current, onSelect }: { card: FeaturedC
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
     <div className={`relative snap-start shrink-0 w-[80vw] sm:w-[60vw] lg:w-auto flex bg-white border rounded-[4px] overflow-hidden ${current ? "border-gold ring-1 ring-gold" : "border-line"}`}>
-      <button type="button" onClick={onSelect} aria-current={current} className="flex-1 p-4 text-start" aria-label={c.title}>
-        {c.badge && <CategoryBadge>{c.badge}</CategoryBadge>}
-        <span className="block mt-2 font-bold text-navy">{c.title}</span>
-        {c.summary && <span className="block mt-1 text-sm text-ink-muted line-clamp-2">{c.summary}</span>}
-      </button>
-      {c.image && <img src={c.image} alt="" loading="lazy" className="w-32 object-cover" />}
-      <CardLink href={card.href} className="sr-only focus:not-sr-only">{c.cta} <Arrow className="inline w-3 h-3" /></CardLink>
+      {c.image && <img src={c.image} alt="" loading="lazy" className="w-[30%] max-w-32 object-cover" />}
+      <div className="flex-1 min-w-0 p-4 flex flex-col items-start">
+        <button type="button" onClick={onSelect} aria-current={current} className="text-start" aria-label={c.title}>
+          {c.badge && <CategoryBadge>{c.badge}</CategoryBadge>}
+          <span className="block mt-2 font-bold text-navy">{c.title}</span>
+          {c.summary && <span className="block mt-1 text-sm text-ink-muted line-clamp-2">{c.summary}</span>}
+        </button>
+        <CardLink href={card.href} className="mt-auto pt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-navy hover:text-gold">{c.cta} <Arrow className="w-4 h-4" aria-hidden /></CardLink>
+      </div>
     </div>
   );
 }

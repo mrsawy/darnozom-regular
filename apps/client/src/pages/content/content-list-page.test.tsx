@@ -36,7 +36,7 @@ describe("ContentListPage", () => {
   it("reads tab and filters from the URL into the API call", async () => {
     const { fetchMock } = setup("/news-events?tab=events&kind=seminar");
     await screen.findByText("فعالية e1");
-    const url = String(fetchMock.mock.calls[0][0]);
+    const url = String(fetchMock.mock.calls.map((c) => c[0]).find((u) => String(u).includes("/api/cms/items")));
     expect(url).toContain("type=event");
     expect(url).toContain("kind=seminar");
     expect(url).toContain("when=upcoming");

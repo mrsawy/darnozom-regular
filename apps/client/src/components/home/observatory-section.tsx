@@ -13,10 +13,10 @@ export function ObservatorySection({ lead, others }: { lead: ContentItem | null;
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
-    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-14">
+    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-10">
       <SectionHeader title={t("المرصد", "Observatory")} subtitle={t("رصد وتحليل لقضايا الشأن العام والإنتاج الفكري والبحثي", "Monitoring and analysis of public affairs and new research")} href="/observatory" linkLabel={t("تابع المرصد", "Follow the Observatory")} />
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
-        <article className="relative rounded-[4px] overflow-hidden bg-navy text-white min-h-[320px]">
+        <article className="relative rounded-[4px] overflow-hidden bg-navy text-white min-h-[300px]">
           {lead.coverImageUrl && <img src={lead.coverImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />}
           <div className="relative p-6 lg:p-8 flex flex-col h-full justify-end bg-gradient-to-t from-navy-deep/90 via-navy/50 to-transparent">
             <CategoryBadge>{typeBadge(lead.type, lead.details, lang)}</CategoryBadge>
@@ -27,7 +27,7 @@ export function ObservatorySection({ lead, others }: { lead: ContentItem | null;
             </Link>
           </div>
         </article>
-        <div className="grid gap-4">{others.map((o) => <ContentCard key={o.id} item={o} variant="compact" />)}</div>
+        <div className="grid gap-3 content-between">{others.map((o) => <ContentCard key={o.id} item={o} variant="compact" bare />)}</div>
       </div>
     </section>
   );

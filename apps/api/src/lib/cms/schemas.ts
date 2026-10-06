@@ -2,10 +2,10 @@ import { z } from "zod";
 
 export const CONTENT_TYPES = ["observatory", "article", "study", "publication", "news", "event"] as const;
 export const CONTENT_STATUSES = ["draft", "review", "published", "archived"] as const;
-export const CONTENT_AREAS = ["sharia_policy", "public_policy_admin", "leadership_governance"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
-export type ContentArea = (typeof CONTENT_AREAS)[number];
+/** Slug of an admin-managed row in content_areas (validated against the table on write). */
+export type ContentArea = string;
 
 const optText = (max: number) => z.string().trim().max(max).optional().default("");
 const html = z.string().max(200_000).optional().default("");
@@ -124,7 +124,7 @@ export const contentItemInput = z.object({
   bodyAr: html,
   bodyEn: html,
   coverImageUrl: urlOrPath,
-  area: z.enum(CONTENT_AREAS).nullable().optional().default(null),
+  area: z.string().trim().min(1).max(64).nullable().optional().default(null),
   authorAr: optText(300),
   authorEn: optText(300),
   isExternal: z.boolean().optional().default(false),

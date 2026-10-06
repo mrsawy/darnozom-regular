@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useLanguage } from "@/lib/language-context";
 import { useCmsHome } from "@/lib/cms-api";
+import { mergePublications, useDarNozomBooks } from "@/lib/darnozom-books";
 import { PageShell } from "@/components/content/page-shell";
 import { NewsletterBlock } from "@/components/content/newsletter-block";
 import { FeaturedShowcase } from "@/components/home/featured-showcase";
@@ -13,11 +14,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function Home() {
   const { isArabic } = useLanguage();
   const home = useCmsHome();
+  const books = useDarNozomBooks(4);
   const d = home.data;
 
   useEffect(() => {
     document.title = isArabic ? "دار نظم — للبحوث والاستشارات والتدريب" : "DarNozom — Research, Consulting and Training";
   }, [isArabic]);
+
+  // Sections that render nothing are left out so the background stripes keep alternating.
+  const sections: ReactNode[] = [];
+  if (d?.featured.length) sections.push(<FeaturedShowcase cards={d.featured} />);
+  sections.push(<AboutSection />);
+  if (d) {
+    if (d.observatory.lead) sections.push(<ObservatorySection lead={d.observatory.lead} others={d.observatory.others} />);
+    if (d.articles.length) sections.push(<ArticlesSection items={d.articles} />);
+    if (d.studies.length) sections.push(<StudiesSection items={d.studies} />);
+    if (mergePublications(d.publications, books.data ?? [], 4).length) sections.push(<PublicationsRow items={d.publications} />);
+    if (d.newsEvents.length) sections.push(<NewsEventsSection items={d.newsEvents} />);
+  }
+  sections.push(<NewsletterBlock />);
 
   return (
     <PageShell footerTone="light">
@@ -26,18 +41,11 @@ export default function Home() {
           <Skeleton className="h-[420px]" /><Skeleton className="h-[420px]" />
         </div>
       )}
-      {d && <FeaturedShowcase cards={d.featured} />}
-      <AboutSection />
-      {d && (
-        <>
-          <ObservatorySection lead={d.observatory.lead} others={d.observatory.others} />
-          <ArticlesSection items={d.articles} />
-          <StudiesSection items={d.studies} />
-          <PublicationsRow items={d.publications} />
-          <NewsEventsSection items={d.newsEvents} />
-        </>
-      )}
-      <NewsletterBlock />
+      {sections.map((section, i) => (
+        <div key={i} className={`py-10 [&>section]:!my-0 ${i % 2 === 0 ? "bg-[#F8F6F1]" : "bg-white"}`}>
+          {section}
+        </div>
+      ))}
     </PageShell>
   );
 }

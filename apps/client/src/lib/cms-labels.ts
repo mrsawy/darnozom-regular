@@ -1,14 +1,8 @@
-import type { ContentArea, ContentItem, ContentType, Lang } from "./cms-types";
+import type { ContentItem, ContentType, Lang } from "./cms-types";
 import { isValidTimeZone } from "./datetime";
 
 type Pair = { ar: string; en: string };
 const pair = (ar: string, en: string): Pair => ({ ar, en });
-
-export const AREA_LABELS: Record<ContentArea, Pair> = {
-  sharia_policy: pair("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought"),
-  public_policy_admin: pair("السياسات والإدارة العامة", "Public Policy and Public Administration"),
-  leadership_governance: pair("القيادة والإدارة والحوكمة", "Leadership, Management and Governance"),
-};
 
 export const REGION_LABELS: Record<string, Pair> = {
   egypt: pair("مصر", "Egypt"),

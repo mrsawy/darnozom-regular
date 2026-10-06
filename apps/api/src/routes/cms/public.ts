@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { CONTENT_AREAS, CONTENT_TYPES } from "../../lib/cms/schemas";
+import { CONTENT_TYPES } from "../../lib/cms/schemas";
 import { getHome, getPublishedBySlug, getRelated, listPublished } from "../../lib/cms/repo";
 
 const router = Router();
@@ -10,7 +10,7 @@ const listQuery = z.object({
     .string()
     .transform((s) => s.split(",").filter(Boolean))
     .pipe(z.array(z.enum(CONTENT_TYPES)).min(1)),
-  area: z.enum(CONTENT_AREAS).optional(),
+  area: z.string().max(64).optional(),
   kind: z.string().max(40).optional(),
   region: z.string().max(40).optional(),
   when: z.enum(["upcoming", "past"]).optional(),

@@ -15,11 +15,12 @@ export function PublicationsRow({ items }: { items: ContentItem[] }) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
-    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-14">
+    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-10">
       <SectionHeader title={t("الإصدارات", "Publications")} subtitle={t("كتب وتقارير ودوريات في السياسات والإدارة والحوكمة", "Books, reports and periodicals on policy, administration and governance")} href="/publications" linkLabel={t("المكتبة ومتجر الكتب", "Library and book store")} />
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <article key={c.key} className="flex bg-white border border-line rounded-[4px] overflow-hidden">
+            {c.imageUrl && <img src={c.imageUrl} alt="" loading="lazy" className="w-24 object-cover" />}
             <div className="flex-1 p-4 flex flex-col gap-2">
               <CategoryBadge>{PUBLICATION_KINDS[c.kind][lang]}</CategoryBadge>
               <h3 className="font-bold text-navy">{lang === "en" && c.titleEn ? c.titleEn : c.titleAr}</h3>
@@ -27,7 +28,6 @@ export function PublicationsRow({ items }: { items: ContentItem[] }) {
                 {t("تفاصيل الإصدار", "Publication details")} <Arrow className="w-4 h-4" aria-hidden />
               </Link>
             </div>
-            {c.imageUrl && <img src={c.imageUrl} alt="" loading="lazy" className="w-24 object-cover" />}
           </article>
         ))}
       </div>

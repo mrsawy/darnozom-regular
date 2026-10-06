@@ -21,12 +21,22 @@ export const contentTypeEnum = pgEnum("content_type", [
   "event",
 ]);
 export const contentStatusEnum = pgEnum("content_status", ["draft", "review", "published", "archived"]);
-export const contentAreaEnum = pgEnum("content_area", [
-  "sharia_policy",
-  "public_policy_admin",
-  "leadership_governance",
-]);
 export const featuredSourceEnum = pgEnum("featured_source", ["content", "book", "custom"]);
+
+export const contentAreas = pgTable(
+  "content_areas",
+  {
+    id: serial("id").primaryKey(),
+    slug: varchar("slug", { length: 64 }).notNull(),
+    labelAr: varchar("label_ar", { length: 200 }).notNull(),
+    labelEn: varchar("label_en", { length: 200 }).notNull().default(""),
+    position: integer("position").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("content_areas_slug_uq").on(t.slug)],
+);
 
 export const contentItems = pgTable(
   "content_items",
@@ -42,7 +52,8 @@ export const contentItems = pgTable(
     bodyAr: text("body_ar").notNull().default(""),
     bodyEn: text("body_en").notNull().default(""),
     coverImageUrl: varchar("cover_image_url", { length: 1000 }).notNull().default(""),
-    area: contentAreaEnum("area"),
+    // Slug of a row in content_areas (admin-managed). Not an FK so an area can never block/cascade content.
+    area: varchar("area", { length: 64 }),
     authorAr: varchar("author_ar", { length: 300 }).notNull().default(""),
     authorEn: varchar("author_en", { length: 300 }).notNull().default(""),
     isExternal: boolean("is_external").notNull().default(false),
@@ -79,6 +90,7 @@ export const featuredSlides = pgTable("featured_slides", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export type ContentAreaRow = typeof contentAreas.$inferSelect;
 export type ContentItem = typeof contentItems.$inferSelect;
 export type NewContentItem = typeof contentItems.$inferInsert;
 export type FeaturedSlide = typeof featuredSlides.$inferSelect;
