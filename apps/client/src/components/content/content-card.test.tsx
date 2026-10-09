@@ -22,7 +22,7 @@ describe("ContentCard", () => {
   });
   it("shows an event's kind and 'date to be announced' when it has no start time", () => {
     render(<ContentCard item={{ ...base, type: "event", details: { kind: "seminar" } } as any} />);
-    expect(screen.getByText("ندوة")).toBeTruthy();
+    expect(screen.getByText("ندوات")).toBeTruthy();
     expect(screen.getByText("الموعد يُعلن لاحقًا")).toBeTruthy();
   });
 });

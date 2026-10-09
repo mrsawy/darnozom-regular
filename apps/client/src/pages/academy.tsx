@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import SiteNav from "@/components/site-nav";
 import { PROGRAMS as PROGRAMS_DATA } from "@/lib/site-content";
+import { ACADEMY_TRACKS } from "@/lib/academy-tracks";
 import { useLanguage } from "@/lib/language-context";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -1342,6 +1343,34 @@ export default function Academy() {
               ? "تستهدف الأكاديمية الشركات، المنظمات غير الربحية، والقطاع الحكومي، عبر منهج موحّد قابل للتطبيق في القطاعات الثلاثة."
               : "The Academy serves corporates, non-profits, and the public sector through one unified curriculum applicable across all three domains."}
           </p>
+        </div>
+      </section>
+
+      {/* Learning Tracks */}
+      <section className="bg-white py-[70px] border-b border-border">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+          <h2 className="text-[26px] font-bold text-primary mb-2">{language === "ar" ? "المسارات التعليمية" : "Learning Tracks"}</h2>
+          <p className="max-w-[700px] text-muted-foreground mb-7">
+            {language === "ar"
+              ? "المسارات الثلاثة مطابقة للوحدات البحثية."
+              : "The three tracks correspond to the research units."}
+          </p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {ACADEMY_TRACKS.map((track) => (
+              <Link
+                key={track.id}
+                href={`/track/${track.id}`}
+                data-testid={`academy-track-${track.id}`}
+                className="group flex flex-col bg-white border border-border rounded-[10px] p-[26px] transition-transform hover:-translate-y-0.5"
+              >
+                <h3 className="font-bold text-primary mb-2">{language === "ar" ? track.name.ar : track.name.en}</h3>
+                <p className="text-muted-foreground text-sm leading-[2]">{language === "ar" ? track.desc.ar : track.desc.en}</p>
+                <span className="self-start mt-5 text-[13px] text-primary border-b border-secondary pb-0.5">
+                  {language === "ar" ? "اكتشف المزيد" : "Explore more"} <span aria-hidden="true">{isArabic ? "←" : "→"}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

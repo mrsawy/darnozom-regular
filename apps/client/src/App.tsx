@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import ServiceDetail from "@/pages/service-detail";
 import ServicesConsulting from "@/pages/services-consulting";
 import Academy from "@/pages/academy";
+import AcademyTrack from "@/pages/academy-track";
 import AcademyIslamic from "@/pages/academy-islamic";
 import AcademyManagement from "@/pages/academy-management";
 import AcademyDigital from "@/pages/academy-digital";
@@ -25,6 +26,8 @@ import StoreCoursesPage from "@/pages/store-courses";
 import StoreCourseDetailPage from "@/pages/store-course-detail";
 import Careers from "@/pages/careers";
 import About from "@/pages/about";
+import ResearchCenter from "@/pages/research-center";
+import ResearchUnit from "@/pages/research-unit";
 import CaseStudies from "@/pages/case-studies";
 import CaseStudyDetail from "@/pages/case-study-detail";
 import PrivacyPolicyPage from "@/pages/privacy";
@@ -126,11 +129,14 @@ function Router() {
       <Route path="/نماذج-الأعمال" component={CaseStudies} />
       <Route path="/services" component={Services} />
       <Route path="/sectors" component={Sectors} />
+      <Route path="/center" component={ResearchCenter} />
+      <Route path="/unit/:id" component={ResearchUnit} />
       <Route path="/contact" component={Contact} />
       <Route path="/privacy" component={PrivacyPolicyPage} />
       <Route path="/terms" component={TermsPage} />
       <Route path="/return-policy" component={ReturnPolicyPage} />
       <Route path="/academy" component={Academy} />
+      <Route path="/track/:id" component={AcademyTrack} />
       <Route path="/academy/islamic-systems" component={AcademyIslamic} />
       <Route path="/academy/professional-management" component={AcademyManagement} />
       <Route path="/academy/digital-transformation" component={AcademyDigital} />

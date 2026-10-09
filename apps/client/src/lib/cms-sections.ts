@@ -22,6 +22,10 @@ export interface SectionConfig {
   filters: ("area" | "region" | "when")[];
 }
 
+// Prototype's `publications()` header blurb (files/source/app.full.js) — shared verbatim across articles/studies/publications.
+const KNOWLEDGE_INTRO_AR = "إنتاج دار نظم في الكتب والمقالات والدراسات والأبحاث العلمية والدوريات والمرصد.";
+const KNOWLEDGE_INTRO_EN = "DarNozom outputs in books, articles, studies, research papers, periodicals and the Observatory.";
+
 export const SECTIONS: Record<SectionKey, SectionConfig> = {
   observatory: {
     key: "observatory", path: "/observatory", types: ["observatory"],
@@ -39,26 +43,26 @@ export const SECTIONS: Record<SectionKey, SectionConfig> = {
   },
   articles: {
     key: "articles", path: "/articles", types: ["article"],
-    titleAr: "المقالات", titleEn: "Articles",
-    introAr: "أفكار وتحليلات معمقة في قضايا السياسات والمؤسسات.", introEn: "In-depth ideas and analysis on policy and institutional issues.",
+    titleAr: "مقالات", titleEn: "Articles",
+    introAr: KNOWLEDGE_INTRO_AR, introEn: KNOWLEDGE_INTRO_EN,
     filters: ["area"],
   },
   studies: {
     key: "studies", path: "/studies", types: ["study"],
-    titleAr: "الدراسات", titleEn: "Studies",
-    introAr: "دراسات متخصصة تسهم في فهم الواقع واستشراف المستقبل.", introEn: "Specialised studies that help understand the present and anticipate the future.",
+    titleAr: "دراسات", titleEn: "Studies",
+    introAr: KNOWLEDGE_INTRO_AR, introEn: KNOWLEDGE_INTRO_EN,
     filters: ["area"],
   },
   publications: {
     key: "publications", path: "/publications", types: ["publication"],
-    titleAr: "المكتبة والإصدارات", titleEn: "Library and Publications",
-    introAr: "كتب وتقارير ودوريات وأبحاث في السياسات والإدارة والحوكمة.", introEn: "Books, reports, periodicals and research on policy, administration and governance.",
+    titleAr: "إصدارات دار نظم", titleEn: "DarNozom Publications",
+    introAr: KNOWLEDGE_INTRO_AR, introEn: KNOWLEDGE_INTRO_EN,
     tabs: [
       { value: "all", labelAr: "الكل", labelEn: "All", types: ["publication"] },
       { value: "books", labelAr: "كتب", labelEn: "Books", types: ["publication"], books: true },
       { value: "report", labelAr: "تقارير", labelEn: "Reports", types: ["publication"], kind: "report" },
       { value: "periodical", labelAr: "دوريات", labelEn: "Periodicals", types: ["publication"], kind: "periodical" },
-      { value: "research", labelAr: "أبحاث علمية", labelEn: "Research", types: ["publication"], kind: "research" },
+      { value: "research", labelAr: "أبحاث علمية", labelEn: "Research Papers", types: ["publication"], kind: "research" },
     ],
     filters: ["area"],
   },

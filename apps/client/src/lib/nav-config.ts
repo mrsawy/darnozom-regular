@@ -22,11 +22,11 @@ export const MAIN_NAV: NavEntry[] = [
     key: "about", labelAr: "عن دار نظم", labelEn: "About DarNozom", href: "/about",
     match: ["/about", "/careers", "/case-studies"],
     columns: [{ links: [
-      l("من نحن", "Who we are", "/about#overview"),
+      l("من نحن", "Who we are", "/about"),
       l("رؤيتنا", "Our vision", "/about#vision"),
-      l("رسالتنا", "Our mission", "/about#vision"),
-      l("منهجنا", "Our approach", "/about#values"),
-      l("قيمنا والهيكل", "Values and structure", "/about#team"),
+      l("رسالتنا", "Our mission", "/about#mission"),
+      l("منهجنا", "Our approach", "/about#method"),
+      l("قيمنا والهيكل", "Values and structure", "/about#values"),
     ] }],
   },
   {
@@ -41,20 +41,20 @@ export const MAIN_NAV: NavEntry[] = [
     ] }],
   },
   {
-    key: "knowledge", labelAr: "المعرفة والبحوث", labelEn: "Knowledge and Research", href: "/services/research",
-    match: ["/services/research", "/observatory", "/articles", "/studies"],
+    key: "knowledge", labelAr: "المعرفة والبحوث", labelEn: "Knowledge and Research", href: "/center",
+    match: ["/center", "/unit", "/observatory", "/articles", "/studies"],
     columns: [
       {
-        titleAr: "مركز البحوث والدراسات", titleEn: "Research and Studies Center", href: "/services/research",
+        titleAr: "مركز البحوث والدراسات", titleEn: "Research and Studies Center", href: "/center",
         subtitleAr: "الوحدات البحثية", subtitleEn: "Research units",
         links: [
-          l("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought", "/services/research#sharia-policy"),
-          l("السياسات والإدارة العامة", "Public Policy and Public Administration", "/services/research#public-policy"),
-          l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/services/research#leadership"),
+          l("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought", "/unit/sharia"),
+          l("السياسات والإدارة العامة", "Public Policy and Public Administration", "/unit/policy"),
+          l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/unit/leadership"),
         ],
       },
       {
-        titleAr: "المعرفة والمشروعات", titleEn: "Knowledge and Projects", href: "/services/research",
+        titleAr: "المعرفة والمشروعات", titleEn: "Knowledge and Projects", href: "/center",
         links: [
           l("المرصد", "Observatory", "/observatory"),
           l("المقالات", "Articles", "/articles"),
@@ -70,9 +70,9 @@ export const MAIN_NAV: NavEntry[] = [
     key: "academy", labelAr: "الأكاديمية", labelEn: "Academy", href: "/academy",
     match: ["/academy"],
     columns: [{ links: [
-      l("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought", "/academy/islamic-systems"),
-      l("السياسات والإدارة العامة", "Public Policy and Public Administration", "/academy"),
-      l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/academy/professional-management"),
+      l("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought", "/track/sharia"),
+      l("السياسات والإدارة العامة", "Public Policy and Public Administration", "/track/policy"),
+      l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/track/leadership"),
       l("البرامج والدورات", "Programs and Courses", "/academy/courses"),
       l("تدريب المؤسسات", "Corporate Training", "/academy/for-organizations"),
     ] }],

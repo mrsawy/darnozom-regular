@@ -6,7 +6,7 @@ export function PageShell({ children, footerTone = "dark" }: { children: ReactNo
   return (
     <div className="min-h-screen flex flex-col bg-ivory">
       <SiteNav mode="page" />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 bg-white">{children}</main>
       <SiteFooter tone={footerTone} />
     </div>
   );

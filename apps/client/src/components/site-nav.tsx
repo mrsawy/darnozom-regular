@@ -49,33 +49,38 @@ export default function SiteNav(_props: Props) {
 
   return (
     <>
-      <div className="bg-navy-deep text-white text-sm">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 h-11 flex items-center justify-end gap-1 sm:gap-3">
-          <button type="button" onClick={() => setSearchOpen(true)} className="inline-flex items-center gap-1.5 min-h-11 px-2 hover:text-gold-light">
-            <Search className="w-4 h-4" aria-hidden /> {t("البحث", "Search")}
-          </button>
-          <Link href="/services/store/books" className="hidden sm:inline-flex items-center min-h-11 px-2 hover:text-gold-light">
-            {t("متجر الكتب", "Book store")}
-          </Link>
-          <CartButton language={language} />
-          <div className="hidden xl:flex items-center gap-2"><AuthSlot isRTL={isArabic} language={language} onNavigate={navigate} /></div>
-          <button type="button" onClick={toggleLanguage} className="min-h-11 px-2 font-semibold hover:text-gold-light" lang={isArabic ? "en" : "ar"}>
-            {isArabic ? "English" : "العربية"}
-          </button>
+      <div className="bg-navy-deep text-[#f0f4f1] text-[11px]">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 py-1.5 flex items-center justify-between gap-3">
+          <span className="hidden lg:inline">
+            {t("المرجعية الإسلامية والمعرفة المعاصرة في خدمة الشأن العام", "Islamic foundations and contemporary knowledge serving public affairs")}
+          </span>
+          <div className="flex items-center gap-2 sm:gap-3.5 flex-wrap">
+            <button type="button" onClick={() => setSearchOpen(true)} className="inline-flex items-center gap-1 min-h-8 hover:text-gold-light">
+              {t("البحث", "Search")} ⌕
+            </button>
+            <Link href="/services/store/books" className="hidden sm:inline-flex items-center min-h-8 hover:text-gold-light">
+              {t("متجر الكتب", "Bookstore")}
+            </Link>
+            <CartButton language={language} />
+            <div className="hidden xl:flex items-center gap-2"><AuthSlot isRTL={isArabic} language={language} onNavigate={navigate} /></div>
+            <button type="button" onClick={toggleLanguage} className="min-h-8 font-semibold hover:text-gold-light" lang={isArabic ? "en" : "ar"}>
+              {isArabic ? "English" : "العربية"}
+            </button>
+          </div>
         </div>
       </div>
 
       <header className="sticky top-0 z-40 bg-white border-b border-line">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 h-20 flex items-center gap-4 xl:gap-6">
-          <Link href="/" className="flex items-center gap-3 shrink-0" aria-label={t(BRAND.nameAr, BRAND.nameEn)}>
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 min-h-[85px] xl:min-h-[100px] flex items-center gap-4 xl:gap-6">
+          <Link href="/" className="flex items-center gap-3.5 shrink-0" aria-label={t(BRAND.nameAr, BRAND.nameEn)}>
             <img src={LOGO} alt="" className="h-11 w-auto" />
-            <span className="flex flex-col leading-tight">
-              <span className="text-xl font-bold text-navy">{t(BRAND.nameAr, BRAND.nameEn)}</span>
-              <span className="text-xs text-ink-muted">{t(BRAND.taglineAr, BRAND.taglineEn)}</span>
+            <span className="flex flex-col leading-[1.45]">
+              <span className="text-[23px] xl:text-[27px] font-bold text-navy">{t(BRAND.nameAr, BRAND.nameEn)}</span>
+              <span className="text-[11px] xl:text-xs text-ink-muted">{t(BRAND.taglineAr, BRAND.taglineEn)}</span>
             </span>
           </Link>
 
-          <nav ref={navRef} aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden xl:flex flex-1 items-stretch justify-center h-full">
+          <nav ref={navRef} aria-label={t("القائمة الرئيسية", "Main navigation")} className="hidden xl:flex flex-1 items-stretch justify-center h-full text-xs">
             {MAIN_NAV.map((entry) => (
               <DesktopItem
                 key={entry.key}
@@ -158,7 +163,7 @@ function DesktopItem({
       <Link
         href={entry.href}
         aria-current={isActive ? "page" : undefined}
-        className={`ps-1.5 h-full inline-flex items-center whitespace-nowrap text-sm font-semibold border-b-2 transition-colors ${
+        className={`ps-1.5 h-full inline-flex items-center whitespace-nowrap font-semibold border-b-2 transition-colors ${
           isActive ? "text-navy border-gold" : "text-ink border-transparent hover:text-navy"
         }`}
       >

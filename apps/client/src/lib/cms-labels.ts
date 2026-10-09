@@ -25,12 +25,13 @@ export const PUBLICATION_KINDS: Record<string, Pair> = {
   research: pair("بحث علمي", "Research"),
 };
 
+// Labels match the prototype's `newsTypes` wording exactly (files/source/app.full.js).
 export const EVENT_KINDS: Record<string, Pair> = {
   training: pair("تدريب", "Training"),
-  workshop: pair("ورشة عمل", "Workshop"),
-  seminar: pair("ندوة", "Seminar"),
-  conference: pair("مؤتمر", "Conference"),
-  exhibition: pair("معرض", "Exhibition"),
+  workshop: pair("ورش", "Workshops"),
+  seminar: pair("ندوات", "Seminars"),
+  conference: pair("مؤتمرات", "Conferences"),
+  exhibition: pair("معارض", "Exhibitions"),
 };
 
 const TYPE_BADGES: Record<ContentType, Pair> = {

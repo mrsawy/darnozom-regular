@@ -18,7 +18,8 @@ describe("nav config", () => {
   });
   it("marks the right entry active", () => {
     expect(activeNavKey("/observatory/x")).toBe("knowledge");
-    expect(activeNavKey("/services/research")).toBe("knowledge");
+    expect(activeNavKey("/center/x")).toBe("knowledge");
+    expect(activeNavKey("/services/research")).toBe("services");
     expect(activeNavKey("/services/store/books/1")).toBe("library");
     expect(activeNavKey("/services/consulting")).toBe("services");
     expect(activeNavKey("/academy/courses")).toBe("academy");

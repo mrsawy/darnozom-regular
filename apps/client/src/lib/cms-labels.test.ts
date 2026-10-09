@@ -9,7 +9,7 @@ describe("cms labels", () => {
   });
   it("badges publications and events by kind", () => {
     expect(typeBadge("publication", { kind: "periodical" }, "ar")).toBe("دورية");
-    expect(typeBadge("event", { kind: "workshop" }, "ar")).toBe("ورشة عمل");
+    expect(typeBadge("event", { kind: "workshop" }, "ar")).toBe("ورش");
     expect(typeBadge("news", {}, "en")).toBe("News");
   });
   it("uses the brief's CTA verbs", () => {

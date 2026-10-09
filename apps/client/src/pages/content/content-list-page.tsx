@@ -10,12 +10,23 @@ import { DARNOZOM_PUBLISHER } from "@/lib/site-constants";
 import { PageShell } from "@/components/content/page-shell";
 import { ContentCard } from "@/components/content/content-card";
 import { CategoryBadge } from "@/components/content/category-badge";
-import { SectionHeader } from "@/components/content/section-header";
+import { PageHero } from "@/components/content/page-hero";
 import { FetchError } from "@/components/fetch-error";
 import { Skeleton } from "@/components/ui/skeleton";
+import { KnowledgeKindTabs } from "@/components/content/knowledge-kind-tabs";
+
+// Sections mirroring the prototype's unified `publications(arg)` page (files/source/app.full.js):
+// same "Browse DarNozom Publications" block, filters-then-tabs order, and publicationKinds tab set.
+const KNOWLEDGE_ACTIVE_KIND: Record<string, (tabValue: string | undefined) => Parameters<typeof KnowledgeKindTabs>[0]["active"]> = {
+  articles: () => "articles",
+  studies: () => "studies",
+  publications: (tabValue) =>
+    tabValue === "books" ? "books" : tabValue === "periodical" ? "periodicals" : tabValue === "research" ? "research" : "all",
+};
 
 const PAGE_SIZE = 12;
-const selectCls = "min-h-11 px-3 rounded-[4px] border border-line bg-white text-ink";
+const selectCls = "border border-line bg-white text-ink rounded-[6px] px-[14px] py-3 text-[13px] w-full";
+const fieldLabelCls = "block mb-[7px] text-xs text-ink";
 
 export default function ContentListPage({ section }: { section: SectionKey }) {
   const cfg = SECTIONS[section];
@@ -56,61 +67,129 @@ export default function ContentListPage({ section }: { section: SectionKey }) {
   const books = useDarNozomBooks(24, { enabled: booksTab });
   const totalPages = list.data ? Math.max(Math.ceil(list.data.total / PAGE_SIZE), 1) : 1;
 
+  const isKnowledgeFamily = section in KNOWLEDGE_ACTIVE_KIND;
+  // The prototype's H1 tracks whichever kind tab is active (e.g. "كتب" while viewing books), not a static section title.
+  const heroTitle = cfg.tabs && tab && tab.value !== "all" ? t(tab.labelAr, tab.labelEn) : t(cfg.titleAr, cfg.titleEn);
+
   return (
     <PageShell footerTone="light">
-      <div className="mx-auto max-w-[1200px] px-5 lg:px-6 py-10 lg:py-14">
-        <SectionHeader as="h1" title={t(cfg.titleAr, cfg.titleEn)} subtitle={t(cfg.introAr, cfg.introEn)} />
-
-        {cfg.tabs && (
-          <div role="tablist" aria-label={t("الأقسام", "Sections")} className="flex flex-wrap gap-2 mb-5 border-b border-line">
-            {cfg.tabs.map((x) => (
-              <button
-                key={x.value} role="tab" type="button" aria-selected={x.value === tab?.value}
-                onClick={() => setParams({ tab: x.value, kind: "", when: "" })}
-                className={`min-h-11 px-4 -mb-px border-b-2 font-semibold ${x.value === tab?.value ? "border-gold text-navy" : "border-transparent text-ink-muted hover:text-navy"}`}
+      <PageHero title={heroTitle} subtitle={t(cfg.introAr, cfg.introEn)} />
+      <div className="mx-auto px-5 lg:px-48 pb-10 lg:pb-14 bg-[#FFFFFF]">
+        {isKnowledgeFamily ? (
+          <section className="bg-white border-y border-line -mx-5 lg:-mx-6 px-5 lg:px-6 py-[70px]">
+            <h2 className="text-[28px] font-bold text-ink mb-6">{t("تصفح إصدارات دار نظم", "Browse DarNozom Publications")}</h2>
+            {!booksTab && (
+              <form
+                className="grid sm:grid-cols-[2fr_1fr_1fr] gap-3 mb-0"
+                onSubmit={(e) => { e.preventDefault(); setParams({ q: draftQ.trim() }); }}
+                role="search"
               >
-                {t(x.labelAr, x.labelEn)}
-              </button>
-            ))}
-          </div>
-        )}
+                <label>
+                  <span className={fieldLabelCls}>{t("كلمة البحث", "Search terms")}</span>
+                  <input
+                    value={draftQ} onChange={(e) => setDraftQ(e.target.value)} placeholder={t("العنوان أو المؤلف أو الموضوع", "Title, author or subject")}
+                    className={selectCls}
+                  />
+                </label>
+                {cfg.filters.includes("area") && (
+                  <label>
+                    <span className={fieldLabelCls}>{t("المجال", "Field")}</span>
+                    <select value={area} onChange={(e) => setParams({ area: e.target.value })} className={selectCls}>
+                      <option value="">{t("كل المجالات", "All fields")}</option>
+                      {activeAreas.map((a) => <option key={a.slug} value={a.slug}>{areaLabel(a, lang)}</option>)}
+                    </select>
+                  </label>
+                )}
+                <label>
+                  <span className={fieldLabelCls}>{t("التاريخ", "Date")}</span>
+                  <input type="date" value={params.get("date") ?? ""} onChange={(e) => setParams({ date: e.target.value })} className={selectCls} />
+                </label>
+                <button type="submit" className="sr-only">{t("بحث", "Search")}</button>
+              </form>
+            )}
+            <KnowledgeKindTabs active={KNOWLEDGE_ACTIVE_KIND[section](tab?.value)} />
+          </section>
+        ) : (
+          <>
+            {cfg.tabs && (
+              <div role="tablist" aria-label={t("الأقسام", "Sections")} className="flex flex-wrap gap-2 my-[25px]">
+                {cfg.tabs.map((x) => (
+                  <button
+                    key={x.value} role="tab" type="button" aria-selected={x.value === tab?.value}
+                    onClick={() => setParams({ tab: x.value, kind: "", when: "" })}
+                    className={`rounded-full border px-[17px] py-2 text-xs transition-colors ${
+                      x.value === tab?.value ? "bg-navy text-white border-navy" : "border-line text-ink-muted bg-transparent hover:text-navy"
+                    }`}
+                  >
+                    {t(x.labelAr, x.labelEn)}
+                  </button>
+                ))}
+              </div>
+            )}
 
-        {!booksTab && (
-          <form
-            className="flex flex-wrap gap-3 mb-8"
-            onSubmit={(e) => { e.preventDefault(); setParams({ q: draftQ.trim() }); }}
-            role="search"
-          >
-            <input
-              value={draftQ} onChange={(e) => setDraftQ(e.target.value)} placeholder={t("ابحث في هذا القسم", "Search this section")}
-              aria-label={t("كلمة البحث", "Search term")} className={`${selectCls} flex-1 min-w-[200px]`}
-            />
-            {cfg.filters.includes("area") && (
-              <select aria-label={t("المجال", "Field")} value={area} onChange={(e) => setParams({ area: e.target.value })} className={selectCls}>
-                <option value="">{t("كل المجالات", "All fields")}</option>
-                {activeAreas.map((a) => <option key={a.slug} value={a.slug}>{areaLabel(a, lang)}</option>)}
-              </select>
+            {section === "news-events" && tab?.subKinds && (
+              <div role="tablist" aria-label={t("نوع الفعالية", "Event type")} className="flex flex-wrap gap-2 mb-5">
+                <button
+                  type="button" role="tab" aria-selected={kind === ""}
+                  onClick={() => setParams({ kind: "" })}
+                  className={`rounded-full border px-[17px] py-2 text-xs transition-colors ${
+                    kind === "" ? "bg-navy text-white border-navy" : "border-line text-ink-muted bg-transparent hover:text-navy"
+                  }`}
+                >
+                  {t("الكل", "All")}
+                </button>
+                {Object.entries(tab.subKinds).map(([v, l]) => (
+                  <button
+                    key={v} type="button" role="tab" aria-selected={kind === v}
+                    onClick={() => setParams({ kind: v })}
+                    className={`rounded-full border px-[17px] py-2 text-xs transition-colors ${
+                      kind === v ? "bg-navy text-white border-navy" : "border-line text-ink-muted bg-transparent hover:text-navy"
+                    }`}
+                  >
+                    {l[lang]}
+                  </button>
+                ))}
+              </div>
             )}
-            {cfg.filters.includes("region") && (
-              <select aria-label={t("النطاق الجغرافي", "Region")} value={region} onChange={(e) => setParams({ region: e.target.value })} className={selectCls}>
-                <option value="">{t("كل النطاقات", "All regions")}</option>
-                {Object.entries(REGION_LABELS).map(([v, l]) => <option key={v} value={v}>{l[lang]}</option>)}
-              </select>
+
+            {!booksTab && section !== "news-events" && (
+              <form
+                className="flex flex-wrap gap-3 mb-8"
+                onSubmit={(e) => { e.preventDefault(); setParams({ q: draftQ.trim() }); }}
+                role="search"
+              >
+                <input
+                  value={draftQ} onChange={(e) => setDraftQ(e.target.value)} placeholder={t("ابحث في هذا القسم", "Search this section")}
+                  aria-label={t("كلمة البحث", "Search term")} className="min-h-11 px-3 rounded-[4px] border border-line bg-white text-ink flex-1 min-w-[200px]"
+                />
+                {cfg.filters.includes("area") && (
+                  <select aria-label={t("المجال", "Field")} value={area} onChange={(e) => setParams({ area: e.target.value })} className="min-h-11 px-3 rounded-[4px] border border-line bg-white text-ink">
+                    <option value="">{t("كل المجالات", "All fields")}</option>
+                    {activeAreas.map((a) => <option key={a.slug} value={a.slug}>{areaLabel(a, lang)}</option>)}
+                  </select>
+                )}
+                {cfg.filters.includes("region") && (
+                  <select aria-label={t("النطاق الجغرافي", "Region")} value={region} onChange={(e) => setParams({ region: e.target.value })} className="min-h-11 px-3 rounded-[4px] border border-line bg-white text-ink">
+                    <option value="">{t("كل النطاقات", "All regions")}</option>
+                    {Object.entries(REGION_LABELS).map(([v, l]) => <option key={v} value={v}>{l[lang]}</option>)}
+                  </select>
+                )}
+                {cfg.filters.includes("when") && tab?.defaultWhen && (
+                  <select aria-label={t("الموعد", "When")} value={when} onChange={(e) => setParams({ when: e.target.value })} className="min-h-11 px-3 rounded-[4px] border border-line bg-white text-ink">
+                    <option value="upcoming">{t("القادمة", "Upcoming")}</option>
+                    <option value="past">{t("السابقة", "Past")}</option>
+                  </select>
+                )}
+                {tab?.subKinds && (
+                  <select aria-label={t("نوع الفعالية", "Event type")} value={kind} onChange={(e) => setParams({ kind: e.target.value })} className="min-h-11 px-3 rounded-[4px] border border-line bg-white text-ink">
+                    <option value="">{t("كل الأنواع", "All types")}</option>
+                    {Object.entries(tab.subKinds).map(([v, l]) => <option key={v} value={v}>{l[lang]}</option>)}
+                  </select>
+                )}
+                <button type="submit" className="min-h-11 px-5 rounded-[4px] bg-navy text-white font-semibold">{t("بحث", "Search")}</button>
+              </form>
             )}
-            {cfg.filters.includes("when") && tab?.defaultWhen && (
-              <select aria-label={t("الموعد", "When")} value={when} onChange={(e) => setParams({ when: e.target.value })} className={selectCls}>
-                <option value="upcoming">{t("القادمة", "Upcoming")}</option>
-                <option value="past">{t("السابقة", "Past")}</option>
-              </select>
-            )}
-            {tab?.subKinds && (
-              <select aria-label={t("نوع الفعالية", "Event type")} value={kind} onChange={(e) => setParams({ kind: e.target.value })} className={selectCls}>
-                <option value="">{t("كل الأنواع", "All types")}</option>
-                {Object.entries(tab.subKinds).map(([v, l]) => <option key={v} value={v}>{l[lang]}</option>)}
-              </select>
-            )}
-            <button type="submit" className="min-h-11 px-5 rounded-[4px] bg-navy text-white font-semibold">{t("بحث", "Search")}</button>
-          </form>
+          </>
         )}
 
         {booksTab ? (
