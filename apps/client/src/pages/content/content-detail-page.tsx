@@ -39,7 +39,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
 
   return (
     <PageShell footerTone="light">
-      <div className="mx-auto max-w-[1200px] px-5 lg:px-6 py-8 lg:py-12">
+      <div className="mx-auto max-w-[1200px] px-page py-8 lg:py-12">
         {preview && item && item.status !== "published" && (
           <p role="status" className="mb-4 bg-mist border border-line px-4 py-2 text-sm text-navy">{t("معاينة — هذه المادة غير منشورة", "Preview — this item is not published")}</p>
         )}
@@ -95,7 +95,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
       </div>
       {item && !item.isExternal && (
         <>
-          <p className="mx-auto max-w-[1200px] px-5 lg:px-6 text-xl font-bold text-navy">{t("تابع إصدارات دار نظم", "Follow DarNozom publications")}</p>
+          <p className="mx-auto max-w-[1200px] px-page text-xl font-bold text-navy">{t("تابع إصدارات دار نظم", "Follow DarNozom publications")}</p>
           <NewsletterBlock />
         </>
       )}

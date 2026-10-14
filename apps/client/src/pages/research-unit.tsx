@@ -23,7 +23,7 @@ export default function ResearchUnit() {
 
       {/* Unit Themes */}
       <section className="bg-white py-[70px]">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("محاور الوحدة", "Unit Themes")}</h2>
           <div className="grid sm:grid-cols-2 gap-5">
             {unit.topics.map((topic) => (
@@ -45,7 +45,7 @@ export default function ResearchUnit() {
 
       {/* Related Content */}
       <section className="py-[70px]">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("المواد المرتبطة", "Related Content")}</h2>
           <div className="p-[35px] bg-white border border-dashed border-line rounded-[10px] text-center text-ink-muted">
             <strong className="block text-[19px] text-ink mb-[9px]">{t("تصفح المخرجات المعتمدة", "Explore Approved Outputs")}</strong>

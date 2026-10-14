@@ -39,7 +39,7 @@ export default function SuccessPartners() {
 
   return (
     <section id="success-partners" className="py-24 dark bg-[#183650] text-white scroll-mt-24 overflow-hidden">
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-10">
+      <div className="max-w-[1250px] mx-auto px-page">
         <div className="text-secondary text-xs font-bold tracking-[0.2em] uppercase mb-3">
           {isAr ? "شركاء النجاح" : "Success Partners"}
         </div>

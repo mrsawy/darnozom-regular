@@ -93,7 +93,7 @@ export default function Sectors() {
 
       <section className="dark pt-40 pb-20 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,#B59B6B_0%,transparent_60%)]" />
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 relative">
+        <div className="max-w-[1250px] mx-auto px-page relative">
           <div className="text-secondary text-xs font-bold tracking-[0.3em] uppercase mb-4">
             {t.sectionLabel}
           </div>

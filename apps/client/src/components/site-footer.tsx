@@ -7,10 +7,10 @@ const col = (ar: string, en: string, links: [string, string, string][]) => ({ ar
 
 const COLUMNS = [
   col("المعرفة والتعلم", "Knowledge and Learning", [
-    ["المعرفة والبحوث", "Knowledge and Research", "/services/research"],
+    ["المعرفة والبحوث", "Knowledge and Research", "/center"],
     ["الأكاديمية", "Academy", "/academy"],
-    ["المكتبة والإصدارات", "Library and Publications", "/publications"],
-    ["إصدارات دار نظم", "DarNozom Publications", "/publications?tab=all"],
+    ["المكتبة والإصدارات", "Library and Publications", "/library"],
+    ["إصدارات دار نظم", "DarNozom Publications", "/publications"],
     ["المرصد", "Observatory", "/observatory"],
   ]),
   col("الخدمات والحلول", "Services and Solutions", [
@@ -34,7 +34,7 @@ export function SiteFooter({ tone = "dark" }: { tone?: Tone }) {
 
   return (
     <footer className={surface}>
-      <div className="mx-auto max-w-[1200px] px-5 lg:px-6 pt-12 pb-6">
+      <div className="mx-auto max-w-[1200px] px-page pt-12 pb-6">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <h2 className="text-xl font-bold mb-3"><Link href="/">{t(BRAND.nameAr, BRAND.nameEn)}</Link></h2>

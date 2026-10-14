@@ -33,8 +33,8 @@ export const MAIN_NAV: NavEntry[] = [
     key: "services", labelAr: "خدماتنا", labelEn: "Services", href: "/services",
     match: ["/services", "/sectors", "/service-registration"],
     columns: [{ links: [
-      l("البحوث والدراسات", "Research and Studies", "/services/research"),
-      l("النشر والمعرفة", "Publishing and Knowledge", "/publications"),
+      l("البحوث والدراسات", "Research and Studies", "/center"),
+      l("النشر والمعرفة", "Publishing and Knowledge", "/library"),
       l("التدريب وبناء القدرات", "Training and Capacity Building", "/academy"),
       l("الاستشارات", "Consulting", "/services/consulting"),
       l("البرمجيات والتحول الرقمي", "Software and Digital Transformation", "/services/digital-transformation"),
@@ -59,8 +59,8 @@ export const MAIN_NAV: NavEntry[] = [
           l("المرصد", "Observatory", "/observatory"),
           l("المقالات", "Articles", "/articles"),
           l("الدراسات", "Studies", "/studies"),
-          l("البحوث", "Research", "/publications?tab=research"),
-          l("الدوريات", "Periodicals", "/publications?tab=periodical"),
+          l("البحوث", "Research", "/studies"),
+          l("الدوريات", "Periodicals", "/studies"),
           l("الكتب", "Books", DN_BOOKS),
         ],
       },
@@ -78,8 +78,8 @@ export const MAIN_NAV: NavEntry[] = [
     ] }],
   },
   {
-    key: "library", labelAr: "المكتبة والإصدارات", labelEn: "Library and Publications", href: "/publications",
-    match: ["/publications", "/services/store"],
+    key: "library", labelAr: "المكتبة والإصدارات", labelEn: "Library and Publications", href: "/library",
+    match: ["/library", "/publications", "/services/store"],
     columns: [
       {
         titleAr: "المكتبة", titleEn: "Library", href: "/services/store/books",
@@ -91,8 +91,8 @@ export const MAIN_NAV: NavEntry[] = [
           l("كتب", "Books", DN_BOOKS),
           l("مقالات", "Articles", "/articles"),
           l("دراسات", "Studies", "/studies"),
-          l("أبحاث علمية", "Scientific research", "/publications?tab=research"),
-          l("دوريات", "Periodicals", "/publications?tab=periodical"),
+          l("أبحاث علمية", "Scientific research", "/studies"),
+          l("دوريات", "Periodicals", "/studies"),
           l("المرصد", "Observatory", "/observatory"),
         ],
       },

@@ -50,7 +50,7 @@ export default function SiteNav(_props: Props) {
   return (
     <>
       <div className="bg-navy-deep text-[#f0f4f1] text-[11px]">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 py-1.5 flex items-center justify-between gap-3">
+        <div className="mx-auto max-w-[1200px] px-page py-1.5 flex items-center justify-between gap-3">
           <span className="hidden lg:inline">
             {t("المرجعية الإسلامية والمعرفة المعاصرة في خدمة الشأن العام", "Islamic foundations and contemporary knowledge serving public affairs")}
           </span>
@@ -71,7 +71,7 @@ export default function SiteNav(_props: Props) {
       </div>
 
       <header className="sticky top-0 z-40 bg-white border-b border-line">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 min-h-[85px] xl:min-h-[100px] flex items-center gap-4 xl:gap-6">
+        <div className="mx-auto max-w-[1200px] px-page min-h-[85px] xl:min-h-[100px] flex items-center gap-4 xl:gap-6">
           <Link href="/" className="flex items-center gap-3.5 shrink-0" aria-label={t(BRAND.nameAr, BRAND.nameEn)}>
             <img src={LOGO} alt="" className="h-11 w-auto" />
             <span className="flex flex-col leading-[1.45]">

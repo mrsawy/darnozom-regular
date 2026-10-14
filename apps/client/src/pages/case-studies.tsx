@@ -168,7 +168,7 @@ export default function CaseStudies() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-              className="font-medium text-foreground leading-[1.12] mb-6"
+              className="font-bold text-foreground leading-[1.12] text-[38px]! mb-6"
               style={{
                 fontSize: "clamp(2.5rem, 5vw, 4.25rem)",
                 fontFamily: isArabic

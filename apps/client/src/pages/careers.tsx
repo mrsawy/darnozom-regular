@@ -153,7 +153,7 @@ export default function Careers() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="relative pt-36 pb-20 overflow-hidden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]">
+      <section className="rerelative pt-12 pb-20 overflow-hidden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]idden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]">
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <div className="text-xs font-bold tracking-[0.25em] uppercase text-muted-foreground mb-4 flex items-center gap-2">
             <Link href="/" className="text-muted-foreground hover:text-primary transition-colors">
@@ -166,7 +166,7 @@ export default function Careers() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="font-medium text-foreground leading-[1.12] mb-6"
+            className="font-bold text-foreground leading-[1.12] text-[38px]! mb-6"
             style={{
               fontSize: "clamp(2.5rem, 5vw, 4rem)",
               fontFamily: isAr

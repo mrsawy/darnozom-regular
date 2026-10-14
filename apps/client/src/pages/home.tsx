@@ -37,7 +37,7 @@ export default function Home() {
   return (
     <PageShell footerTone="light">
       {home.isLoading && (
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6 pt-8 grid gap-5 lg:grid-cols-[3fr_2fr]">
+        <div className="mx-auto max-w-[1200px] px-page pt-8 grid gap-5 lg:grid-cols-[3fr_2fr]">
           <Skeleton className="h-[420px]" /><Skeleton className="h-[420px]" />
         </div>
       )}

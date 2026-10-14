@@ -135,10 +135,19 @@
   --chart-4: var(--gold-light);
   --chart-5: var(--ink-muted);
 
-  --app-font-sans: 'Noto Sans Arabic Variable', 'Inter Variable', system-ui, sans-serif;
-  --app-font-serif: 'Noto Sans Arabic Variable', 'Inter Variable', serif;
+  --app-font-sans: Tahoma, 'DejaVu Sans',Tahoma,sans-serif;
+  --app-font-serif: Tahoma, 'Cairo', 'IBM Plex Sans Arabic', serif;
   --app-font-mono: Menlo, monospace;
   --radius: 0.25rem;
+
+  /* ── Site-wide typography & spacing ─────────────────────────────────────
+     Change these two blocks to tune font size and side padding everywhere. */
+  --site-font-base: 16px;       /* body font-size — matches prototype */
+  --site-font-lg:   16px;       /* body font-size on lg screens */
+
+  --site-px:    1.5rem;         /* section horizontal padding on mobile  (≈ prototype 24 px gutter) */
+  --site-px-lg: 2rem;           /* section horizontal padding on lg screens */
+  /* ──────────────────────────────────────────────────────────────────────── */
 
   --shadow-2xs: 0 1px 0 0 hsl(208 54% 20% / 0.04);
   --shadow-xs: 0 1px 2px 0 hsl(208 54% 20% / 0.05);
@@ -212,23 +221,32 @@
   body {
     @apply font-sans antialiased text-foreground;
     background: hsl(var(--background));
-    font-size: 16px;
-    line-height: 1.8;
+    font-size: var(--site-font-base);
+    line-height: 1.9;
   }
 
   @media (min-width: 1024px) {
     body {
-      font-size: 18px;
+      font-size: var(--site-font-lg);
     }
   }
 
   html[lang="en"] body {
-    font-family: 'Inter Variable', system-ui, sans-serif;
+    font-family: Tahoma, 'Cairo', system-ui, sans-serif;
     line-height: 1.65;
   }
 
   .dark body {
     background: hsl(var(--navy-deep));
+  }
+
+  h1 { letter-spacing: -1.4px; }
+  h2 { letter-spacing: -0.7px; }
+
+  input, select, textarea {
+    border-radius: 6px;
+    font-size: 13px;
+    padding: 12px 14px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -241,6 +259,18 @@
 }
 
 @layer utilities {
+  /* Responsive horizontal page padding — controlled by --site-px / --site-px-lg in :root */
+  .px-page {
+    padding-left: var(--site-px);
+    padding-right: var(--site-px);
+  }
+  @media (min-width: 1024px) {
+    .px-page {
+      padding-left: var(--site-px-lg);
+      padding-right: var(--site-px-lg);
+    }
+  }
+
   .min-h-screen.bg-background,
   section.bg-background:not(.sticky):not([class*="backdrop"]) {
     background-color: transparent !important;

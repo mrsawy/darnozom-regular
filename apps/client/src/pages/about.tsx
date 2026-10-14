@@ -73,7 +73,7 @@ export default function About() {
 
       {/* Vision */}
       <section id="vision" className="bg-white py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("رؤيتنا", "Our Vision")}</h2>
           <p className="max-w-[700px] text-ink-muted">
             {t(
@@ -86,7 +86,7 @@ export default function About() {
 
       {/* Mission */}
       <section id="mission" className="py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("رسالتنا", "Our Mission")}</h2>
           <p className="max-w-[700px] text-ink-muted">
             {t(
@@ -99,7 +99,7 @@ export default function About() {
 
       {/* Our Approach */}
       <section id="method" className="bg-white py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("منهجنا", "Our Approach")}</h2>
           <p className="max-w-[700px] text-ink-muted mb-7">
             {t(
@@ -121,7 +121,7 @@ export default function About() {
 
       {/* Values */}
       <section id="values" className="bg-mist py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("قيمنا", "Our Values")}</h2>
           <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 list-none p-0 m-0">
             {VALUES.map((v) => (
@@ -135,7 +135,7 @@ export default function About() {
 
       {/* Institutional Structure */}
       <section id="structure" className="bg-white py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-5 lg:px-6">
+        <div className="mx-auto max-w-[1200px] px-page">
           <div className="flex items-end justify-between gap-6 mb-7">
             <div>
               <h2 className="text-[26px] font-bold text-ink mb-2">{t("هيكل المؤسسة", "Institutional Structure")}</h2>

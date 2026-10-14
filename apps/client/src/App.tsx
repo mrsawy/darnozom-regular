@@ -6,7 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import ServiceDetail from "@/pages/service-detail";
+import Library from "@/pages/library";
 import ServicesConsulting from "@/pages/services-consulting";
+import ServicesDigital from "@/pages/services-digital";
 import Academy from "@/pages/academy";
 import AcademyTrack from "@/pages/academy-track";
 import AcademyIslamic from "@/pages/academy-islamic";
@@ -193,7 +195,7 @@ function Router() {
       <Route path="/articles/:slug">{(p) => <ContentDetailPage key={p.slug} section="articles" slug={p.slug} />}</Route>
       <Route path="/studies">{() => <ContentListPage section="studies" />}</Route>
       <Route path="/studies/:slug">{(p) => <ContentDetailPage key={p.slug} section="studies" slug={p.slug} />}</Route>
-      <Route path="/publications">{() => <ContentListPage section="publications" />}</Route>
+      <Route path="/publications"><Redirect to="/library" /></Route>
       <Route path="/publications/:slug">{(p) => <ContentDetailPage key={p.slug} section="publications" slug={p.slug} />}</Route>
       <Route path="/news-events">{() => <ContentListPage section="news-events" />}</Route>
       <Route path="/news-events/:slug">{(p) => <ContentDetailPage key={p.slug} section="news-events" slug={p.slug} />}</Route>
@@ -204,7 +206,11 @@ function Router() {
       <Route path="/services/store/courses" component={StoreCoursesPage} />
       <Route path="/services/store/courses/:id" component={StoreCourseDetailPage} />
       <Route path="/careers" component={Careers} />
+      <Route path="/services/research"><Redirect to="/center" /></Route>
+      <Route path="/services/publishing"><Redirect to="/library" /></Route>
+      <Route path="/library" component={Library} />
       <Route path="/services/consulting" component={ServicesConsulting} />
+      <Route path="/services/digital-transformation" component={ServicesDigital} />
       <Route path="/services/:slug" component={ServiceDetail} />
       <Route component={NotFound} />
     </Switch>

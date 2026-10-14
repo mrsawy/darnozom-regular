@@ -47,7 +47,7 @@ export function NewsletterBlock({ id = "newsletter" }: { id?: string }) {
           </div>
           <label className="flex items-start gap-2 text-sm text-white/85">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1.5 w-4 h-4" />
-            <span>{t("أوافق على استلام الرسائل البريدية من دار نظم. يمكنك إلغاء الاشتراك في أي وقت.", "I agree to receive emails from DarNozom. You can unsubscribe at any time.")}</span>
+            <span>{t("أوافق على استلام الرسائل البريدية من دار نظم. يمكنك إلغاء الاشتراك في أي وقت من الرابط الموجود في كل رسالة.", "I agree to receive emails from DarNozom. You can unsubscribe at any time from the link in each email.")}</span>
           </label>
           {error && <p role="alert" className="text-sm text-gold-light">{error}</p>}
         </form>
