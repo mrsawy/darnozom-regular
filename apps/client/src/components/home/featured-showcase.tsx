@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
+import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 import type { FeaturedCard } from "@/lib/cms-types";
 import { typeBadge } from "@/lib/cms-labels";
 import { useStoreBook } from "@/lib/darnozom-books";
@@ -44,7 +45,7 @@ export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
   const PrevIcon = isArabic ? ChevronRight : ChevronLeft;
 
   return (
-    <section aria-roledescription="carousel" aria-label={t("مختارات دار نظم", "DarNozom Highlights")} role="region" onKeyDown={onKeyDown} className="mx-auto max-w-[1200px] px-5 lg:px-6 pt-8">
+    <section aria-roledescription="carousel" aria-label={t("مختارات دار نظم", "DarNozom Highlights")} role="region" onKeyDown={onKeyDown} className={`mx-auto ${HOME_MAX_W} ${HOME_PX} pt-8`}>
       <h1 className="text-[25px] lg:text-[31px] font-bold text-navy">{t("مختارات دار نظم", "DarNozom Highlights")}</h1>
       <p className="text-ink-muted mb-5">{t("معرفة وبرامج وحلول تدعم القرار والمؤسسات", "Knowledge, programs and solutions that support decisions and institutions")}</p>
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">

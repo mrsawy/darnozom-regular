@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, BookOpen, Laptop, MessageSquare, Users } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
-import { BRAND } from "@/lib/site-constants";
+import { BRAND, HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 
 const SERVICES = [
   { icon: BookOpen, ar: "البحوث والدراسات", en: "Research and Studies", href: "/services/research" },
@@ -15,7 +15,7 @@ export function AboutSection() {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   return (
     <section className="mt-8 bg-[#FFFFFF] py-8">
-      <div className="mx-auto max-w-[1200px] px-5 lg:px-6 grid gap-8 lg:grid-cols-2 lg:items-center">
+      <div className={`mx-auto ${HOME_MAX_W} ${HOME_PX} grid gap-8 lg:grid-cols-2 lg:items-center`}>
         <div>
           <h2 className="text-lg font-bold text-navy">{t("عن دار نظم", "About DarNozom")}</h2>
           <p className="mt-2 text-2xl lg:text-[28px] font-bold text-navy leading-snug">{t(BRAND.sloganAr, BRAND.sloganEn)}</p>
@@ -37,7 +37,7 @@ export function AboutSection() {
         <img src="/seed/about.webp" alt="" className="w-full aspect-[2.2/1] object-cover rounded-[4px]" />
       </div>
       <div className="mt-10  border-y border-line bg-[#F8F6F1]">
-        <ul className="mx-auto max-w-[1200px] px-5 lg:px-6 grid grid-cols-2 lg:grid-cols-4 ">
+        <ul className={`mx-auto ${HOME_MAX_W} ${HOME_PX} grid grid-cols-2 lg:grid-cols-4`}>
           {SERVICES.map(({ icon: Icon, ar, en, href }, i) => (
             <li key={href} className={`py-5 ${i > 0 ? "lg:border-s lg:border-gold/60" : ""}`}>
               <Link href={href} className="flex items-center justify-center gap-3 min-h-11 text-navy font-semibold hover:text-gold">

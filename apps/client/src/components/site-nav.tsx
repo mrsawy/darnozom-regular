@@ -4,7 +4,8 @@ import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { MAIN_NAV, activeNavKey, type NavEntry } from "@/lib/nav-config";
 import { BRAND } from "@/lib/site-constants";
-import { AuthSlot, CartButton, MobileAuthSlot } from "@/components/nav/account-controls";
+import { MobileAuthSlot } from "@/components/nav/account-controls";
+import { useCart } from "@/lib/cart-context";
 import SearchSection from "@/components/search-section";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -16,6 +17,7 @@ type Props = { mode?: "home" | "page"; theme?: string };
 
 export default function SiteNav(_props: Props) {
   const { language, isArabic, toggleLanguage } = useLanguage();
+  const { count: cartCount } = useCart();
   const [location, navigate] = useLocation();
   const active = activeNavKey(location);
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -49,21 +51,33 @@ export default function SiteNav(_props: Props) {
 
   return (
     <>
-      <div className="bg-navy-deep text-[#f0f4f1] text-[11px]">
-        <div className="mx-auto max-w-[1200px] px-page py-1.5 flex items-center justify-between gap-3">
-          <span className="hidden lg:inline">
+      <div className="bg-navy-deep text-[#a8bdd0] text-[11px]">
+        <div className="mx-auto max-w-[1500px] px-page py-1 flex items-center justify-between gap-3">
+          <span className="hidden lg:block truncate text-[#6a8aaa]">
             {t("المرجعية الإسلامية والمعرفة المعاصرة في خدمة الشأن العام", "Islamic foundations and contemporary knowledge serving public affairs")}
           </span>
-          <div className="flex items-center gap-2 sm:gap-3.5 flex-wrap">
-            <button type="button" onClick={() => setSearchOpen(true)} className="inline-flex items-center gap-1 min-h-8 hover:text-gold-light">
+          <div className="flex items-center ms-auto gap-4">
+            <button type="button" onClick={() => setSearchOpen(true)} className="hover:text-white transition-colors">
               {t("البحث", "Search")} ⌕
             </button>
-            <Link href="/services/store/books" className="hidden sm:inline-flex items-center min-h-8 hover:text-gold-light">
+            <Link href="/services/store/books" className="hover:text-white transition-colors hidden sm:inline">
               {t("متجر الكتب", "Bookstore")}
             </Link>
-            <CartButton language={language} />
-            <div className="hidden xl:flex items-center gap-2"><AuthSlot isRTL={isArabic} language={language} onNavigate={navigate} /></div>
-            <button type="button" onClick={toggleLanguage} className="min-h-8 font-semibold hover:text-gold-light" lang={isArabic ? "en" : "ar"}>
+            <Link href="/cart" className="hover:text-white transition-colors hidden sm:inline-flex items-center gap-1">
+              {t("السلة", "Cart")}
+              {cartCount > 0 && (
+                <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-white text-[10px] font-bold leading-none">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
+            <Link href="/account" className="hover:text-white transition-colors hidden sm:inline">
+              {t("حسابي", "My account")}
+            </Link>
+            <Link href="/account/library" className="hover:text-white transition-colors hidden sm:inline">
+              {t("قائمة قراءتي", "Reading list")}
+            </Link>
+            <button type="button" onClick={toggleLanguage} className="hover:text-white transition-colors font-medium" lang={isArabic ? "en" : "ar"}>
               {isArabic ? "English" : "العربية"}
             </button>
           </div>

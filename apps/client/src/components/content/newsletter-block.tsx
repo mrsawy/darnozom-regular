@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Mail } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { useToast } from "@/hooks/use-toast";
+import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 
 // Round 1: UI only. No email is stored or sent until the newsletter backend ships.
 export function NewsletterBlock({ id = "newsletter" }: { id?: string }) {
@@ -24,7 +25,7 @@ export function NewsletterBlock({ id = "newsletter" }: { id?: string }) {
   };
 
   return (
-    <section id={id} className="mx-auto max-w-[1200px] px-5 lg:px-6 my-12 scroll-mt-28">
+    <section id={id} className={`mx-auto ${HOME_MAX_W} ${HOME_PX} my-12 scroll-mt-28`}>
       <div className="bg-navy text-white rounded-[4px] p-6 lg:p-10 grid gap-6 lg:grid-cols-2 lg:items-center">
         <div className="flex items-start gap-4">
           <Mail className="w-10 h-10 text-gold-light shrink-0" aria-hidden />
@@ -47,8 +48,11 @@ export function NewsletterBlock({ id = "newsletter" }: { id?: string }) {
           </div>
           <label className="flex items-start gap-2 text-sm text-white/85">
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1.5 w-4 h-4" />
-            <span>{t("أوافق على استلام الرسائل البريدية من دار نظم. يمكنك إلغاء الاشتراك في أي وقت من الرابط الموجود في كل رسالة.", "I agree to receive emails from DarNozom. You can unsubscribe at any time from the link in each email.")}</span>
+            <span>{t("أوافق على تلقي نشرة إصدارات دار نظم عبر البريد الإلكتروني.", "I agree to receive DarNozom's publications newsletter by email.")}</span>
           </label>
+          <small className="block text-xs text-white/90">
+            {t("يمكنك إلغاء الاشتراك في أي وقت من الرابط الموجود في كل رسالة.", "You can unsubscribe at any time from the link in each email.")}
+          </small>
           {error && <p role="alert" className="text-sm text-gold-light">{error}</p>}
         </form>
       </div>

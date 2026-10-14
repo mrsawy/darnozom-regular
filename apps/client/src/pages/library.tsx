@@ -5,6 +5,7 @@ import { useLanguage } from "@/lib/language-context";
 import { SiteFooter } from "@/components/site-footer";
 import { PageHeroGradient } from "@/components/page-hero-gradient";
 import { ExploreCard } from "@/components/explore-card";
+import { NewsletterBlock } from "@/components/content/newsletter-block";
 
 export default function Library() {
   const { language } = useLanguage();
@@ -130,7 +131,7 @@ export default function Library() {
               : "Find knowledge, programmes and services connected to your interests."}
           </p>
           <Link
-            href="/sectors"
+            href="/topics"
             className="inline-flex items-center gap-3 bg-primary text-primary-foreground px-7 py-4 font-bold text-sm hover:bg-primary/90 transition-colors"
           >
             {isAr ? "تصفح الموضوعات" : "Browse topics"}
@@ -138,6 +139,8 @@ export default function Library() {
           </Link>
         </div>
       </section>
+
+      <NewsletterBlock />
 
       <SiteFooter />
     </div>

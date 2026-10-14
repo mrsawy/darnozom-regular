@@ -1,4 +1,5 @@
 import { useLanguage } from "@/lib/language-context";
+import { HOME_MAX_W, HOME_MT, HOME_PX } from "@/lib/site-constants";
 import type { ContentItem } from "@/lib/cms-types";
 import { ContentCard } from "@/components/content/content-card";
 import { SectionHeader } from "@/components/content/section-header";
@@ -9,7 +10,7 @@ function Block({ title, subtitle, href, items, cols, variant, imageEnd }: {
   const { isArabic } = useLanguage();
   if (items.length === 0) return null;
   return (
-    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-10">
+    <section className={`mx-auto ${HOME_MAX_W} ${HOME_PX} ${HOME_MT}`}>
       <SectionHeader title={title} subtitle={subtitle} href={href} linkLabel={isArabic ? "عرض الكل" : "View all"} />
       <div className={`grid gap-5 ${cols}`}>{items.map((i) => <ContentCard key={i.id} item={i} variant={variant} bare imageEnd={imageEnd} />)}</div>
     </section>

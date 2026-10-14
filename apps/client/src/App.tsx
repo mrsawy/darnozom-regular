@@ -37,6 +37,7 @@ import TermsPage from "@/pages/terms";
 import ReturnPolicyPage from "@/pages/return-policy";
 import Services from "@/pages/services";
 import Sectors from "@/pages/sectors";
+import TopicsPage from "@/pages/topics";
 import Contact from "@/pages/contact";
 import SignInPage from "@/pages/sign-in";
 import SignUpPage from "@/pages/sign-up";
@@ -131,6 +132,7 @@ function Router() {
       <Route path="/نماذج-الأعمال" component={CaseStudies} />
       <Route path="/services" component={Services} />
       <Route path="/sectors" component={Sectors} />
+      <Route path="/topics" component={TopicsPage} />
       <Route path="/center" component={ResearchCenter} />
       <Route path="/unit/:id" component={ResearchUnit} />
       <Route path="/contact" component={Contact} />

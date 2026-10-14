@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
+import { HOME_MAX_W, HOME_MT, HOME_PX } from "@/lib/site-constants";
 import type { ContentItem } from "@/lib/cms-types";
 import { contentPath, ctaLabel, pickLang, typeBadge } from "@/lib/cms-labels";
 import { CategoryBadge } from "@/components/content/category-badge";
@@ -13,7 +14,7 @@ export function ObservatorySection({ lead, others }: { lead: ContentItem | null;
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
-    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-10">
+    <section className={`mx-auto ${HOME_MAX_W} ${HOME_PX} ${HOME_MT}`}>
       <SectionHeader title={t("المرصد", "Observatory")} subtitle={t("رصد وتحليل لقضايا الشأن العام والإنتاج الفكري والبحثي", "Monitoring and analysis of public affairs and new research")} href="/observatory" linkLabel={t("تابع المرصد", "Follow the Observatory")} />
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
         <article className="relative rounded-[4px] overflow-hidden bg-navy text-white min-h-[300px]">

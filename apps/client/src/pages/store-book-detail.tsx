@@ -556,12 +556,10 @@ export default function StoreBookDetailPage() {
                           onClick={handleAddToCart}
                           size="lg"
                           data-testid="btn-add-to-cart"
-                          className={`gap-2 h-12 text-base font-semibold shadow-lg shadow-primary/15 ${
-                            justAdded
-                              ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                              : inCart
-                                ? "bg-primary/90 text-primary-foreground hover:bg-primary"
-                                : "bg-primary text-primary-foreground hover:bg-primary/90"
+                          className={`gap-2 h-12 text-base font-semibold shadow-lg ${
+                            justAdded || inCart
+                              ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20"
+                              : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/15"
                           }`}
                         >
                           {justAdded ? (

@@ -1,16 +1,16 @@
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
 import {
-  ShoppingCart,
   Trash2,
   Plus,
   Minus,
   ArrowLeft,
   ArrowRight,
-  ShoppingBag,
   Truck,
 } from "lucide-react";
 import SiteNav from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
+import { PageHeroGradient } from "@/components/page-hero-gradient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EditionBadge from "@/components/store/edition-badge";
@@ -19,10 +19,11 @@ import { useLanguage } from "@/lib/language-context";
 
 const COPY = {
   ar: {
-    title: "سلة التسوق",
-    empty: "سلتك فارغة حالياً",
-    emptyDesc: "تصفح المتجر وأضف منتجاتك المفضلة إلى السلة.",
-    browseStore: "تصفح المتجر",
+    title: "السلة",
+    subtitle: "تطبيق الهوية واللغة المختارة على هذا الجزء داخل النظام الحالي.",
+    empty: "التكامل مع النظام الحالي",
+    emptyDesc: "تُحفظ البيانات والطلبات والحسابات وآليات الدفع هنا. هذه معاينة ولا تنفذ عملية شراء أو تسجيل دخول.",
+    browseStore: "متجر الكتب",
     item: "المنتج",
     qty: "الكمية",
     price: "السعر",
@@ -45,10 +46,11 @@ const COPY = {
     grandTotal: "الإجمالي مع الشحن",
   },
   en: {
-    title: "Shopping Cart",
-    empty: "Your cart is empty",
-    emptyDesc: "Browse the store and add your favorite products to your cart.",
-    browseStore: "Browse the store",
+    title: "Cart",
+    subtitle: "The selected identity and language are applied to this section within the current system.",
+    empty: "Integration with the current system",
+    emptyDesc: "Data, orders, accounts and payment mechanisms are stored here. This is a preview and does not execute a purchase or login.",
+    browseStore: "Bookstore",
     item: "Product",
     qty: "Qty",
     price: "Price",
@@ -139,28 +141,23 @@ export default function CartPage() {
   const grandTotal = total + shippingAmount;
 
   return (
-    <div className="min-h-screen bg-background" dir={isAr ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-background flex flex-col" dir={isAr ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
 
-      <div className="bg-primary text-primary-foreground py-12 md:py-16">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex items-center gap-3 mb-2">
-            <ShoppingCart className="w-7 h-7 text-secondary" />
-            <h1 className="text-3xl md:text-4xl font-black">{t.title}</h1>
-          </div>
-        </div>
-      </div>
+      <PageHeroGradient
+        current={t.title}
+        title={t.title}
+        subtitle={t.subtitle}
+      />
 
-      <div className="max-w-6xl mx-auto px-6 py-10 md:py-14">
+      <div className="flex-1 max-w-6xl mx-auto w-full px-6 py-10 md:py-14">
         {items.length === 0 ? (
-          <div className="text-center py-20 border border-dashed border-border bg-card">
-            <ShoppingBag className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-primary mb-2">{t.empty}</h2>
-            <p className="text-muted-foreground mb-6">{t.emptyDesc}</p>
-            <Link href="/services/store">
-              <Button className="rounded-none gap-2">
-                {t.browseStore}
-                <Arrow className="w-4 h-4" />
+          <div className="text-center py-20 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-primary mb-4">{t.empty}</h2>
+            <p className="text-muted-foreground mb-8 leading-relaxed">{t.emptyDesc}</p>
+            <Link href="/services/store/books">
+              <Button className="rounded-none gap-2 h-12 px-8">
+                {isAr ? "←" : ""} {t.browseStore} {isAr ? "" : "→"}
               </Button>
             </Link>
           </div>
@@ -347,6 +344,8 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

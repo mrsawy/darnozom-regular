@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
+import { HOME_MAX_W, HOME_MT, HOME_PX } from "@/lib/site-constants";
 import type { ContentItem } from "@/lib/cms-types";
 import { PUBLICATION_KINDS } from "@/lib/cms-labels";
 import { mergePublications, useDarNozomBooks } from "@/lib/darnozom-books";
@@ -15,7 +16,7 @@ export function PublicationsRow({ items }: { items: ContentItem[] }) {
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
-    <section className="mx-auto max-w-[1200px] px-5 lg:px-6 mt-10">
+    <section className={`mx-auto ${HOME_MAX_W} ${HOME_PX} ${HOME_MT}`}>
       <SectionHeader title={t("الإصدارات", "Publications")} subtitle={t("كتب وتقارير ودوريات في السياسات والإدارة والحوكمة", "Books, reports and periodicals on policy, administration and governance")} href="/publications" linkLabel={t("المكتبة ومتجر الكتب", "Library and book store")} />
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
