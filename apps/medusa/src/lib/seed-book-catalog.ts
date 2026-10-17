@@ -150,6 +150,7 @@ export async function seedBookCatalog(deps: SeedDeps): Promise<SeedReport> {
       table_of_contents: null,
       // An existing digital edition means the store already sells it digitally.
       digital_rights: product.has_digital,
+      is_darnozom: false,
     });
     report.createdProfiles++;
   }
