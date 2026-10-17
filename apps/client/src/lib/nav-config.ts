@@ -41,7 +41,7 @@ export const MAIN_NAV: NavEntry[] = [
     ] }],
   },
   {
-    key: "knowledge", labelAr: "المعرفة والبحوث", labelEn: "Knowledge and Research", href: "/center",
+    key: "knowledge", labelAr: "مركز البحوث والدراسات", labelEn: "Research and Studies Center", href: "/center",
     match: ["/center", "/unit", "/observatory", "/articles", "/studies"],
     columns: [
       {
@@ -53,29 +53,24 @@ export const MAIN_NAV: NavEntry[] = [
           l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/unit/leadership"),
         ],
       },
-      {
-        titleAr: "المعرفة والمشروعات", titleEn: "Knowledge and Projects", href: "/center",
-        links: [
-          l("المرصد", "Observatory", "/observatory"),
-          l("المقالات", "Articles", "/articles"),
-          l("الدراسات", "Studies", "/studies"),
-          l("البحوث", "Research", "/studies"),
-          l("الدوريات", "Periodicals", "/publications?tab=periodical"),
-          l("الكتب", "Books", "/publications?tab=books"),
-        ],
-      },
     ],
   },
   {
     key: "academy", labelAr: "الأكاديمية", labelEn: "Academy", href: "/academy",
     match: ["/academy"],
-    columns: [{ links: [
-      l("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought", "/track/sharia"),
-      l("السياسات والإدارة العامة", "Public Policy and Public Administration", "/track/policy"),
-      l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/track/leadership"),
-      l("البرامج والدورات", "Programs and Courses", "/academy/courses"),
-      l("تدريب المؤسسات", "Corporate Training", "/academy/for-organizations"),
-    ] }],
+    columns: [{
+      titleAr: "المسارات التعليمية", titleEn: "Educational Pathways",
+      links: [
+        l("السياسة الشرعية والفكر الإسلامي", "Sharia Policy and Islamic Thought", "/track/sharia"),
+        l("السياسات والإدارة العامة", "Public Policy and Public Administration", "/track/policy"),
+        l("القيادة والإدارة والحوكمة", "Leadership, Management and Governance", "/track/leadership"),
+      ],
+    }, {
+      links: [
+        l("البرامج والدورات", "Programs and Courses", "/academy/courses"),
+        l("تدريب المؤسسات", "Corporate Training", "/academy/for-organizations"),
+      ],
+    }],
   },
   {
     key: "store", labelAr: "المتجر", labelEn: "Store", href: "/services/store/books",
