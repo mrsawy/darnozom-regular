@@ -197,7 +197,7 @@ function Router() {
       <Route path="/articles/:slug">{(p) => <ContentDetailPage key={p.slug} section="articles" slug={p.slug} />}</Route>
       <Route path="/studies">{() => <ContentListPage section="studies" />}</Route>
       <Route path="/studies/:slug">{(p) => <ContentDetailPage key={p.slug} section="studies" slug={p.slug} />}</Route>
-      <Route path="/publications"><Redirect to="/library" /></Route>
+      <Route path="/publications">{() => <ContentListPage section="publications" />}</Route>
       <Route path="/publications/:slug">{(p) => <ContentDetailPage key={p.slug} section="publications" slug={p.slug} />}</Route>
       <Route path="/news-events">{() => <ContentListPage section="news-events" />}</Route>
       <Route path="/news-events/:slug">{(p) => <ContentDetailPage key={p.slug} section="news-events" slug={p.slug} />}</Route>

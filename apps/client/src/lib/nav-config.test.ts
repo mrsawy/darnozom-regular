@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { MAIN_NAV, activeNavKey } from "./nav-config";
 
 describe("nav config", () => {
-  it("has the seven approved entries in order", () => {
+  it("has the eight approved entries in order", () => {
     expect(MAIN_NAV.map((e) => e.labelAr)).toEqual([
-      "عن دار نظم", "خدماتنا", "المعرفة والبحوث", "الأكاديمية", "المكتبة والإصدارات", "الأخبار والفعاليات", "تواصل معنا",
+      "عن دار نظم", "خدماتنا", "المعرفة والبحوث", "الأكاديمية", "المتجر", "الإصدارات", "الأخبار والفعاليات", "تواصل معنا",
     ]);
     expect(MAIN_NAV.map((e) => e.labelEn)).toEqual([
-      "About DarNozom", "Services", "Knowledge and Research", "Academy", "Library and Publications", "News and Events", "Contact Us",
+      "About DarNozom", "Services", "Knowledge and Research", "Academy", "Store", "Publications", "News and Events", "Contact Us",
     ]);
   });
   it("uses only site-relative links", () => {
@@ -20,7 +20,7 @@ describe("nav config", () => {
     expect(activeNavKey("/observatory/x")).toBe("knowledge");
     expect(activeNavKey("/center/x")).toBe("knowledge");
     expect(activeNavKey("/services/research")).toBe("services");
-    expect(activeNavKey("/services/store/books/1")).toBe("library");
+    expect(activeNavKey("/services/store/books/1")).toBe("store");
     expect(activeNavKey("/services/consulting")).toBe("services");
     expect(activeNavKey("/academy/courses")).toBe("academy");
     expect(activeNavKey("/news-events")).toBe("news");

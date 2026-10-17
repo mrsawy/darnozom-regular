@@ -4,6 +4,7 @@ import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 
 vi.mock("@/lib/language-context", () => ({ useLanguage: () => ({ language: "ar", isArabic: true, toggleLanguage: vi.fn() }) }));
+vi.mock("@/lib/cart-context", () => ({ useCart: () => ({ count: 0, items: [] }) }));
 vi.mock("@/components/nav/account-controls", () => ({ AuthSlot: () => null, MobileAuthSlot: () => null, CartButton: () => null }));
 vi.mock("@/components/search-section", () => ({ default: () => <div>search</div> }));
 
@@ -19,10 +20,10 @@ function renderAt(path: string) {
 }
 
 describe("SiteNav", () => {
-  it("renders the seven top-level links", () => {
+  it("renders the eight top-level links", () => {
     renderAt("/");
     const nav = screen.getByRole("navigation", { name: "القائمة الرئيسية" });
-    for (const label of ["عن دار نظم", "خدماتنا", "المعرفة والبحوث", "الأكاديمية", "المكتبة والإصدارات", "الأخبار والفعاليات", "تواصل معنا"]) {
+    for (const label of ["عن دار نظم", "خدماتنا", "المعرفة والبحوث", "الأكاديمية", "المتجر", "الإصدارات", "الأخبار والفعاليات", "تواصل معنا"]) {
       expect(within(nav).getByRole("link", { name: label })).toBeTruthy();
     }
   });

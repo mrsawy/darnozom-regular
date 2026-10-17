@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { BRAND } from "./site-constants";
 
 type Language = "ar" | "en";
 
@@ -39,8 +40,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     if (!ownsOwnTitle) {
       document.title =
         language === "ar"
-          ? "دار نظم - لإنتاج وتطوير أنظمة الحوكمة والامتثال الشرعي والإدارية"
-          : "DarNozom - Sharia Governance, Compliance & Management Systems";
+          ? `${BRAND.nameAr} — ${BRAND.taglineAr}`
+          : `${BRAND.nameEn} — ${BRAND.taglineEn}`;
     }
   }, [language]);
 

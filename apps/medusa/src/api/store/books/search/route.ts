@@ -10,9 +10,10 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const offset = Math.max(Number(q.offset) || 0, 0);
   const language = q.language === "ar" || q.language === "en" || q.language === "both" ? q.language : undefined;
   const format = q.format === "paper" || q.format === "digital" ? q.format : undefined;
+  const is_darnozom = q.is_darnozom === "true" ? true : q.is_darnozom === "false" ? false : undefined;
   const filters: BookSearchFilters = {
     q: str(q.q), category_id: str(q.category_id), author: str(q.author), publisher: str(q.publisher),
-    language, format, limit, offset,
+    language, format, is_darnozom, limit, offset,
   };
   const salesChannelIds =
     ((req as unknown as { publishable_key_context?: { sales_channel_ids?: string[] } }).publishable_key_context?.sales_channel_ids) ?? [];

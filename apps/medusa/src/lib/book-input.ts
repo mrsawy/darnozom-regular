@@ -35,6 +35,7 @@ export const bookProfileSchema = z.object({
   target_audience: optionalText(500),
   table_of_contents: optionalText(20_000),
   digital_rights: z.boolean().default(false),
+  is_darnozom: z.boolean().default(false),
 });
 export type BookProfileInput = z.output<typeof bookProfileSchema>;
 

@@ -1,7 +1,7 @@
 export const DARNOZOM_PUBLISHER = "دار نظم";
 
 /** Max-width, padding, and top-margin for every home-page section inner container. */
-export const HOME_MAX_W = "max-w-[1500px]";
+export const HOME_MAX_W = "max-w-[1300px]";
 export const HOME_PX = "px-4 lg:px-5 xl:px-3";
 
 /** Top margin applied to every home-page section inner container. */

@@ -221,7 +221,7 @@ export async function sendContactNotification(params: {
 </html>`;
 
   await sendEmail({
-    to: "info@darnozom.com",
+    to: "admin@darnozom.com",
     subject: `[Website Contact] ${displaySubject} — from ${name}`,
     replyTo: email,
     html,

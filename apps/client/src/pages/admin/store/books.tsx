@@ -3,7 +3,7 @@ import type { HttpTypes } from "@medusajs/types";
 import { getMedusaAdminUrl } from "@/lib/medusa-client";
 import { listStoreBooks } from "@/lib/list-store-books";
 import { listBookCategoryTree, type CategoryTreeNode } from "@/lib/book-catalog";
-import { ExternalLink, Loader2, Search, BookOpen, Star } from "lucide-react";
+import { ExternalLink, Loader2, Search, BookOpen, Star, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader, Toast, useToast } from "../layout";
@@ -16,6 +16,7 @@ interface Book {
   categoryIds: string[];
   currency: string | null;
   isFeatured: boolean;
+  isDarnozom: boolean;
   paperAvailable: boolean;
   paperPrice: string | null;
   digitalAvailable: boolean;
@@ -59,6 +60,7 @@ function mapMedusaProduct(
     categoryIds,
     currency,
     isFeatured: meta.isFeatured === true,
+    isDarnozom: meta.is_darnozom === true,
     paperAvailable: Boolean(paper) || (!digital && Boolean(priced)),
     paperPrice: priceAmount(paper) ?? (!digital ? priceAmount(priced) : null),
     digitalAvailable: Boolean(digital),
@@ -72,8 +74,28 @@ export default function BooksPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [toggling, setToggling] = useState<Set<string>>(new Set());
   const { toast, show } = useToast();
   const medusaAdminUrl = getMedusaAdminUrl();
+
+  async function toggleDarnozom(book: Book) {
+    if (toggling.has(book.id)) return;
+    setToggling((s) => new Set(s).add(book.id));
+    try {
+      const res = await fetch(`/api/admin/books/${book.id}/flags`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_darnozom: !book.isDarnozom }),
+      });
+      if (!res.ok) throw new Error();
+      setItems((prev) => prev.map((b) => b.id === book.id ? { ...b, isDarnozom: !book.isDarnozom } : b));
+    } catch {
+      show("تعذر تحديث الحالة", "error");
+    } finally {
+      setToggling((s) => { const n = new Set(s); n.delete(book.id); return n; });
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -171,6 +193,9 @@ export default function BooksPage() {
                 <th className="text-right p-3 font-bold">الكتاب</th>
                 <th className="text-right p-3 font-bold hidden md:table-cell">الفئة</th>
                 <th className="text-right p-3 font-bold hidden md:table-cell">السعر</th>
+                <th className="text-center p-3 font-bold whitespace-nowrap" title="إصدار دار نظم">
+                  <span className="inline-flex items-center gap-1"><Building2 size={12} /> دار نظم</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -221,6 +246,23 @@ export default function BooksPage() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </div>
+                  </td>
+                  <td className="p-3 text-center">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={b.isDarnozom}
+                      aria-label={`تعيين "${b.title}" كإصدار دار نظم`}
+                      disabled={toggling.has(b.id)}
+                      onClick={() => toggleDarnozom(b)}
+                      className={`w-5 h-5 rounded border-2 inline-flex items-center justify-center transition-colors ${
+                        b.isDarnozom
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-border hover:border-primary/50"
+                      } disabled:opacity-40`}
+                    >
+                      {b.isDarnozom && <span className="text-[10px] font-bold leading-none">✓</span>}
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -1,5 +1,5 @@
-﻿import { useState } from "react";
-import { Link } from "wouter";
+﻿import { useState, useEffect } from "react";
+import { Link, useSearch } from "wouter";
 import { ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
 import SiteNav from "@/components/site-nav";
 import { useLanguage } from "@/lib/language-context";
@@ -18,21 +18,40 @@ const REQUEST_TYPES = [
 export default function Contact() {
   const { language } = useLanguage();
   const isAr = language === "ar";
-  const [form, setForm] = useState({ name: "", email: "", org: "", phone: "", type: "", country: "", message: "" });
+  const search = useSearch();
+  const typeFromUrl = new URLSearchParams(search).get("type") ?? "";
+  const validType = REQUEST_TYPES.some((r) => r.value === typeFromUrl) ? typeFromUrl : "";
+  const [form, setForm] = useState({ name: "", email: "", org: "", phone: "", type: validType, country: "", message: "" });
+
+  useEffect(() => {
+    if (validType) setForm((f) => ({ ...f, type: validType }));
+  }, [validType]);
   const [status, setStatus] = useState<"idle" | "sending" | "success">("idle");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("sending");
+    const selectedType = REQUEST_TYPES.find((r) => r.value === form.type);
+    const subject = selectedType ? (isAr ? selectedType.ar : selectedType.en) : undefined;
+    const fullMessage = [
+      form.message,
+      form.org ? `${isAr ? "المؤسسة" : "Organisation"}: ${form.org}` : "",
+      form.phone ? `${isAr ? "الهاتف" : "Phone"}: ${form.phone}` : "",
+      form.country ? `${isAr ? "البلد" : "Country"}: ${form.country}` : "",
+    ].filter(Boolean).join("\n");
     try {
-      await fetch("/api/contact", {
+      const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(form),
+        body: JSON.stringify({ name: form.name, email: form.email, subject, message: fullMessage }),
       });
-    } catch { /* silent */ }
-    setStatus("success");
+      if (!res.ok) throw new Error("Server error");
+      setStatus("success");
+    } catch {
+      setStatus("idle");
+      alert(isAr ? "حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى." : "Something went wrong. Please try again.");
+    }
   };
 
   return (

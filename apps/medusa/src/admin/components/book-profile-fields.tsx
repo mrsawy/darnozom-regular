@@ -47,10 +47,17 @@ export function BookProfileFields({ value, onChange }: Props) {
       {field("keywords", "Keywords", { hint: "Separate with commas." })}
       {field("target_audience", "Target audience", { hint: "e.g. researchers, graduate students, policymakers." })}
       {field("table_of_contents", "Table of contents", { multiline: true, hint: "Optional. One chapter per line." })}
-      <label className="flex items-center gap-2 text-sm">
-        <Checkbox checked={value.digital_rights} onCheckedChange={(v) => set("digital_rights", v === true)} />
-        Digital distribution rights are available (allows a digital edition)
-      </label>
+      <div className="flex flex-col gap-3 border border-ui-border-base rounded-lg p-4">
+        <Text size="small" weight="plus">Publishing flags</Text>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={value.is_darnozom} onCheckedChange={(v) => set("is_darnozom", v === true)} />
+          This is a DarNozom publication (إصدار دار نظم)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={value.digital_rights} onCheckedChange={(v) => set("digital_rights", v === true)} />
+          Digital distribution rights are available (allows a digital edition)
+        </label>
+      </div>
     </div>
   );
 }

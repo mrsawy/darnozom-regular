@@ -1,10 +1,9 @@
 import { Link } from "wouter";
 import { useLanguage } from "@/lib/language-context";
-import { DARNOZOM_PUBLISHER } from "@/lib/site-constants";
 
 // Mirrors the prototype's `publicationKinds` tab set and order exactly (files/source/app.full.js).
 const KINDS = [
-  { id: "books", labelAr: "كتب", labelEn: "Books", href: `/services/store/books?publisher=${encodeURIComponent(DARNOZOM_PUBLISHER)}` },
+  { id: "books", labelAr: "كتب", labelEn: "Books", href: "/publications?tab=books" },
   { id: "articles", labelAr: "مقالات", labelEn: "Articles", href: "/articles" },
   { id: "studies", labelAr: "دراسات", labelEn: "Studies", href: "/studies" },
   { id: "research", labelAr: "أبحاث علمية", labelEn: "Research Papers", href: "/publications?tab=research" },
@@ -17,7 +16,7 @@ const tabCls = (active: boolean) =>
     active ? "bg-navy text-white border-navy" : "border-line text-ink-muted bg-transparent hover:text-navy"
   }`;
 
-export function KnowledgeKindTabs({ active }: { active: (typeof KINDS)[number]["id"] | "all" }) {
+export function KnowledgeKindTabs({ active, booksHref }: { active: (typeof KINDS)[number]["id"] | "all"; booksHref?: string }) {
   const { isArabic } = useLanguage();
 
   return (
@@ -26,7 +25,14 @@ export function KnowledgeKindTabs({ active }: { active: (typeof KINDS)[number]["
         {isArabic ? "الكل" : "All"}
       </Link>
       {KINDS.map((k) => (
-        <Link key={k.id} href={k.href} role="tab" aria-selected={active === k.id} className={tabCls(active === k.id)} data-testid={`knowledge-kind-${k.id}`}>
+        <Link
+          key={k.id}
+          href={k.id === "books" && booksHref ? booksHref : k.href}
+          role="tab"
+          aria-selected={active === k.id}
+          className={tabCls(active === k.id)}
+          data-testid={`knowledge-kind-${k.id}`}
+        >
           {isArabic ? k.labelAr : k.labelEn}
         </Link>
       ))}

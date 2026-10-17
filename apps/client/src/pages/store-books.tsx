@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import type { HttpTypes } from "@medusajs/types";
-import { Search, BookOpen, X, ArrowRight, ArrowLeft } from "lucide-react";
+import { Search, BookOpen, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import SiteNav from "@/components/site-nav";
 import ProductCard, { type ProductCardItem } from "@/components/store/product-card";
@@ -23,11 +23,13 @@ type StoreProduct = HttpTypes.StoreProduct;
 
 const T = {
   ar: {
-    back: "العودة للمتجر",
     eyebrow: "مكتبة دار نظم",
     title: "الكتب",
     subtitle: "إصدارات ورقية وإلكترونية — صفِّ حسب الصيغة والتصنيف من Medusa",
     searchPlaceholder: "ابحث بالعنوان أو المؤلف أو الناشر أو الموضوع أو الكلمات المفتاحية...",
+    collectionHeading: "المجموعة",
+    collectionAll: "جميع الكتب",
+    collectionDN: "كتب دار نظم",
     formatHeading: "الصيغة",
     formatAll: "الكل",
     formatPaper: "ورقي",
@@ -48,11 +50,13 @@ const T = {
     sortNewest: "الأحدث",
   },
   en: {
-    back: "Back to store",
     eyebrow: "Darnozom library",
     title: "Books",
     subtitle: "Paper and digital editions — filter by format and Medusa categories",
     searchPlaceholder: "Search by title, author, publisher, subject or keyword...",
+    collectionHeading: "COLLECTION",
+    collectionAll: "All books",
+    collectionDN: "DarNozom books",
     formatHeading: "FORMAT",
     formatAll: "All",
     formatPaper: "Paper",
@@ -118,6 +122,7 @@ export default function StoreBooksPage() {
     publisher: filters.publisher || undefined,
     language: filters.language || undefined,
     format: filters.format === "all" ? undefined : filters.format,
+    is_darnozom: filters.isDarnozom ? true : undefined,
     limit: PAGE,
     offset,
   });
@@ -252,18 +257,6 @@ export default function StoreBooksPage() {
           aria-hidden
         />
         <div className="container mx-auto max-w-6xl relative">
-          <Link
-            href="/services/store"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
-          >
-            {isArabic ? (
-              <ArrowRight className="w-3.5 h-3.5" />
-            ) : (
-              <ArrowLeft className="w-3.5 h-3.5" />
-            )}
-            {t.back}
-          </Link>
-
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -307,6 +300,33 @@ export default function StoreBooksPage() {
         <div className="container mx-auto max-w-6xl grid lg:grid-cols-[248px_1fr] gap-10">
           {/* Sidebar */}
           <aside className="flex flex-col gap-8">
+            {/* Collection toggle */}
+            <div>
+              <div className="text-[11px] font-bold tracking-[0.14em] text-foreground mb-3">
+                {t.collectionHeading}
+              </div>
+              <div className="grid grid-cols-2 bg-muted rounded-full p-1">
+                {([
+                  { dn: false, label: t.collectionAll },
+                  { dn: true, label: t.collectionDN },
+                ] as { dn: boolean; label: string }[]).map((opt) => (
+                  <button
+                    key={String(opt.dn)}
+                    type="button"
+                    aria-pressed={filters.isDarnozom === opt.dn}
+                    onClick={() => set({ isDarnozom: opt.dn })}
+                    className={`text-center py-2 rounded-full text-xs font-medium transition-colors ${
+                      filters.isDarnozom === opt.dn
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <div className="text-[11px] font-bold tracking-[0.14em] text-foreground mb-3">
                 {t.formatHeading}

@@ -5,9 +5,10 @@ export type BookFilters = {
   publisher: string;
   language: "" | "ar" | "en" | "both";
   format: "all" | "paper" | "digital";
+  isDarnozom: boolean;
 };
 
-export const EMPTY_BOOK_FILTERS: BookFilters = { q: "", category: "", author: "", publisher: "", language: "", format: "all" };
+export const EMPTY_BOOK_FILTERS: BookFilters = { q: "", category: "", author: "", publisher: "", language: "", format: "all", isDarnozom: false };
 
 const FORMAT_ALIASES: Record<string, BookFilters["format"]> = {
   paper: "paper", hardcopy: "paper", digital: "digital", online: "digital",
@@ -23,6 +24,7 @@ export function readBookFilters(search: string): BookFilters {
     publisher: p.get("publisher") ?? "",
     language: language === "ar" || language === "en" || language === "both" ? language : "",
     format: FORMAT_ALIASES[p.get("format") ?? ""] ?? "all",
+    isDarnozom: p.get("isDarnozom") === "true",
   };
 }
 
@@ -34,5 +36,6 @@ export function bookFiltersToQuery(f: BookFilters): string {
   if (f.publisher) p.set("publisher", f.publisher);
   if (f.language) p.set("language", f.language);
   if (f.format !== "all") p.set("format", f.format);
+  if (f.isDarnozom) p.set("isDarnozom", "true");
   return p.toString();
 }

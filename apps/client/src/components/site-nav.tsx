@@ -172,6 +172,22 @@ function DesktopItem({
       toggleRef.current?.focus();
     }
   };
+  if (entry.noDropdown) {
+    return (
+      <div className="relative flex items-center">
+        <Link
+          href={entry.href}
+          aria-current={isActive ? "page" : undefined}
+          className={`px-1.5 h-full inline-flex items-center whitespace-nowrap font-semibold border-b-2 transition-colors ${
+            isActive ? "text-navy border-gold" : "text-ink border-transparent hover:text-navy"
+          }`}
+        >
+          {label}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="relative flex items-center" onMouseEnter={onOpen} onMouseLeave={onLeave} onKeyDown={onKeyDown}>
       <Link
@@ -228,6 +244,17 @@ function DesktopItem({
 function MobileItem({ entry, isArabic, isActive }: { entry: NavEntry; isArabic: boolean; isActive: boolean }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
+
+  if (entry.noDropdown) {
+    return (
+      <div className="border-b border-line">
+        <Link href={entry.href} aria-current={isActive ? "page" : undefined} className={`flex-1 px-4 min-h-12 flex items-center font-semibold ${isActive ? "text-navy" : "text-ink"}`}>
+          {isArabic ? entry.labelAr : entry.labelEn}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="border-b border-line">
       <div className="flex items-center">

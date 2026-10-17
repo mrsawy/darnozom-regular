@@ -23,6 +23,7 @@ export const BookProfile = model
     target_audience: model.text().nullable(),
     table_of_contents: model.text().nullable(),
     digital_rights: model.boolean().default(false),
+    is_darnozom: model.boolean().default(false),
   })
   .indexes([
     { on: ["isbn"], unique: true, where: "isbn IS NOT NULL" },

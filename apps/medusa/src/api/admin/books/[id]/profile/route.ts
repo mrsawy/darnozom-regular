@@ -8,6 +8,19 @@ import {
   saveBookProfile,
 } from "../../../../../lib/save-book-profile";
 
+// Lightweight partial update — only explicitly listed fields are accepted.
+export async function PATCH(req: MedusaRequest, res: MedusaResponse) {
+  const body = req.body as Record<string, unknown>;
+  const svc = req.scope.resolve<BookCatalogModuleService>(BOOK_CATALOG_MODULE);
+  const [profile] = await svc.listBookProfiles({ product_id: req.params.id });
+  if (!profile) return res.status(404).json({ message: "profile not found" });
+  const patch: Record<string, unknown> = { id: profile.id };
+  if (typeof body.is_darnozom === "boolean") patch.is_darnozom = body.is_darnozom;
+  if (Object.keys(patch).length === 1) return res.status(400).json({ message: "no patchable fields provided" });
+  const updated = await svc.updateBookProfiles(patch);
+  return res.json({ profile: updated });
+}
+
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const svc = req.scope.resolve<BookCatalogModuleService>(BOOK_CATALOG_MODULE);
   const [profile] = await svc.listBookProfiles({ product_id: req.params.id });

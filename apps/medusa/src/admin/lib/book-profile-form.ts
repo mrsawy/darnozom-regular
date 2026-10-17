@@ -15,6 +15,7 @@ export type BookProfileFormValue = {
   target_audience: string;
   table_of_contents: string;
   digital_rights: boolean;
+  is_darnozom: boolean;
 };
 
 export const EMPTY_PROFILE_FORM: BookProfileFormValue = {
@@ -22,6 +23,7 @@ export const EMPTY_PROFILE_FORM: BookProfileFormValue = {
   publication_year: "", edition_number: "", pages: "", volumes: "1", language: "ar",
   primary_category_id: "", keywords: "", target_audience: "", table_of_contents: "",
   digital_rights: false,
+  is_darnozom: false,
 };
 
 /** One name per line; the Arabic comma also separates. ("Smith, John" stays one name.) */
@@ -54,6 +56,7 @@ export function toProfilePayload(v: BookProfileFormValue): Record<string, unknow
     target_audience: text(v.target_audience),
     table_of_contents: text(v.table_of_contents),
     digital_rights: v.digital_rights,
+    is_darnozom: v.is_darnozom,
   };
 }
 
@@ -80,5 +83,6 @@ export function fromProfile(p: Record<string, unknown> | null): BookProfileFormV
     target_audience: str(p.target_audience),
     table_of_contents: str(p.table_of_contents),
     digital_rights: p.digital_rights === true,
+    is_darnozom: p.is_darnozom === true,
   };
 }

@@ -38,3 +38,5 @@ data/
 apps/medusa/src/scripts/migrate-books-mapping.json
 
 .superpowers/
+files/
+

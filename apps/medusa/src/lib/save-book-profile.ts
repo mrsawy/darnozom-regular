@@ -36,7 +36,7 @@ export async function saveBookProfile(
   const row = await upsertBookProfile(deps.repo, productId, input);
 
   const update: { metadata?: Record<string, unknown>; category_ids?: string[] } = {
-    metadata: { ...(product.metadata ?? {}), author: input.authors.join("، ") },
+    metadata: { ...(product.metadata ?? {}), author: input.authors.join("، "), is_darnozom: input.is_darnozom },
   };
   if (input.primary_category_id && !product.category_ids.includes(input.primary_category_id)) {
     update.category_ids = [...product.category_ids, input.primary_category_id];

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { HttpTypes } from "@medusajs/types";
 import { listProductsByIds, searchStoreBooks } from "./book-catalog";
-import { DARNOZOM_PUBLISHER } from "./site-constants";
 import type { ContentItem } from "./cms-types";
 import { contentPath } from "./cms-labels";
 
@@ -27,10 +26,10 @@ export function toBookCard(p: HttpTypes.StoreProduct): BookCard {
   };
 }
 
-export function useDarNozomBooks(limit: number, opts: { enabled?: boolean } = {}) {
+export function useDarNozomBooks(limit: number, opts: { enabled?: boolean; q?: string } = {}) {
   return useQuery({
-    queryKey: ["cms", "dn-books", limit],
-    queryFn: async () => (await searchStoreBooks({ publisher: DARNOZOM_PUBLISHER, limit })).products.map(toBookCard),
+    queryKey: ["cms", "dn-books", limit, opts.q ?? ""],
+    queryFn: async () => (await searchStoreBooks({ is_darnozom: true, limit, q: opts.q || undefined })).products.map(toBookCard),
     enabled: opts.enabled ?? true,
     retry: 1,
     staleTime: 5 * 60_000,

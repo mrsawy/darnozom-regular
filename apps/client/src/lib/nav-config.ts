@@ -12,7 +12,7 @@ export type NavColumn = {
   subtitleEn?: string;
   links: NavLink[];
 };
-export type NavEntry = { key: string; labelAr: string; labelEn: string; href: string; match: string[]; columns: NavColumn[] };
+export type NavEntry = { key: string; labelAr: string; labelEn: string; href: string; match: string[]; columns: NavColumn[]; noDropdown?: boolean };
 
 const DN_BOOKS = `/services/store/books?publisher=${encodeURIComponent(DARNOZOM_PUBLISHER)}`;
 const l = (labelAr: string, labelEn: string, href: string): NavLink => ({ labelAr, labelEn, href });
@@ -60,8 +60,8 @@ export const MAIN_NAV: NavEntry[] = [
           l("المقالات", "Articles", "/articles"),
           l("الدراسات", "Studies", "/studies"),
           l("البحوث", "Research", "/studies"),
-          l("الدوريات", "Periodicals", "/studies"),
-          l("الكتب", "Books", DN_BOOKS),
+          l("الدوريات", "Periodicals", "/publications?tab=periodical"),
+          l("الكتب", "Books", "/publications?tab=books"),
         ],
       },
     ],
@@ -78,25 +78,23 @@ export const MAIN_NAV: NavEntry[] = [
     ] }],
   },
   {
-    key: "library", labelAr: "المكتبة والإصدارات", labelEn: "Library and Publications", href: "/library",
-    match: ["/library", "/publications", "/services/store"],
-    columns: [
-      {
-        titleAr: "المكتبة", titleEn: "Library", href: "/services/store/books",
-        links: [l("جميع الكتب", "All books", "/services/store/books"), l("كتب دار نظم", "DarNozom books", DN_BOOKS)],
-      },
-      {
-        titleAr: "إصدارات دار نظم", titleEn: "DarNozom Publications", href: "/publications",
-        links: [
-          l("كتب", "Books", DN_BOOKS),
-          l("مقالات", "Articles", "/articles"),
-          l("دراسات", "Studies", "/studies"),
-          l("أبحاث علمية", "Scientific research", "/studies"),
-          l("دوريات", "Periodicals", "/studies"),
-          l("المرصد", "Observatory", "/observatory"),
-        ],
-      },
-    ],
+    key: "store", labelAr: "المتجر", labelEn: "Store", href: "/services/store/books",
+    match: ["/services/store"],
+    noDropdown: true,
+    columns: [],
+  },
+  {
+    key: "publications", labelAr: "الإصدارات", labelEn: "Publications", href: "/publications",
+    match: ["/library", "/publications", "/articles", "/studies"],
+    columns: [{ links: [
+      l("المكتبة والإصدارات", "Library and Publications", "/library"),
+      l("كتب", "Books", "/publications?tab=books"),
+      l("مقالات", "Articles", "/articles"),
+      l("دراسات", "Studies", "/studies"),
+      l("أبحاث علمية", "Scientific research", "/publications?tab=research"),
+      l("دوريات", "Periodicals", "/publications?tab=periodical"),
+      l("المرصد", "Observatory", "/observatory"),
+    ] }],
   },
   {
     key: "news", labelAr: "الأخبار والفعاليات", labelEn: "News and Events", href: "/news-events",
@@ -114,12 +112,12 @@ export const MAIN_NAV: NavEntry[] = [
     key: "contact", labelAr: "تواصل معنا", labelEn: "Contact Us", href: "/contact",
     match: ["/contact"],
     columns: [{ links: [
-      l("طلب بحث", "Research request", "/service-registration"),
-      l("استشارة", "Consulting request", "/service-registration"),
-      l("تدريب", "Training request", "/service-registration"),
-      l("حل رقمي", "Digital solution", "/service-registration"),
-      l("تعاون", "Partnership", "/contact"),
-      l("استفسار عام", "General enquiry", "/contact"),
+      l("طلب بحث", "Research request", "/contact?type=research"),
+      l("استشارة", "Consulting request", "/contact?type=consulting"),
+      l("تدريب", "Training request", "/contact?type=training"),
+      l("حل رقمي", "Digital solution", "/contact?type=digital"),
+      l("تعاون", "Partnership", "/contact?type=cooperation"),
+      l("استفسار عام", "General enquiry", "/contact?type=general"),
     ] }],
   },
 ];

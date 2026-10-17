@@ -19,6 +19,7 @@ export type BookSearchFilters = {
   publisher?: string;
   language?: "ar" | "en" | "both";
   format?: "paper" | "digital";
+  is_darnozom?: boolean;
   limit: number;
   offset: number;
 };
@@ -117,6 +118,7 @@ export function searchBooks(entries: BookSearchEntry[], categories: CategoryNode
     .filter(({ e }) => !author || people(e.profile).some((n) => normalizeSearchText(n) === author))
     .filter(({ e }) => !publisher || normalizeSearchText(e.profile?.publisher) === publisher)
     .filter(({ e }) => !f.language || (e.profile?.language ?? "ar") === f.language)
+    .filter(({ e }) => f.is_darnozom === undefined || (e.profile?.is_darnozom ?? false) === f.is_darnozom)
     .sort((a, b) => b.score - a.score || newestFirst(a.e, b.e));
 
   return {

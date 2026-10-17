@@ -11,6 +11,7 @@ export type BookSearchParams = {
   publisher?: string;
   language?: "ar" | "en" | "both";
   format?: "paper" | "digital";
+  is_darnozom?: boolean;
   limit?: number;
   offset?: number;
 };

@@ -4,7 +4,7 @@ import { bookFiltersToQuery, EMPTY_BOOK_FILTERS, readBookFilters } from "./book-
 describe("book filters in the URL", () => {
   it("reads all filters and maps legacy format names", () => {
     expect(readBookFilters("?q=فقه&category=pcat_1&author=ابن%20عاشور&publisher=دار&language=en&format=online")).toEqual({
-      q: "فقه", category: "pcat_1", author: "ابن عاشور", publisher: "دار", language: "en", format: "digital",
+      q: "فقه", category: "pcat_1", author: "ابن عاشور", publisher: "دار", language: "en", format: "digital", isDarnozom: false,
     });
     expect(readBookFilters("")).toEqual(EMPTY_BOOK_FILTERS);
     expect(readBookFilters("?language=fr&format=weird").language).toBe("");
