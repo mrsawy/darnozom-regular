@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import ServiceDetail from "@/pages/service-detail";
 import Library from "@/pages/library";
+import PublishingPage from "@/pages/publishing";
 import ServicesConsulting from "@/pages/services-consulting";
 import ServicesDigital from "@/pages/services-digital";
 import Academy from "@/pages/academy";
@@ -209,7 +210,8 @@ function Router() {
       <Route path="/services/store/courses/:id" component={StoreCourseDetailPage} />
       <Route path="/careers" component={Careers} />
       <Route path="/services/research"><Redirect to="/center" /></Route>
-      <Route path="/services/publishing"><Redirect to="/library" /></Route>
+      <Route path="/services/publishing"><Redirect to="/publishing" /></Route>
+      <Route path="/publishing" component={PublishingPage} />
       <Route path="/library" component={Library} />
       <Route path="/services/consulting" component={ServicesConsulting} />
       <Route path="/services/digital-transformation" component={ServicesDigital} />

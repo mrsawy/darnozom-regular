@@ -52,7 +52,7 @@ export default function ServicesConsulting() {
 
       <PageHeroGradient
         current={isAr ? "الاستشارات" : "Consulting"}
-        title={isAr ? "الاستشارات" : "Consulting"}
+        title={<><span className="block text-base font-semibold text-muted-foreground mb-2">{isAr ? "الاستشارات" : "Consulting"}</span>{isAr ? "الاستشارات" : "Consulting"}</>}
         subtitle={isAr
           ? "استشارات في الشريعة والسياسات والإدارة العامة والقيادة والإدارة والحوكمة، تدعم الفرار وتطوير السياسات والمؤسسات."
           : "Consulting in Sharia, public policy and public administration, leadership, management and governance — supporting decision-making and institutional development."}

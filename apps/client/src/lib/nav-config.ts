@@ -34,14 +34,14 @@ export const MAIN_NAV: NavEntry[] = [
     match: ["/services", "/sectors", "/service-registration"],
     columns: [{ links: [
       l("البحوث والدراسات", "Research and Studies", "/center"),
-      l("النشر والمعرفة", "Publishing and Knowledge", "/library"),
+      l("النشر والمعرفة", "Publishing and Knowledge", "/publishing"),
       l("التدريب وبناء القدرات", "Training and Capacity Building", "/academy"),
       l("الاستشارات", "Consulting", "/services/consulting"),
       l("البرمجيات والتحول الرقمي", "Software and Digital Transformation", "/services/digital-transformation"),
     ] }],
   },
   {
-    key: "knowledge", labelAr: "مركز البحوث والدراسات", labelEn: "Research and Studies Center", href: "/center",
+    key: "knowledge", labelAr: "البحوث والدراسات", labelEn: "Research and Studies", href: "/center",
     match: ["/center", "/unit", "/observatory", "/articles", "/studies"],
     columns: [
       {
@@ -54,6 +54,18 @@ export const MAIN_NAV: NavEntry[] = [
         ],
       },
     ],
+  },
+  {
+    key: "publications", labelAr: "الإصدارات", labelEn: "Publications", href: "/publications",
+    match: ["/library", "/publications", "/articles", "/studies"],
+    columns: [{ links: [
+      l("كتب", "Books", "/publications?tab=books"),
+      l("مقالات", "Articles", "/articles"),
+      l("دراسات", "Studies", "/studies"),
+      l("أبحاث علمية", "Scientific research", "/publications?tab=research"),
+      l("دوريات", "Periodicals", "/publications?tab=periodical"),
+      l("المرصد", "Observatory", "/observatory"),
+    ] }],
   },
   {
     key: "academy", labelAr: "الأكاديمية", labelEn: "Academy", href: "/academy",
@@ -77,19 +89,6 @@ export const MAIN_NAV: NavEntry[] = [
     match: ["/services/store"],
     noDropdown: true,
     columns: [],
-  },
-  {
-    key: "publications", labelAr: "الإصدارات", labelEn: "Publications", href: "/publications",
-    match: ["/library", "/publications", "/articles", "/studies"],
-    columns: [{ links: [
-      l("المكتبة والإصدارات", "Library and Publications", "/library"),
-      l("كتب", "Books", "/publications?tab=books"),
-      l("مقالات", "Articles", "/articles"),
-      l("دراسات", "Studies", "/studies"),
-      l("أبحاث علمية", "Scientific research", "/publications?tab=research"),
-      l("دوريات", "Periodicals", "/publications?tab=periodical"),
-      l("المرصد", "Observatory", "/observatory"),
-    ] }],
   },
   {
     key: "news", labelAr: "الأخبار والفعاليات", labelEn: "News and Events", href: "/news-events",

@@ -34,8 +34,8 @@ export default function ResearchCenter() {
       <SiteNav mode="page" />
 
       <PageHeroGradient
-        current={isAr ? "المعرفة والبحوث" : "Knowledge and Research"}
-        title={isAr ? "المعرفة والبحوث" : "Knowledge and Research"}
+        current={isAr ? "البحوث والدراسات" : "Research and Studies"}
+        title={<><span className="block text-base font-semibold text-muted-foreground mb-2">{isAr ? "البحوث والدراسات" : "Research and Studies"}</span>{isAr ? "مركز دار نظم للبحوث والدراسات" : "DarNozom Research and Studies Center"}</>}
         subtitle={isAr
           ? "مركز دار نظم للبحوث والدراسات هو الذراع العلمي والفكري للمؤسسة؛ يصل التأصيل الشرعي بالتحليل العلمي والخبرة التطبيقية."
           : "The DarNozom Research and Studies Center is the institution's scholarly and intellectual function, connecting Sharia grounding with scientific analysis and practical expertise."}

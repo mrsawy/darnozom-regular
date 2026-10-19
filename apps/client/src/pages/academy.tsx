@@ -17,8 +17,8 @@ export default function Academy() {
       <SiteNav mode="page" />
 
       <PageHeroGradient
-        current={isAr ? "الأكاديمية" : "Academy"}
-        title={isAr ? "أكاديمية دار نظم" : "DarNozom Academy"}
+        current={isAr ? "التدريب وبناء القدرات" : "Training and Capacity Building"}
+        title={<><span className="block text-base font-semibold text-muted-foreground mb-2">{isAr ? "التدريب وبناء القدرات" : "Training and Capacity Building"}</span>{isAr ? "أكاديمية دار نظم" : "DarNozom Academy"}</>}
         subtitle={isAr
           ? "مسارات علمية ومهنية تربط الفهم بالتطبيق وتدعم بناء الكفاءات وتطوير المؤسسات."
           : "Scholarly and professional tracks connecting understanding with practice, building capacity and developing institutions."}
