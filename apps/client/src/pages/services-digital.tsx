@@ -52,7 +52,7 @@ export default function ServicesDigital() {
 
       <PageHeroGradient
         current={isAr ? "البرمجيات والتحول الرقمي" : "Software and Digital Transformation"}
-        title={<><span className="block text-base font-semibold text-muted-foreground mb-2">{isAr ? "البرمجيات والتحول الرقمي" : "Software and Digital Transformation"}</span>{isAr ? "نظم بلاتفورم" : "Nozom Platform"}</>}
+        title={<><span className="hidden text-base font-semibold text-muted-foreground mb-2">{isAr ? "البرمجيات والتحول الرقمي" : "Software and Digital Transformation"}</span>{isAr ? "نظم بلاتفورم" : "Nozom Platform"}</>}
         subtitle={isAr
           ? "حلول رقمية تربط المعرفة والعمليات والبيانات وتحسين التنفيذ والمتابعة."
           : "Digital solutions connecting knowledge, processes and data to improve execution and monitoring."}

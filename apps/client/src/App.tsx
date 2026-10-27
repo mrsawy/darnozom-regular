@@ -23,6 +23,7 @@ import AcademyForOrganizations from "@/pages/academy-for-organizations";
 import AcademyDiplomas from "@/pages/academy-diplomas";
 import AcademyCourses from "@/pages/academy-courses";
 import ServiceRegistration from "@/pages/service-registration";
+import StorePage from "@/pages/store";
 import StoreBooksPage from "@/pages/store-books";
 import StoreBookDetailPage from "@/pages/store-book-detail";
 import StoreCoursesPage from "@/pages/store-courses";
@@ -203,7 +204,7 @@ function Router() {
       <Route path="/news-events">{() => <ContentListPage section="news-events" />}</Route>
       <Route path="/news-events/:slug">{(p) => <ContentDetailPage key={p.slug} section="news-events" slug={p.slug} />}</Route>
 
-      <Route path="/services/store"><Redirect to="/services/store/books" /></Route>
+      <Route path="/services/store" component={StorePage} />
       <Route path="/services/store/books" component={StoreBooksPage} />
       <Route path="/services/store/books/:id" component={StoreBookDetailPage} />
       <Route path="/services/store/courses" component={StoreCoursesPage} />

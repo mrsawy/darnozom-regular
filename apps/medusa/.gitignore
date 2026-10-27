@@ -10,6 +10,7 @@ yarn-error.log
 coverage
 
 !src/**
+._*
 
 ./tsconfig.tsbuildinfo
 medusa-db.sql

@@ -12,11 +12,15 @@ import { useCart } from "@/lib/cart-context";
 import type { StoreCourse, CourseDelivery, CourseLevel } from "@/lib/store-types";
 import { SiteFooter } from "@/components/site-footer";
 
+// The recorded-courses endpoint hasn't been decided yet. Until it's set, the
+// page skips fetching and shows the "no recorded courses" message.
+const COURSES_ENDPOINT: string | null = null;
+
 const T = {
   ar: {
     back: "العودة للمتجر",
-    title: "الدورات",
-    subtitle: "أونلاين بشكل ذاتي، مباشر، أو حضوريًا",
+    title: "الدورات المسجلة",
+    subtitle: "دورات مسجّلة من دار نظم تتابعها في الوقت الذي يناسبك.",
     searchPlaceholder: "ابحث بالعنوان أو المدرب...",
     filterDelivery: "نمط التقديم",
     filterLevel: "المستوى",
@@ -27,6 +31,7 @@ const T = {
     hybrid: "هجين",
     levels: { beginner: "مبتدئ", intermediate: "متوسط", advanced: "متقدم", all_levels: "كل المستويات" },
     empty: "لم نعثر على دورات مطابقة",
+    noCourses: "ليس هناك دورات مسجلة متاحة حاليا.",
     clearFilters: "مسح الفلاتر",
     hours: "ساعة",
     modules: "وحدة",
@@ -38,8 +43,8 @@ const T = {
   },
   en: {
     back: "Back to store",
-    title: "Courses",
-    subtitle: "Online self-paced, live, or onsite at our facilities",
+    title: "Recorded Courses",
+    subtitle: "DarNozom recorded courses you can follow whenever it suits you.",
     searchPlaceholder: "Search by title or instructor...",
     filterDelivery: "Delivery",
     filterLevel: "Level",
@@ -50,6 +55,7 @@ const T = {
     hybrid: "Hybrid",
     levels: { beginner: "Beginner", intermediate: "Intermediate", advanced: "Advanced", all_levels: "All levels" },
     empty: "No matching courses found",
+    noCourses: "There are no recorded courses available at the moment.",
     clearFilters: "Clear filters",
     hours: "hrs",
     modules: "modules",
@@ -68,7 +74,7 @@ export default function StoreCoursesPage() {
   const initialQ = new URLSearchParams(searchString).get("q") || "";
 
   const [courses, setCourses] = useState<StoreCourse[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(COURSES_ENDPOINT !== null);
   const [error, setError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [search, setSearch] = useState(initialQ);
@@ -78,6 +84,8 @@ export default function StoreCoursesPage() {
   const cart = useCart();
 
   useEffect(() => {
+    const endpoint = COURSES_ENDPOINT;
+    if (!endpoint) return;
     let cancelled = false;
     async function load() {
       setLoading(true);
@@ -87,7 +95,7 @@ export default function StoreCoursesPage() {
         if (search) p.set("search", search);
         if (delivery !== "all") p.set("delivery", delivery);
         if (level !== "all") p.set("level", level);
-        const r = await fetch(`/api/store/courses?${p}`);
+        const r = await fetch(`${endpoint}?${p}`);
         if (cancelled) return;
         if (!r.ok) {
           setError(true);
@@ -110,6 +118,8 @@ export default function StoreCoursesPage() {
       clearTimeout(id);
     };
   }, [search, delivery, level, reloadKey]);
+
+  const hasFilters = !!search || delivery !== "all" || level !== "all";
 
   function clearAll() { setSearch(""); setDelivery("all"); setLevel("all"); }
 
@@ -153,6 +163,7 @@ export default function StoreCoursesPage() {
         </div>
       </section>
 
+      {COURSES_ENDPOINT && (
       <section className="px-4 pb-6">
         <div className="container mx-auto max-w-6xl bg-card border border-border rounded-2xl p-4 space-y-4">
           <div className="relative">
@@ -174,17 +185,20 @@ export default function StoreCoursesPage() {
                 ...Object.entries(t.levels).map(([k, l]) => ({ v: k, l })),
               ]} />
           </div>
-          {(search || delivery !== "all" || level !== "all") && (
+          {hasFilters && (
             <button onClick={clearAll} className="text-xs text-muted-foreground hover:text-secondary inline-flex items-center gap-1">
               <X className="w-3.5 h-3.5" /> {t.clearFilters}
             </button>
           )}
         </div>
       </section>
+      )}
 
       <section className="px-4 pb-16 bg-[#EAF0F6]">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-sm text-muted-foreground mb-4">{t.countLabel(courses.length)}</div>
+          {courses.length > 0 && (
+            <div className="text-sm text-muted-foreground mb-4">{t.countLabel(courses.length)}</div>
+          )}
           {loading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -196,7 +210,7 @@ export default function StoreCoursesPage() {
           ) : courses.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-30" />
-              <p>{t.empty}</p>
+              <p>{hasFilters ? t.empty : t.noCourses}</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

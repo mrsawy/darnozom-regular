@@ -7,28 +7,28 @@ import { PageHero } from "@/components/content/page-hero";
 
 const APPROACH_STEPS = [
   {
-    ar: "نفهم السؤال",
-    en: "Understand the question",
-    descAr: "نحدد الاحتياج والسياق والأهداف والنتائج المطلوبة.",
-    descEn: "Define the need, context, objectives and desired results.",
+    ar: "نفهم الاحتياجات ونحدد الفجوات",
+    en: "Understand Needs & Identify Gaps",
+    descAr: "نتعرّف إلى أهداف الجهة وتحدياتها، ونستمع إلى أصحاب المصلحة، ونحدد الفجوات في السياسات والأداء والقدرات؛ لنتفق على الأولويات والنتائج المطلوبة.",
+    descEn: "We identify organizational goals and challenges, listen to stakeholders, and identify gaps in policy, performance, and capacity to align on priorities and desired outcomes.",
   },
   {
-    ar: "نؤصّل وندرس الواقع",
-    en: "Establish foundations and study reality",
-    descAr: "ندرس الأصول الشرعية ذات الصلة، ونحلل الواقع والبيانات، ونستفيد من المعرفة والخبرة المعاصرة.",
-    descEn: "Study relevant Sharia foundations, analyse conditions and data, and draw on contemporary knowledge and expertise.",
+    ar: "نؤصّل ونحلل",
+    en: "Ground & Analyze",
+    descAr: "ندرس الأصول الشرعية ذات الصلة، ونحلل الواقع والبيانات وأسباب الفجوات، ونستفيد من مناهج العلوم السياسية والإدارية والخبرات والتجارب المقارنة؛ لبناء فهم متكامل تستند إليه الحلول.",
+    descEn: "We study relevant Sharia foundations, analyze data and underlying causes of gaps, and draw on political and administrative sciences as well as comparative benchmarks to build a holistic foundation for solutions.",
   },
   {
-    ar: "نصمم الحلول والمخرجات",
-    en: "Design solutions and outputs",
-    descAr: "نطوّر دراسات وتوصيات وبرامج وأدوات تناسب الاحتياج والسياق، وتراعي إمكانات التطبيق.",
-    descEn: "Develop studies, recommendations, programmes and tools suited to the need and context, taking implementation capacity into account.",
+    ar: "نصمم الحلول والبرامج",
+    en: "Design Solutions & Programs",
+    descAr: "نطوّر دراسات وتوصيات وسياسات وبرامج تدريب وأدوات عملية تستجيب للاحتياجات، وتراعي الموارد المتاحة والسياق المؤسسي ومتطلبات التنفيذ.",
+    descEn: "We develop studies, policy recommendations, training programs, and practical tools tailored to needs, taking into account available resources, institutional context, and execution requirements.",
   },
   {
-    ar: "ندعم التطبيق والتقييم",
-    en: "Support implementation and evaluation",
-    descAr: "نحدد خطوات التنفيذ ومؤشرات المتابعة وتقييم الأثر، وندعم التحسين المستمر.",
-    descEn: "Define implementation steps and indicators for monitoring and impact assessment, and support continuous improvement.",
+    ar: "ندعم التنفيذ ونقيّم الأثر",
+    en: "Support Execution & Assess Impact",
+    descAr: "نساند وضع خطط التنفيذ وتحديد المسؤوليات ومؤشرات المتابعة، ونقيّم النتائج والأثر، ونستفيد مما نتعلمه في تطوير الحلول وتحسين الأداء.",
+    descEn: "We assist in formulating implementation plans, defining responsibilities and KPIs, evaluate outcomes and impact, and leverage insights for continuous performance improvement.",
   },
 ];
 
@@ -66,8 +66,8 @@ export default function About() {
       <PageHero
         title={t("من نحن", "Who We Are")}
         subtitle={t(
-          "دار نظم مؤسسة للبحوث والاستشارات وبناء القدرات في مجالات السياسات والقيادة والإدارة والحوكمة، تجمع بين المرجعية الإسلامية والمعرفة والخبرة المعاصرة، وتسهم في تطوير الشأن العام وبناء مؤسسات فاعلة، من خلال دعم الجهات العامة والشركات والمؤسسات ذات الدور الاستراتيجي في التنمية وتقديم الخدمات وصنع السياسات العامة.",
-          "DarNozom is an institution for research, consulting and capacity building in policy, leadership, management and governance. It brings together Islamic foundations and contemporary knowledge and expertise to advance public affairs and build effective institutions, supporting public bodies, companies and institutions with a strategic role in development, service delivery and public policymaking."
+          "دار نظم مؤسسة متخصصة في البحوث والاستشارات والتدريب وبناء القدرات في مجالات السياسات العامة والإدارة والقيادة والحوكمة. تضم نخبة من الباحثين والخبراء المتخصصين، وتجمع بين المرجعية الإسلامية والعلوم السياسية والإدارية والخبرة التطبيقية المعاصرة. وتعمل مع الحكومات والمؤسسات العامة والشركات ذات الدور الاستراتيجي والمنظمات غير الربحية على إنتاج المعرفة وصياغة الحلول الداعمة لصنع القرار، وتطوير السياسات وتأهيل القيادات وبناء مؤسسات فاعلة؛ بما يعزز كفاءة الأداء، ويحسّن الخدمات، ويسهم في التنمية وتحقيق المصالح العامة.",
+          "DarNozom is an institution specialized in research, consulting, training, and capacity building in public policy, management, leadership, and governance. It brings together an elite group of researchers and specialized experts, combining an Islamic frame of reference with political and administrative sciences and contemporary applied expertise. It collaborates with governments, public entities, strategically vital companies, and non-profit organizations to generate knowledge, formulate decision-support solutions, develop policies, qualify leaders, and build effective institutions—thereby enhancing performance efficiency, improving public services, and contributing to development and the public interest."
         )}
       />
 
@@ -75,10 +75,10 @@ export default function About() {
       <section id="vision" className="bg-white py-[70px] scroll-mt-24">
         <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("رؤيتنا", "Our Vision")}</h2>
-          <p className="max-w-[700px] text-ink-muted">
+          <p className="max-w-[850px] text-ink-muted leading-relaxed">
             {t(
-              "أن تكون دار نظم مؤسسة مرجعية في تطوير الشأن العام وبناء قيادات ومؤسسات فاعلة، من خلال التكامل بين المرجعية الإسلامية والمعرفة والخبرة المعاصرة.",
-              "To become a reference institution for advancing public affairs and developing effective leaders and institutions through the integration of Islamic foundations with contemporary knowledge and expertise."
+              "أن تكون دار نظم مؤسسة مرجعية وشريكًا موثوقًا في تطوير السياسات وبناء قيادات ومؤسسات فاعلة، من خلال التكامل بين المرجعية الإسلامية والعلوم السياسية والإدارية والخبرة المعاصرة.",
+              "For DarNozom to be a benchmark institution and a trusted partner in developing policies and building effective leaders and institutions, through the integration of an Islamic frame of reference, political and administrative sciences, and contemporary expertise."
             )}
           </p>
         </div>
@@ -88,10 +88,10 @@ export default function About() {
       <section id="mission" className="py-[70px] scroll-mt-24">
         <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("رسالتنا", "Our Mission")}</h2>
-          <p className="max-w-[700px] text-ink-muted">
+          <p className="max-w-[850px] text-ink-muted leading-relaxed">
             {t(
-              "ننتج المعرفة ونطوّر السياسات، ونؤهّل القيادات ونبني القدرات، وندعم تأسيس المؤسسات وتطوير نظم إدارتها وحوكمتها؛ للارتقاء بجودة القرار والأداء وتحقيق المصالح العامة، بالتعاون مع الجهات العامة والشركات والمؤسسات ذات الدور الاستراتيجي في التنمية وتقديم الخدمات، وبمنهج يجمع بين التأصيل الشرعي والبحث العلمي والخبرة التطبيقية.",
-              "We produce knowledge and develop policies, prepare leaders and build capacity, and support the establishment of institutions and the development of their management and governance systems. We work to improve decisions and performance and serve the public interest, in cooperation with public bodies, companies and institutions with a strategic role in development and service delivery, through an approach that combines Sharia grounding, scientific research and practical expertise."
+              "ننتج معرفة تدعم القرار، ونطوّر سياسات وحلولًا تستجيب للاحتياجات والتحديات، ونؤهّل القيادات ونبني القدرات، ونساند تأسيس المؤسسات وتطوير إدارتها وحوكمتها. ونربط التأصيل الشرعي بالبحث العلمي والخبرة التطبيقية؛ لتحويل المعرفة إلى ممارسات قابلة للتنفيذ ونتائج قابلة للتقييم، بما يرتقي بالأداء والخدمات، ويسهم في التنمية وتحقيق المصالح العامة.",
+              "We produce decision-support knowledge, develop policies and solutions responsive to needs and challenges, train leaders, and build institutional capacities. We assist in establishing organizations and developing their management and governance systems, linking Islamic grounding with scientific research and applied expertise to translate knowledge into actionable practices and measurable outcomes—elevating performance and services, and advancing development and the public interest."
             )}
           </p>
         </div>
@@ -101,10 +101,10 @@ export default function About() {
       <section id="method" className="bg-white py-[70px] scroll-mt-24">
         <div className="mx-auto max-w-[1200px] px-page">
           <h2 className="text-[26px] font-bold text-ink mb-7">{t("منهجنا", "Our Approach")}</h2>
-          <p className="max-w-[700px] text-ink-muted mb-7">
+          <p className="max-w-[850px] text-ink-muted leading-relaxed mb-7">
             {t(
-              "نبدأ بفهم السؤال والاحتياج، ونجمع بين التأصيل الشرعي ودراسة الواقع والمعرفة والخبرة المعاصرة؛ لنطوّر حلولًا ومخرجات عملية، وندعم تطبيقها وتقييم أثرها.",
-              "We begin by understanding the question and the need, bringing together Sharia grounding, analysis of real conditions and contemporary knowledge and expertise to develop practical solutions and outputs, support implementation and assess their impact."
+              "ننطلق من فهم الاحتياجات وتحديد الفجوات بين الواقع والنتائج المستهدفة، ونجمع بين التأصيل الشرعي والتحليل العلمي والخبرة العملية؛ لتطوير حلول تستند إلى الأدلة، وتناسب السياق والإمكانات، مع دعم تنفيذها وتقييم أثرها وتحسينها.",
+              "We start by understanding needs and identifying gaps between current reality and targeted outcomes, combining Islamic grounding, scientific analysis, and practical experience to develop evidence-based solutions tailored to context and resources, while supporting execution, evaluating impact, and driving continuous improvement."
             )}
           </p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-[30px]">
@@ -112,7 +112,7 @@ export default function About() {
               <article key={s.en} className="bg-white border border-line border-t-[3px] border-t-gold rounded-lg p-[22px]">
                 <span className="block text-[11px] text-gold mb-5" dir="ltr">0{i + 1}</span>
                 <h3 className="font-bold text-ink mb-2">{isArabic ? s.ar : s.en}</h3>
-                <p className="text-[13px] text-ink-muted">{isArabic ? s.descAr : s.descEn}</p>
+                <p className="text-[13px] text-ink-muted leading-relaxed">{isArabic ? s.descAr : s.descEn}</p>
               </article>
             ))}
           </div>

@@ -85,7 +85,7 @@ export const MAIN_NAV: NavEntry[] = [
     }],
   },
   {
-    key: "store", labelAr: "المتجر", labelEn: "Store", href: "/services/store/books",
+    key: "store", labelAr: "المتجر", labelEn: "Store", href: "/services/store",
     match: ["/services/store"],
     noDropdown: true,
     columns: [],

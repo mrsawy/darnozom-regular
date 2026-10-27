@@ -4,10 +4,10 @@ import { MAIN_NAV, activeNavKey } from "./nav-config";
 describe("nav config", () => {
   it("has the eight approved entries in order", () => {
     expect(MAIN_NAV.map((e) => e.labelAr)).toEqual([
-      "عن دار نظم", "خدماتنا", "المعرفة والبحوث", "الأكاديمية", "المتجر", "الإصدارات", "الأخبار والفعاليات", "تواصل معنا",
+      "عن دار نظم", "خدماتنا", "البحوث والدراسات", "الإصدارات", "الأكاديمية", "المتجر", "الأخبار والفعاليات", "تواصل معنا",
     ]);
     expect(MAIN_NAV.map((e) => e.labelEn)).toEqual([
-      "About DarNozom", "Services", "Knowledge and Research", "Academy", "Store", "Publications", "News and Events", "Contact Us",
+      "About DarNozom", "Services", "Research and Studies", "Publications", "Academy", "Store", "News and Events", "Contact Us",
     ]);
   });
   it("uses only site-relative links", () => {

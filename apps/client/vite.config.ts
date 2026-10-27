@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true,
+      watch: {
+        usePolling: true,
+        interval: 1000,
+      },
       proxy: {
         // Admin order notifications socket (must come before "/api").
         "/api/socket.io": {

@@ -19,6 +19,7 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+._*
 *.suo
 *.ntvs*
 *.njsproj
@@ -39,4 +40,4 @@ apps/medusa/src/scripts/migrate-books-mapping.json
 
 .superpowers/
 files/
-
+clean-dot-underscore.sh

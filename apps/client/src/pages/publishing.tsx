@@ -7,13 +7,13 @@ import { PageHeroGradient } from "@/components/page-hero-gradient";
 
 const CARDS = [
   {
-    href: "/services/store/books",
-    ar: { title: "المتجر", desc: "تصفّح كتب دار نظم وأصدراتها المتاحة للشراء." },
-    en: { title: "Store", desc: "Browse DarNozom books and publications available for purchase." },
+    href: "/services/store",
+    ar: { title: "المتجر", desc: "متجر دار نظم من كتب ودورات مسجلة." },
+    en: { title: "Store", desc: "DarNozom's store of books and recorded courses." },
   },
   {
     href: "/publications",
-    ar: { title: "إصدارات دار نظم", desc: "الإنتاج البحثي والمعرفي لدار نظم من مقالات ودراسات وأبحاث ودوريات." },
+    ar: { title: "إصدارات دار نظم", desc: "الإنتاج البحثي والمعرفي لدار نظم من كتب و مقالات ودراسات وأبحاث ودوريات." },
     en: { title: "DarNozom Publications", desc: "DarNozom's research and knowledge output: articles, studies, research, and periodicals." },
   },
 ];
@@ -25,14 +25,6 @@ export default function PublishingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground" dir={isAr ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
-
-      <PageHeroGradient
-        current={isAr ? "النشر والمعرفة" : "Publishing and Knowledge"}
-        title={<><span className="block text-base font-semibold text-muted-foreground mb-2">{isAr ? "النشر والمعرفة" : "Publishing and Knowledge"}</span>{isAr ? "المتجر والإصدارات" : "Store and Publications"}</>}
-        subtitle={isAr
-          ? "منصة دار نظم للنشر والإصدارات المعرفية والبحثية."
-          : "DarNozom's platform for publishing and knowledge output."}
-      />
 
       <section className="py-24 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">

@@ -23,20 +23,20 @@ describe("SiteNav", () => {
   it("renders the eight top-level links", () => {
     renderAt("/");
     const nav = screen.getByRole("navigation", { name: "القائمة الرئيسية" });
-    for (const label of ["عن دار نظم", "خدماتنا", "المعرفة والبحوث", "الأكاديمية", "المتجر", "الإصدارات", "الأخبار والفعاليات", "تواصل معنا"]) {
+    for (const label of ["عن دار نظم", "خدماتنا", "البحوث والدراسات", "الإصدارات", "الأكاديمية", "المتجر", "الأخبار والفعاليات", "تواصل معنا"]) {
       expect(within(nav).getByRole("link", { name: label })).toBeTruthy();
     }
   });
 
   it("opens a dropdown from its chevron and closes it with Escape, returning focus", () => {
     renderAt("/");
-    const toggle = screen.getByRole("button", { name: "فتح قائمة المعرفة والبحوث" });
+    const toggle = screen.getByRole("button", { name: "فتح قائمة البحوث والدراسات" });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const panel = document.getElementById(toggle.getAttribute("aria-controls")!)!;
-    expect(panel.textContent).toContain("المرصد");
     expect(panel.textContent).toContain("مركز البحوث والدراسات");
+    expect(panel.textContent).toContain("السياسة الشرعية والفكر الإسلامي");
     fireEvent.keyDown(panel, { key: "Escape" });
     expect(toggle.getAttribute("aria-expanded")).toBe("false");
     expect(document.activeElement).toBe(toggle);
@@ -44,7 +44,7 @@ describe("SiteNav", () => {
 
   it("marks the active section", () => {
     renderAt("/observatory");
-    const link = screen.getAllByRole("link", { name: "المعرفة والبحوث" })[0];
+    const link = screen.getAllByRole("link", { name: "البحوث والدراسات" })[0];
     expect(link.getAttribute("aria-current")).toBe("page");
   });
 });
