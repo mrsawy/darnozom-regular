@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Single entry point the CD pipeline runs over SSH.
+# Last triggered: 2026-11-05
 #
 #   docker db up -> wait healthy -> one-time restore -> schema push
 #   -> api deps -> env file -> systemd restart -> health gate -> ssl -> nginx
