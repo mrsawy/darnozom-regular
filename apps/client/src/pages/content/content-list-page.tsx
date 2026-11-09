@@ -228,6 +228,7 @@ export default function ContentListPage({ section }: { section: SectionKey }) {
             externalUrl: b.href,
             publishedAt: b.createdAt,
             details: { kind: "book" },
+            likesEnabled: false, commentsEnabled: false, viewCount: 0, shareCount: 0,
             createdAt: b.createdAt ?? "",
             updatedAt: b.createdAt ?? "",
           }));

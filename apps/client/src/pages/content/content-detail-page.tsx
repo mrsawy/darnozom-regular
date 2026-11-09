@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useSearch } from "wouter";
-import { ExternalLink, Share2 } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { NotFoundError, useCmsItem } from "@/lib/cms-api";
 import { SECTIONS, type SectionKey } from "@/lib/cms-sections";
@@ -10,6 +10,7 @@ import { PageShell } from "@/components/content/page-shell";
 import { CategoryBadge } from "@/components/content/category-badge";
 import { ContentCard } from "@/components/content/content-card";
 import { RichHtml } from "@/components/content/rich-html";
+import { EngagementBar } from "@/components/content/engagement-bar";
 import { NewsletterBlock } from "@/components/content/newsletter-block";
 import { EventFacts, RegionTag, TypeBlocks } from "@/components/content/detail-blocks";
 import { FetchError } from "@/components/fetch-error";
@@ -30,12 +31,6 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
   }, [item, lang]);
 
   if (q.error instanceof NotFoundError || (item && !cfg.types.includes(item.type))) return <NotFound />;
-
-  const share = async () => {
-    const url = window.location.href.replace(/[?&]preview=1/, "");
-    if (navigator.share) await navigator.share({ url, title: item ? pickLang(item, "title", lang) : "" }).catch(() => {});
-    else await navigator.clipboard?.writeText(url);
-  };
 
   return (
     <PageShell footerTone="light">
@@ -77,9 +72,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
                   {t("عرض المصدر الأصلي", "View original source")} <ExternalLink className="w-4 h-4" aria-hidden />
                 </a>
               )}
-              <button type="button" onClick={share} className="mt-8 flex items-center gap-2 min-h-11 text-sm font-semibold text-navy">
-                <Share2 className="w-4 h-4" aria-hidden /> {t("شارك هذا الإصدار", "Share this publication")}
-              </button>
+              <EngagementBar itemId={item.id} title={pickLang(item, "title", lang)} preview={preview} />
             </article>
             <aside className="space-y-6">
               <EventFacts item={item} lang={lang} />

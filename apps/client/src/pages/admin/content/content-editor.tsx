@@ -15,15 +15,59 @@ import { STATUS_LABELS } from "./content-list";
 import { DEFAULT_EVENT_TZ, browserTimeZone, fromZonedInput, toZonedInput } from "@/lib/datetime";
 import NotFound from "@/pages/not-found";
 
-type Form = Omit<ContentItem, "id" | "createdAt" | "updatedAt">;
+type Form = Omit<ContentItem, "id" | "createdAt" | "updatedAt" | "viewCount" | "shareCount">;
 
 const blank = (type: ContentType): Form => ({
   type, slug: "", status: "draft", titleAr: "", titleEn: "", summaryAr: "", summaryEn: "", bodyAr: "", bodyEn: "",
   coverImageUrl: "", area: null, authorAr: "دار نظم", authorEn: "DarNozom", isExternal: false, externalUrl: "",
-  publishedAt: null, details: emptyDetails(type),
+  publishedAt: null, likesEnabled: true, commentsEnabled: true, details: emptyDetails(type),
 });
 
 const inputCls = "w-full min-h-10 px-3 border border-line rounded bg-white";
+
+type AdminComment = { id: number; authorName: string; body: string; status: "visible" | "hidden"; createdAt: string };
+
+function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string, k?: "error") => void }) {
+  const [comments, setComments] = useState<AdminComment[] | null>(null);
+  const [open, setOpen] = useState(false);
+  const load = () =>
+    adminFetchJson<{ comments: AdminComment[] }>(`/api/admin/cms/items/${itemId}/comments`)
+      .then((r) => setComments(r.comments))
+      .catch((e) => show((e as Error).message, "error"));
+  useEffect(() => { if (open && !comments) void load(); }, [open]);
+  const setStatus = async (c: AdminComment) => {
+    const status = c.status === "visible" ? "hidden" : "visible";
+    await adminFetchJson(`/api/admin/cms/comments/${c.id}`, { method: "PATCH", headers: adminJsonHeaders(), body: JSON.stringify({ status }) }).catch((e) => show((e as Error).message, "error"));
+    void load();
+  };
+  const remove = async (c: AdminComment) => {
+    if (!window.confirm("حذف هذا التعليق نهائيًا؟")) return;
+    await adminFetch(`/api/admin/cms/comments/${c.id}`, { method: "DELETE" });
+    void load();
+  };
+  return (
+    <div className="sm:col-span-3">
+      <button type="button" className="text-sm font-semibold text-navy underline" onClick={() => setOpen((o) => !o)}>
+        {open ? "إخفاء إدارة التعليقات" : "إدارة التعليقات"}
+      </button>
+      {open && (
+        <ul className="mt-2 divide-y divide-line border border-line rounded">
+          {comments?.map((c) => (
+            <li key={c.id} className="p-3 flex gap-3 items-start">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">{c.authorName} <span className="font-normal text-ink-muted">· {new Date(c.createdAt).toLocaleString("ar-EG")}{c.status === "hidden" ? " · مخفي" : ""}</span></p>
+                <p className="text-sm whitespace-pre-wrap break-words">{c.body}</p>
+              </div>
+              <button type="button" className="text-sm underline" onClick={() => setStatus(c)}>{c.status === "visible" ? "إخفاء" : "إظهار"}</button>
+              <button type="button" aria-label="حذف التعليق" className="text-destructive" onClick={() => remove(c)}><Trash2 className="w-4 h-4" /></button>
+            </li>
+          ))}
+          {comments?.length === 0 && <li className="p-3 text-sm text-ink-muted">لا توجد تعليقات.</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const cfg = TYPE_CONFIG[type];
@@ -34,12 +78,17 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const [lang, setLang] = useState<"ar" | "en">("ar");
   const [issues, setIssues] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [stats, setStats] = useState<{ viewCount: number; shareCount: number } | null>(null);
   const { toast, show } = useToast();
 
   useEffect(() => {
     if (isNew) return;
     adminFetchJson<ContentItem>(`/api/admin/cms/items/${id}`)
-      .then(({ id: _i, createdAt: _c, updatedAt: _u, ...rest }) => setForm({ ...rest, details: { ...emptyDetails(type), ...rest.details } }))
+      .then(({ id: _i, createdAt: _c, updatedAt: _u, viewCount, shareCount, ...rest }) => {
+        setStats({ viewCount, shareCount });
+        return rest;
+      })
+      .then((rest) => setForm({ ...rest, details: { ...emptyDetails(type), ...rest.details } }))
       .catch((e) => show((e as Error).message, "error"));
   }, [id]);
 
@@ -197,6 +246,17 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
             <input aria-label="رابط المصدر الأصلي" className={inputCls} dir="ltr" value={form.externalUrl} onChange={(e) => set("externalUrl", e.target.value)} />
           </label>
         )}
+        <fieldset className="sm:col-span-3 flex flex-wrap items-center gap-x-6 gap-y-2 border border-line rounded p-3">
+          <legend className="px-1 text-sm font-semibold">التفاعل</legend>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={form.likesEnabled} onChange={(e) => set("likesEnabled", e.target.checked)} /> <span className="text-sm">تفعيل الإعجابات</span>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={form.commentsEnabled} onChange={(e) => set("commentsEnabled", e.target.checked)} /> <span className="text-sm">تفعيل التعليقات</span>
+          </label>
+          {stats && <span className="text-sm text-ink-muted ms-auto">{stats.viewCount} مشاهدة · {stats.shareCount} مشاركة</span>}
+        </fieldset>
+        {!isNew && <CommentsModeration itemId={id} show={show} />}
         <div className="sm:col-span-3">
           <span className="text-sm font-semibold">صورة الغلاف</span>
           <ImageUploadField value={form.coverImageUrl} onChange={(v) => set("coverImageUrl", v)} folder="cms" />

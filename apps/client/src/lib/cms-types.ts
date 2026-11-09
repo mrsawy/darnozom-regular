@@ -24,6 +24,10 @@ export interface ContentItem {
   externalUrl: string;
   publishedAt: string | null;
   details: Record<string, any>;
+  likesEnabled: boolean;
+  commentsEnabled: boolean;
+  viewCount: number;
+  shareCount: number;
   createdAt: string;
   updatedAt: string;
 }

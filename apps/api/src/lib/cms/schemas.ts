@@ -130,6 +130,8 @@ export const contentItemInput = z.object({
   isExternal: z.boolean().optional().default(false),
   externalUrl: urlOrPath,
   publishedAt: z.coerce.date().nullable().optional().default(null),
+  likesEnabled: z.boolean().optional().default(true),
+  commentsEnabled: z.boolean().optional().default(true),
   details: z.record(z.unknown()).optional().default({}),
 });
 export type ContentItemInput = z.infer<typeof contentItemInput>;

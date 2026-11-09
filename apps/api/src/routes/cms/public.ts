@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
 import { CONTENT_TYPES } from "../../lib/cms/schemas";
+import { readFile } from "node:fs/promises";
+import { injectOg } from "../../lib/cms/og";
+import { contentPath } from "../../lib/cms/paths";
 import { getHome, getPublishedBySlug, getRelated, listPublished } from "../../lib/cms/repo";
 
 const router = Router();
@@ -39,6 +42,24 @@ router.get("/cms/items/by-slug/:slug", async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to load content" });
+  }
+});
+
+/**
+ * SPA shell with per-item Open Graph tags. nginx routes /articles/:slug etc. here (see
+ * deploy/nginx.conf) and falls back to the plain index.html on any error.
+ */
+const SPA_INDEX = process.env.SPA_INDEX_PATH || "/var/www/darnozom/index.html";
+router.get("/cms/og/:slug", async (req, res) => {
+  try {
+    const item = await getPublishedBySlug(String(req.params.slug));
+    if (!item) return res.status(404).end();
+    const html = injectOg(await readFile(SPA_INDEX, "utf8"), item, contentPath(item.type, item.slug));
+    res.set("Cache-Control", "public, max-age=300");
+    return res.type("html").send(html);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).end();
   }
 });
 
