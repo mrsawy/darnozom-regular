@@ -1,8 +1,9 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { and, count, desc, eq, sql } from "drizzle-orm";
 import { db, contentComments, contentItems, contentLikes } from "@workspace/db";
-import { getSessionUser, requireAuth, type AuthRequest } from "../../middlewares/authMiddleware";
+import { getSessionUser, isAdminRole } from "../../middlewares/authMiddleware";
+import { isGuestId, issueGuest, readGuestId } from "../../lib/cms/guest";
 import { requireAdmin } from "../../middlewares/adminAuth";
 import { rateLimit } from "../../middlewares/rateLimit";
 
@@ -64,15 +65,26 @@ async function snapshot(itemId: number, userId?: string) {
   };
 }
 
-async function optionalUserId(req: import("express").Request): Promise<string | undefined> {
-  return (await getSessionUser(req))?.id;
+type Identity = { id: string; name: string | null; isGuest: boolean; isAdmin: boolean };
+
+/** Signed-in user, else the guest cookie's identity, else null (nothing issued). */
+async function identify(req: Request): Promise<Identity | null> {
+  const user = await getSessionUser(req);
+  if (user) return { id: user.id, name: user.name || user.email.split("@")[0], isGuest: false, isAdmin: isAdminRole(user.role) };
+  const guest = readGuestId(req);
+  return guest ? { id: guest, name: null, isGuest: true, isAdmin: false } : null;
+}
+
+/** Like identify(), but starts a guest session when the visitor has none (for write actions). */
+async function identifyOrIssue(req: Request, res: Response): Promise<Identity> {
+  return (await identify(req)) ?? { id: issueGuest(res), name: null, isGuest: true, isAdmin: false };
 }
 
 router.get("/cms/items/:id/engagement", async (req, res) => {
   const id = parseId(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
   try {
-    const snap = await snapshot(id, await optionalUserId(req));
+    const snap = await snapshot(id, (await identify(req))?.id);
     if (!snap) return res.status(404).json({ error: "Not found" });
     res.set("Cache-Control", "no-store");
     return res.json(snap);
@@ -117,17 +129,19 @@ router.post("/cms/items/:id/share", shareLimit, async (req, res) => {
   }
 });
 
-async function setLike(req: AuthRequest, res: import("express").Response, like: boolean) {
+const likeLimit = rateLimit({ windowMs: 60_000, max: 30, keyPrefix: "cms-like:" });
+async function setLike(req: Request, res: Response, like: boolean) {
   const id = parseId(req.params.id);
   if (!id) return res.status(400).json({ error: "Invalid id" });
   try {
     const item = await publishedItem(id);
     if (!item) return res.status(404).json({ error: "Not found" });
     if (!item.likesEnabled) return res.status(403).json({ error: "Likes are disabled for this item" });
+    const who = await identifyOrIssue(req, res);
     if (like) {
-      await db.insert(contentLikes).values({ contentItemId: id, userId: req.userId! }).onConflictDoNothing();
+      await db.insert(contentLikes).values({ contentItemId: id, userId: who.id }).onConflictDoNothing();
     } else {
-      await db.delete(contentLikes).where(and(eq(contentLikes.contentItemId, id), eq(contentLikes.userId, req.userId!)));
+      await db.delete(contentLikes).where(and(eq(contentLikes.contentItemId, id), eq(contentLikes.userId, who.id)));
     }
     return res.json({ liked: like, ...(await counts(id)) });
   } catch (err) {
@@ -135,8 +149,14 @@ async function setLike(req: AuthRequest, res: import("express").Response, like: 
     return res.status(500).json({ error: "Failed to update like" });
   }
 }
-router.put("/cms/items/:id/like", requireAuth, (req, res) => setLike(req as AuthRequest, res, true));
-router.delete("/cms/items/:id/like", requireAuth, (req, res) => setLike(req as AuthRequest, res, false));
+router.put("/cms/items/:id/like", likeLimit, (req, res) => setLike(req, res, true));
+router.delete("/cms/items/:id/like", likeLimit, (req, res) => setLike(req, res, false));
+
+/** Explicitly start a guest session (the like/comment endpoints also do this on demand). */
+router.post("/cms/guest", async (req, res) => {
+  const who = await identifyOrIssue(req, res);
+  return res.json({ guest: who.isGuest });
+});
 
 router.get("/cms/items/:id/comments", async (req, res) => {
   const id = parseId(req.params.id);
@@ -146,12 +166,13 @@ router.get("/cms/items/:id/comments", async (req, res) => {
     if (!item) return res.status(404).json({ error: "Not found" });
     // Existing comments stay hidden (not deleted) while comments are switched off.
     if (!item.commentsEnabled) return res.json({ enabled: false, comments: [] });
-    const userId = await optionalUserId(req);
+    const userId = (await identify(req))?.id;
     const rows = await db
       .select({
         id: contentComments.id,
         authorName: contentComments.authorName,
         body: contentComments.body,
+        isGuest: contentComments.isGuest,
         createdAt: contentComments.createdAt,
         userId: contentComments.userId,
       })
@@ -170,25 +191,32 @@ router.get("/cms/items/:id/comments", async (req, res) => {
 });
 
 const commentLimit = rateLimit({ windowMs: 60_000, max: 5, keyPrefix: "cms-comment:" });
-const commentBody = z.object({ body: z.string().trim().min(1).max(2000) });
-router.post("/cms/items/:id/comments", requireAuth, commentLimit, async (req, res) => {
+const commentBody = z.object({
+  body: z.string().trim().min(1).max(2000),
+  guestName: z.string().trim().min(1).max(80).optional(),
+});
+router.post("/cms/items/:id/comments", commentLimit, async (req, res) => {
   const id = parseId(req.params.id);
   const parsed = commentBody.safeParse(req.body);
   if (!id || !parsed.success) return res.status(400).json({ error: "Invalid comment" });
-  const { userId, userEmail } = req as AuthRequest;
   try {
     const item = await publishedItem(id);
     if (!item) return res.status(404).json({ error: "Not found" });
     if (!item.commentsEnabled) return res.status(403).json({ error: "Comments are disabled for this item" });
-    const user = await getSessionUser(req);
-    const authorName = (user?.name || userEmail?.split("@")[0] || "Reader").slice(0, 200);
+    const who = await identifyOrIssue(req, res);
+    let authorName = who.name;
+    if (who.isGuest) {
+      authorName = parsed.data.guestName ?? null;
+      if (!authorName) return res.status(400).json({ error: "A name is required to comment as a guest" });
+    }
     const [row] = await db
       .insert(contentComments)
-      .values({ contentItemId: id, userId: userId!, authorName, body: parsed.data.body })
+      .values({ contentItemId: id, userId: who.id, authorName: (authorName || "Reader").slice(0, 200), isGuest: who.isGuest, body: parsed.data.body })
       .returning({
         id: contentComments.id,
         authorName: contentComments.authorName,
         body: contentComments.body,
+        isGuest: contentComments.isGuest,
         createdAt: contentComments.createdAt,
       });
     return res.status(201).json({ ...row, mine: true });
@@ -198,13 +226,14 @@ router.post("/cms/items/:id/comments", requireAuth, commentLimit, async (req, re
   }
 });
 
-router.delete("/cms/comments/:commentId", requireAuth, async (req, res) => {
+router.delete("/cms/comments/:commentId", async (req, res) => {
   const id = parseId(req.params.commentId);
   if (!id) return res.status(400).json({ error: "Invalid id" });
-  const { userId, isAdmin } = req as AuthRequest;
-  const where = isAdmin
+  const who = await identify(req);
+  if (!who) return res.status(404).json({ error: "Not found" });
+  const where = who.isAdmin
     ? eq(contentComments.id, id)
-    : and(eq(contentComments.id, id), eq(contentComments.userId, userId!));
+    : and(eq(contentComments.id, id), eq(contentComments.userId, who.id));
   const rows = await db.delete(contentComments).where(where).returning({ id: contentComments.id });
   return rows.length ? res.status(204).end() : res.status(404).json({ error: "Not found" });
 });

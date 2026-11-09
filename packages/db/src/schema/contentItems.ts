@@ -104,6 +104,7 @@ export const contentComments = pgTable(
     userId: text("user_id").notNull(),
     authorName: varchar("author_name", { length: 200 }).notNull(),
     body: text("body").notNull(),
+    isGuest: boolean("is_guest").notNull().default(false),
     status: commentStatusEnum("status").notNull().default("visible"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },

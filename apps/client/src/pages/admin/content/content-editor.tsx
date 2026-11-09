@@ -28,7 +28,7 @@ const blank = (type: ContentType): Form => ({
 
 const inputCls = "w-full min-h-10 px-3 border border-line rounded bg-white";
 
-type AdminComment = { id: number; authorName: string; body: string; status: "visible" | "hidden"; createdAt: string };
+type AdminComment = { id: number; authorName: string; isGuest: boolean; body: string; status: "visible" | "hidden"; createdAt: string };
 
 function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string, k?: "error") => void }) {
   const [comments, setComments] = useState<AdminComment[] | null>(null);
@@ -58,7 +58,7 @@ function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string
           {comments?.map((c) => (
             <li key={c.id} className="p-3 flex gap-3 items-start">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">{c.authorName} <span className="font-normal text-ink-muted">· {new Date(c.createdAt).toLocaleString("ar-EG")}{c.status === "hidden" ? " · مخفي" : ""}</span></p>
+                <p className="text-sm font-semibold">{c.authorName}{c.isGuest ? " (زائر)" : ""} <span className="font-normal text-ink-muted">· {new Date(c.createdAt).toLocaleString("ar-EG")}{c.status === "hidden" ? " · مخفي" : ""}</span></p>
                 <p className="text-sm whitespace-pre-wrap break-words">{c.body}</p>
               </div>
               <button type="button" className="text-sm underline" onClick={() => setStatus(c)}>{c.status === "visible" ? "إخفاء" : "إظهار"}</button>
@@ -71,6 +71,13 @@ function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string
     </div>
   );
 }
+
+const OTHER_SITE_TYPES = [
+  { labelAr: "كتاب", href: "/admin/books" },
+  { labelAr: "مقال", href: "/admin/content/article/new" },
+  { labelAr: "دراسة", href: "/admin/content/study/new" },
+  { labelAr: "مادة المرصد", href: "/admin/content/observatory/new" },
+];
 
 function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const cfg = TYPE_CONFIG[type];
@@ -156,10 +163,19 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
         return (
           <label key={f.key} className="block">
             <span className="text-sm font-semibold">{f.labelAr}</span>
-            <select aria-label={f.labelAr} className={inputCls} value={d[f.key] ?? ""} onChange={(e) => setD(f.key, e.target.value || undefined)}>
+            <select aria-label={f.labelAr} className={inputCls} value={d[f.key] ?? ""} onChange={(e) => {
+              const v = e.target.value;
+              // Publication kinds mirror every type on the public site; types stored elsewhere switch to their own "new" form.
+              if (v.startsWith("goto:")) { navigate(v.slice(5)); return; }
+              setD(f.key, v || undefined);
+            }}>
               <option value="">{f.required ? "— اختر —" : "— بدون —"}</option>
               {f.options.map((o) => <option key={o.value} value={o.value}>{o.labelAr}</option>)}
+              {type === "publication" && f.key === "kind" && isNew && OTHER_SITE_TYPES.map((o) => <option key={o.href} value={`goto:${o.href}`}>{o.labelAr}</option>)}
             </select>
+            {type === "publication" && f.key === "kind" && isNew && (
+              <span className="block text-xs text-ink-muted mt-1">ملاحظة: اختيار كتاب أو مقال أو دراسة أو مادة المرصد سينقلك إلى الصفحة المسؤولة عن إضافة هذا النوع.</span>
+            )}
           </label>
         );
       case "text": {
