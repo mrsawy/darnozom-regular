@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, or } from "drizzle-orm";
 import { db, contentItems, newsletterSubscribers, type ContentItem } from "@workspace/db";
 import { sendContentPublishedEmail } from "../email/newsletterEmail";
 import { BATCH_SIZE, canNotifyType } from "./config";
@@ -10,15 +10,23 @@ export type NotifyDeps = {
 /**
  * Atomically claim the right to email subscribers about `item`. Returns the
  * claimed item, or null if it is not eligible (not published, wrong type) or
- * was already sent. The UPDATE ... WHERE notified_at IS NULL is the guard that
+ * was already sent to someone. The conditional UPDATE is the guard that
  * makes a double send impossible even under concurrent saves.
  */
 export async function claimNotification(item: ContentItem): Promise<ContentItem | null> {
   if (item.status !== "published" || !canNotifyType(item.type)) return null;
   const [claimed] = await db
     .update(contentItems)
-    .set({ notifiedAt: new Date() })
-    .where(and(eq(contentItems.id, item.id), isNull(contentItems.notifiedAt)))
+    // notifiedCount is reset to null while a send is in flight, so a concurrent claim
+    // sees (notifiedAt set, count null) and loses. A finished send that reached nobody
+    // (count = 0) does not use up the item's one send: it can be claimed again.
+    .set({ notifiedAt: new Date(), notifiedCount: null })
+    .where(
+      and(
+        eq(contentItems.id, item.id),
+        or(isNull(contentItems.notifiedAt), eq(contentItems.notifiedCount, 0)),
+      ),
+    )
     .returning();
   return claimed ?? null;
 }

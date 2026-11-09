@@ -52,7 +52,7 @@ router.post("/admin/cms/items/:id/notify", requireAdmin, async (req, res) => {
   if (!item) return res.status(404).json({ error: "Not found" });
   if (!canNotifyType(item.type)) return res.status(400).json({ error: "This content type does not notify subscribers" });
   if (item.status !== "published") return res.status(400).json({ error: "Publish the item before notifying subscribers" });
-  if (item.notifiedAt) return res.status(409).json({ error: "Subscribers were already notified" });
+  if (item.notifiedAt && item.notifiedCount !== 0) return res.status(409).json({ error: "Subscribers were already notified" });
   const started = await notifyIfRequested(item, true);
   return started ? res.status(202).json({ ok: true }) : res.status(409).json({ error: "Subscribers were already notified" });
 });

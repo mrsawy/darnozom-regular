@@ -83,6 +83,22 @@ describe("sendToSubscribers", () => {
     expect(row!.notifiedCount).toBe(2);
   });
 
+  it("a send that reached nobody does not use up the item's one send", async () => {
+    const item = await seed({ type: "article", slug: "test-nl-zero", status: "published" });
+    const first = await claimNotification(item);
+    expect(first).not.toBeNull();
+    // Nobody is confirmed yet: finishes with count 0.
+    await sendToSubscribers(first!, { send: vi.fn() as never });
+    await sub("late", "confirmed");
+    const second = await claimNotification(item);
+    expect(second).not.toBeNull();
+    const send = vi.fn(async () => ({ ok: true }));
+    await sendToSubscribers(second!, { send: send as never });
+    expect(send).toHaveBeenCalledTimes(1);
+    // Now it has really been sent: no third send.
+    expect(await claimNotification(item)).toBeNull();
+  });
+
   it("a throwing sender never propagates", async () => {
     await sub("boom", "confirmed");
     const item = await seed({ type: "article", slug: "test-nl-boom", status: "published" });

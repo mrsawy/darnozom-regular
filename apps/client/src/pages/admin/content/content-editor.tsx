@@ -28,7 +28,7 @@ const blank = (type: ContentType): Form => ({
 
 const inputCls = "w-full min-h-10 px-3 border border-line rounded bg-white";
 
-type AdminComment = { id: number; authorName: string; body: string; status: "visible" | "hidden"; createdAt: string };
+type AdminComment = { id: number; authorName: string; isGuest: boolean; body: string; status: "visible" | "hidden"; createdAt: string };
 
 function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string, k?: "error") => void }) {
   const [comments, setComments] = useState<AdminComment[] | null>(null);
@@ -58,7 +58,7 @@ function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string
           {comments?.map((c) => (
             <li key={c.id} className="p-3 flex gap-3 items-start">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">{c.authorName} <span className="font-normal text-ink-muted">· {new Date(c.createdAt).toLocaleString("ar-EG")}{c.status === "hidden" ? " · مخفي" : ""}</span></p>
+                <p className="text-sm font-semibold">{c.authorName}{c.isGuest ? " (زائر)" : ""} <span className="font-normal text-ink-muted">· {new Date(c.createdAt).toLocaleString("ar-EG")}{c.status === "hidden" ? " · مخفي" : ""}</span></p>
                 <p className="text-sm whitespace-pre-wrap break-words">{c.body}</p>
               </div>
               <button type="button" className="text-sm underline" onClick={() => setStatus(c)}>{c.status === "visible" ? "إخفاء" : "إظهار"}</button>
@@ -99,7 +99,8 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
     adminFetchJson<ContentItem>(`/api/admin/cms/items/${id}`)
       .then(({ id: _i, createdAt: _c, updatedAt: _u, viewCount, shareCount, notifiedAt, notifiedCount, ...rest }) => {
         setStats({ viewCount, shareCount });
-        setSent(notifiedAt ? { at: notifiedAt, count: notifiedCount ?? null } : null);
+        // A send that reached 0 subscribers does not count as sent: the admin can send again.
+        setSent(notifiedAt && notifiedCount !== 0 ? { at: notifiedAt, count: notifiedCount ?? null } : null);
         return rest;
       })
       .then((rest) => setForm({ ...rest, details: { ...emptyDetails(type), ...rest.details } }))
