@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
 import { requireAdmin } from "../../middlewares/adminAuth";
-import { CONTENT_STATUSES, CONTENT_TYPES, parseContentItem } from "../../lib/cms/schemas";
+import { CONTENT_STATUSES, CONTENT_TYPES, parseContentItem, parseNotifyFlag } from "../../lib/cms/schemas";
 import { areaExists } from "../../lib/cms/areas";
+import { notifyIfRequested } from "../../lib/newsletter/notify";
 import {
   adminList,
   createItem,
@@ -55,7 +56,9 @@ router.post("/admin/cms/items", requireAdmin, async (req, res) => {
     return res.status(400).json({ error: "Invalid content", issues: [{ path: ["area"], message: "Unknown area" }] });
   }
   try {
-    return res.status(201).json(await createItem(parsed.value));
+    const created = await createItem(parsed.value);
+    await notifyIfRequested(created, parseNotifyFlag(req.body)).catch((e) => console.error("[newsletter] notify failed:", e));
+    return res.status(201).json(created);
   } catch (err) {
     if (err instanceof SlugConflictError) return res.status(409).json({ error: err.message });
     console.error(err);
@@ -73,7 +76,13 @@ router.put("/admin/cms/items/:id", requireAdmin, async (req, res) => {
   }
   try {
     const item = await updateItem(id, parsed.value);
-    return item ? res.json(item) : res.status(404).json({ error: "Not found" });
+    if (!item) return res.status(404).json({ error: "Not found" });
+    const started = await notifyIfRequested(item, parseNotifyFlag(req.body)).catch((e) => {
+      console.error("[newsletter] notify failed:", e);
+      return false;
+    });
+    // Reflect the claim in the response so the editor can show "sent".
+    return res.json(started ? { ...item, notifiedAt: new Date() } : item);
   } catch (err) {
     if (err instanceof SlugConflictError) return res.status(409).json({ error: err.message });
     if (err instanceof TypeChangeError) return res.status(400).json({ error: err.message });

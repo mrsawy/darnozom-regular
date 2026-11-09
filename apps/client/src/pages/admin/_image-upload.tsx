@@ -2,18 +2,23 @@ import { useState } from "react";
 import { adminFetch } from "../../lib/admin-api";
 import { Loader2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ImageCropperDialog } from "@/components/admin/image-cropper-dialog";
 
 export function ImageUploadField({
   value,
   onChange,
   folder,
   placeholder = "رابط الصورة أو ارفع",
+  aspect,
 }: {
   value: string;
   onChange: (url: string) => void;
   folder: string;
   placeholder?: string;
+  /** Width / height. When set, the admin must crop each picked image to this exact ratio before upload. */
+  aspect?: number;
 }) {
+  const [toCrop, setToCrop] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,14 +43,23 @@ export function ImageUploadField({
     } finally { setUploading(false); }
   }
 
+  function pick(f: File) {
+    if (aspect && ["image/jpeg", "image/png", "image/webp"].includes(f.type)) setToCrop(f);
+    else void upload(f);
+  }
+
   return (
     <div>
+      {aspect && (
+        <ImageCropperDialog file={toCrop} aspect={aspect} onCancel={() => setToCrop(null)}
+          onCropped={(f) => { setToCrop(null); void upload(f); }} />
+      )}
       <div className="flex gap-2">
         <Input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="rounded-none flex-1" dir="ltr" />
         <label className={`flex items-center gap-1.5 px-3 py-2 border text-xs font-bold cursor-pointer shrink-0 ${uploading ? "border-border text-muted-foreground" : "border-secondary/50 text-secondary hover:bg-secondary/10"}`}>
           {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />} رفع
           <input type="file" accept="image/*" className="hidden" disabled={uploading}
-            onChange={e => { const f = e.target.files?.[0]; if (f) upload(f); e.target.value = ""; }} />
+            onChange={e => { const f = e.target.files?.[0]; if (f) pick(f); e.target.value = ""; }} />
         </label>
       </div>
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}

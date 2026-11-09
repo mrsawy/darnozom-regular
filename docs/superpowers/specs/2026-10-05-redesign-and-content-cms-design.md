@@ -23,7 +23,7 @@ Re-skin the whole public site to the approved navy/ivory/gold identity, rebuild 
 
 - `/en/` URL-based localisation, hreflang, sitemap (language stays the current localStorage toggle).
 - Unified Arabic search, topic pages, reading list, AI editor assistant.
-- Newsletter backend (double opt-in, sending). Round 1 renders the newsletter block UI only; submit shows a "launching soon" toast and never claims the email was saved.
+- Newsletter backend (double opt-in, sending). Round 1 rendered the newsletter block UI only. **Update 2026-11-10:** implemented — see `docs/superpowers/plans/2026-11-09-newsletter.md`.
 - Restructuring of About / Services / Research Center / Academy / Consulting / Nozom Platform pages per brief §6–13 — they only receive the new styling.
 - Public Policy + Public Administration merge redirects.
 - Editorial workflow roles (reviewer, editor, etc.) — all admins can do everything, as today.

@@ -56,6 +56,7 @@ import CheckoutPaymobPayPage from "@/pages/checkout-paymob-pay";
 import CheckoutPaymobWalletPage from "@/pages/checkout-paymob-wallet";
 import CheckoutManualPage from "@/pages/checkout-manual";
 import ContentListPage from "@/pages/content/content-list-page";
+import NewsletterStatusPage from "@/pages/newsletter-status";
 import ContentDetailPage from "@/pages/content/content-detail-page";
 import { AdminGate } from "@/pages/admin/layout";
 import AdminOverview from "@/pages/admin/overview";
@@ -82,6 +83,7 @@ import type { ContentType } from "@/lib/cms-types";
 const AdminContentList = lazy(() => import("@/pages/admin/content/content-list"));
 const AdminContentAreas = lazy(() => import("@/pages/admin/content/areas"));
 const AdminFeatured = lazy(() => import("@/pages/admin/content/featured"));
+const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
 const AdminContentEditor = lazy(() => import("@/pages/admin/content/content-editor"));
 const queryClient = new QueryClient();
 
@@ -97,6 +99,7 @@ function AdminRouter() {
         <Route path="/admin/academy" component={AdminAcademy} />
         <Route path="/admin/featured" component={AdminFeatured} />
         <Route path="/admin/content-areas" component={AdminContentAreas} />
+        <Route path="/admin/newsletter" component={AdminNewsletter} />
         <Route path="/admin/events"><Redirect to="/admin/content/event" /></Route>
         <Route path="/admin/content/:type/:id">{(p) => <AdminContentEditor key={`${p.type}-${p.id}`} type={p.type as ContentType} id={p.id} />}</Route>
         <Route path="/admin/content/:type">{(p) => <AdminContentList key={p.type} type={p.type as ContentType} />}</Route>
@@ -139,6 +142,7 @@ function Router() {
       <Route path="/unit/:id" component={ResearchUnit} />
       <Route path="/contact" component={Contact} />
       <Route path="/privacy" component={PrivacyPolicyPage} />
+      <Route path="/newsletter/:state">{(p) => <NewsletterStatusPage state={p.state} />}</Route>
       <Route path="/terms" component={TermsPage} />
       <Route path="/return-policy" component={ReturnPolicyPage} />
       <Route path="/academy" component={Academy} />

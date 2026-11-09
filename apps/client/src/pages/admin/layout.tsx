@@ -4,7 +4,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import {
   LayoutDashboard, BookOpen, GraduationCap, School, CalendarDays,
   Users, LogOut, Loader2, Menu, X, ShieldAlert, ShieldCheck,
-  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet, Star, Radar, Newspaper, FileSearch, Library, Megaphone, Tags } from "lucide-react";
+  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet, Star, Radar, Newspaper, FileSearch, Library, Megaphone, Tags, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderNotificationsBell } from "@/components/admin/order-notifications";
 import { useAdminStatus } from "@/lib/use-admin-status";
@@ -29,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/content/publication", label: "الإصدارات", icon: Library },
   { href: "/admin/content/news", label: "الأخبار", icon: Megaphone },
   { href: "/admin/content/event", label: "الفعاليات", icon: CalendarDays },
+  { href: "/admin/newsletter", label: "النشرة البريدية", icon: Mail },
   { href: "/admin/books", label: "الكتب", icon: BookOpen },
   { href: "/admin/store-courses", label: "دورات المتجر", icon: GraduationCap },
   { href: "/admin/academy", label: "الأكاديمية", icon: School },

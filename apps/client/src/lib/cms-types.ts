@@ -28,6 +28,9 @@ export interface ContentItem {
   commentsEnabled: boolean;
   viewCount: number;
   shareCount: number;
+  /** Set once subscribers were emailed about this item. */
+  notifiedAt?: string | null;
+  notifiedCount?: number | null;
   createdAt: string;
   updatedAt: string;
 }

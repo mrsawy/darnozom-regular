@@ -29,6 +29,7 @@ export interface EmailPayload {
   subject: string;
   html: string;
   replyTo?: string;
+  headers?: Record<string, string>;
   attachments?: { filename: string; content: string; contentType: string }[];
 }
 
@@ -44,6 +45,8 @@ export async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean; e
     subject: payload.subject,
     html: payload.html,
   };
+
+  if (payload.headers) body.headers = payload.headers;
 
   if (payload.replyTo) {
     body.reply_to = [payload.replyTo];

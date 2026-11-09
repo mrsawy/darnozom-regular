@@ -23,7 +23,8 @@
     "build:medusa": "pnpm --filter medusa build",
     "typecheck:packages": "tsc --build",
     "typecheck": "pnpm run typecheck:packages && pnpm -r --filter \"./apps/**\" --if-present run typecheck",
-    "test": "pnpm -r --if-present run test"
+    "test": "pnpm -r --if-present run test",
+    "start":"npx -y pnpm@10 dev"
   },
   "devDependencies": {
     "sharp": "^0.35.5",

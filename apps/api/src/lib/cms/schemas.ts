@@ -136,6 +136,13 @@ export const contentItemInput = z.object({
 });
 export type ContentItemInput = z.infer<typeof contentItemInput>;
 
+/** Request-only flag (not stored): email subscribers when this save leaves the item published. */
+export const notifySubscribersFlag = z.object({ notifySubscribers: z.boolean().optional().default(false) });
+export function parseNotifyFlag(body: unknown): boolean {
+  const r = notifySubscribersFlag.safeParse(body);
+  return r.success ? r.data.notifySubscribers : false;
+}
+
 export type ParseResult = { ok: true; value: ContentItemInput } | { ok: false; issues: z.ZodIssue[] };
 
 export function parseContentItem(body: unknown): ParseResult {

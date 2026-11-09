@@ -35,6 +35,10 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
         },
+        "/static": {
+          target: "http://127.0.0.1:9010",
+          changeOrigin: true,
+        },
       },
     },
     preview: {
@@ -49,6 +53,10 @@ export default defineConfig(({ mode }) => {
         },
         "/api": {
           target: apiTarget,
+          changeOrigin: true,
+        },
+        "/static": {
+          target: "http://127.0.0.1:9010",
           changeOrigin: true,
         },
       },

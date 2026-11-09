@@ -299,7 +299,11 @@ export async function listSlidesAdmin() {
   const ids = slides.map((s) => s.contentItemId).filter((x): x is number => x != null);
   const linked = ids.length
     ? await db
-        .select({ id: contentItems.id, titleAr: contentItems.titleAr, status: contentItems.status })
+        .select({
+          id: contentItems.id, type: contentItems.type, slug: contentItems.slug, status: contentItems.status,
+          titleAr: contentItems.titleAr, titleEn: contentItems.titleEn,
+          summaryAr: contentItems.summaryAr, summaryEn: contentItems.summaryEn, coverImageUrl: contentItems.coverImageUrl,
+        })
         .from(contentItems)
         .where(inArray(contentItems.id, ids))
     : [];
@@ -308,6 +312,12 @@ export async function listSlidesAdmin() {
     ...s,
     linkedTitleAr: s.contentItemId != null ? (byId.get(s.contentItemId)?.titleAr ?? null) : null,
     linkedStatus: s.contentItemId != null ? (byId.get(s.contentItemId)?.status ?? null) : null,
+    linked: (() => {
+      const i = s.contentItemId != null ? byId.get(s.contentItemId) : undefined;
+      return i
+        ? { titleAr: i.titleAr, titleEn: i.titleEn, summaryAr: i.summaryAr, summaryEn: i.summaryEn, imageUrl: i.coverImageUrl, href: contentPath(i.type, i.slug) }
+        : null;
+    })(),
   }));
 }
 

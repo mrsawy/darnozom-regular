@@ -48,7 +48,7 @@ export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
     <section aria-roledescription="carousel" aria-label={t("مختارات دار نظم", "DarNozom Highlights")} role="region" onKeyDown={onKeyDown} className={`mx-auto ${HOME_MAX_W} ${HOME_PX} pt-8`}>
       <h1 className="text-[25px] lg:text-[31px] font-bold text-navy">{t("مختارات دار نظم", "DarNozom Highlights")}</h1>
       <p className="text-ink-muted mb-5">{t("معرفة وبرامج وحلول تدعم القرار والمؤسسات", "Knowledge, programs and solutions that support decisions and institutions")}</p>
-      <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
+      <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
         <div
           className="relative min-w-0 bg-navy text-white rounded-[4px] overflow-hidden"
           onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
@@ -119,14 +119,14 @@ function MainCard({ card, lang, isArabic, controls }: { card: FeaturedCard; lang
     <>
       {/* Arrows sit over the image, as in the reference. */}
       <div className="relative">
-        {c.image ? <img src={c.image} alt="" className="w-full aspect-[2.15/1] object-cover" /> : <div className="aspect-[4/1]" />}
+        {c.image ? <img src={c.image} alt="" className="w-full aspect-square object-contain bg-navy" /> : <div className="aspect-[4/1]" />}
         {controls}
       </div>
-      <div className="p-5 lg:p-7">
+      <div className="px-5 py-4 lg:px-6">
         {c.badge && <CategoryBadge>{c.badge}</CategoryBadge>}
-        <h2 data-testid="featured-main-title" className="mt-3 text-2xl lg:text-[28px] font-bold leading-snug">{c.title}</h2>
+        <h2 data-testid="featured-main-title" className="mt-2 text-xl lg:text-2xl font-bold leading-snug">{c.title}</h2>
         {c.summary && <p className="mt-2 text-white/85">{c.summary}</p>}
-        <CardLink href={card.href} className="mt-4 inline-flex items-center gap-2 min-h-11 px-5 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
+        <CardLink href={card.href} className="mt-3 inline-flex items-center gap-2 min-h-11 px-5 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
           {c.cta} <Arrow className="w-4 h-4" aria-hidden />
         </CardLink>
       </div>

@@ -15,7 +15,10 @@ import { STATUS_LABELS } from "./content-list";
 import { DEFAULT_EVENT_TZ, browserTimeZone, fromZonedInput, toZonedInput } from "@/lib/datetime";
 import NotFound from "@/pages/not-found";
 
-type Form = Omit<ContentItem, "id" | "createdAt" | "updatedAt" | "viewCount" | "shareCount">;
+type Form = Omit<ContentItem, "id" | "createdAt" | "updatedAt" | "viewCount" | "shareCount" | "notifiedAt" | "notifiedCount">;
+
+/** Content types subscribers can be emailed about (mirrors the API). */
+const NOTIFY_TYPES: ContentType[] = ["article", "study", "publication", "news"];
 
 const blank = (type: ContentType): Form => ({
   type, slug: "", status: "draft", titleAr: "", titleEn: "", summaryAr: "", summaryEn: "", bodyAr: "", bodyEn: "",
@@ -79,13 +82,24 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const [issues, setIssues] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState<{ viewCount: number; shareCount: number } | null>(null);
+  const canNotify = NOTIFY_TYPES.includes(type);
+  // Off by default: nothing is emailed unless the admin explicitly ticks this.
+  const [notify, setNotify] = useState(false);
+  const [sent, setSent] = useState<{ at: string; count: number | null } | null>(null);
+  const [subCount, setSubCount] = useState<number | null>(null);
   const { toast, show } = useToast();
+
+  useEffect(() => {
+    if (!canNotify) return;
+    adminFetchJson<{ confirmed: number }>("/api/admin/newsletter/count").then((r) => setSubCount(r.confirmed)).catch(() => {});
+  }, [canNotify]);
 
   useEffect(() => {
     if (isNew) return;
     adminFetchJson<ContentItem>(`/api/admin/cms/items/${id}`)
-      .then(({ id: _i, createdAt: _c, updatedAt: _u, viewCount, shareCount, ...rest }) => {
+      .then(({ id: _i, createdAt: _c, updatedAt: _u, viewCount, shareCount, notifiedAt, notifiedCount, ...rest }) => {
         setStats({ viewCount, shareCount });
+        setSent(notifiedAt ? { at: notifiedAt, count: notifiedCount ?? null } : null);
         return rest;
       })
       .then((rest) => setForm({ ...rest, details: { ...emptyDetails(type), ...rest.details } }))
@@ -99,7 +113,12 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const save = async () => {
     setSaving(true); setIssues([]);
     const details = Object.fromEntries(Object.entries(form.details).filter(([, v]) => v !== "" && v !== undefined));
-    const payload = { ...form, details };
+    const willNotify = canNotify && notify && !sent;
+    if (willNotify && form.status === "published" && !window.confirm(`سيتم إرسال بريد إلكتروني إلى ${subCount ?? 0} مشترك. هل تريد المتابعة؟`)) {
+      setSaving(false);
+      return;
+    }
+    const payload = { ...form, details, notifySubscribers: willNotify };
     const r = await adminFetch(isNew ? "/api/admin/cms/items" : `/api/admin/cms/items/${id}`, {
       method: isNew ? "POST" : "PUT", headers: adminJsonHeaders(), body: JSON.stringify(payload),
     });
@@ -109,9 +128,24 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
       setIssues(body.issues?.map((i: { path: (string | number)[]; message: string }) => `${i.path.join(".")}: ${i.message}`) ?? [body.error ?? "تعذّر الحفظ"]);
       return;
     }
-    show("تم الحفظ");
+    if (willNotify && form.status === "published") {
+      setSent({ at: new Date().toISOString(), count: null });
+      setNotify(false);
+      show("تم الحفظ، وجارٍ إرسال البريد للمشتركين");
+    } else show("تم الحفظ");
     if (isNew) navigate(`/admin/content/${type}/${body.id}`);
     else setForm((f) => ({ ...f, slug: body.slug, publishedAt: body.publishedAt }));
+  };
+
+  const sendNow = async () => {
+    if (!window.confirm(`سيتم إرسال بريد إلكتروني إلى ${subCount ?? 0} مشترك. هل تريد المتابعة؟`)) return;
+    try {
+      await adminFetchJson(`/api/admin/cms/items/${id}/notify`, { method: "POST" });
+      setSent({ at: new Date().toISOString(), count: null });
+      show("جارٍ إرسال البريد للمشتركين");
+    } catch (e) {
+      show((e as Error).message, "error");
+    }
   };
 
   const renderDetail = (f: FieldDef) => {
@@ -245,6 +279,30 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
             <span className="text-sm font-semibold">رابط المصدر الأصلي</span>
             <input aria-label="رابط المصدر الأصلي" className={inputCls} dir="ltr" value={form.externalUrl} onChange={(e) => set("externalUrl", e.target.value)} />
           </label>
+        )}
+        {canNotify && (
+          <fieldset className="sm:col-span-3 border border-line rounded p-3" data-testid="newsletter-notify">
+            <legend className="px-1 text-sm font-semibold">النشرة البريدية</legend>
+            {sent ? (
+              <p className="text-sm">
+                أُرسل بريد للمشتركين في {new Date(sent.at).toLocaleString("ar-EG")}
+                {sent.count != null ? ` (${sent.count} مشترك)` : ""}.
+              </p>
+            ) : (
+              <>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+                  <span className="text-sm">إشعار المشتركين بالبريد الإلكتروني{subCount != null ? ` (${subCount} مشترك مؤكَّد)` : ""}</span>
+                </label>
+                {notify && form.status !== "published" && (
+                  <p className="text-xs text-ink-muted mt-1">لن يُرسل البريد إلا عند نشر العنصر (الحالة: منشور).</p>
+                )}
+                {!isNew && form.status === "published" && !notify && (
+                  <button type="button" className="text-sm underline mt-2" onClick={sendNow}>إرسال للمشتركين الآن</button>
+                )}
+              </>
+            )}
+          </fieldset>
         )}
         <fieldset className="sm:col-span-3 flex flex-wrap items-center gap-x-6 gap-y-2 border border-line rounded p-3">
           <legend className="px-1 text-sm font-semibold">التفاعل</legend>

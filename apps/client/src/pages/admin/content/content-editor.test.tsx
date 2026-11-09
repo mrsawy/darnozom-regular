@@ -73,4 +73,51 @@ describe("AdminContentEditor", () => {
     const put = fetchMock.mock.calls.find(([, i]) => i?.method === "PUT")!;
     expect(JSON.parse(String(put[1]!.body)).details.startsAt).toBe("2026-11-02T08:00:00.000Z");
   });
+
+  describe("newsletter notify", () => {
+    const route = (extra?: (url: string) => Response | undefined) => async (url: string) =>
+      extra?.(url) ?? (url.includes("/newsletter/count") ? new Response(JSON.stringify({ confirmed: 7 })) : new Response(JSON.stringify({ id: 9 }), { status: 201 }));
+    const saveBody = (fetchMock: ReturnType<typeof vi.fn>) =>
+      JSON.parse(String(fetchMock.mock.calls.find(([u]) => u === "/api/admin/cms/items")![1].body));
+
+    it("is off by default: saving an article never asks to notify", async () => {
+      const { fetchMock } = setup("article", route());
+      fireEvent.change(screen.getByLabelText("العنوان (عربي)"), { target: { value: "مقال" } });
+      fireEvent.change(screen.getByLabelText("الحالة"), { target: { value: "published" } });
+      fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
+      await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => u === "/api/admin/cms/items")).toBe(true));
+      expect(saveBody(fetchMock).notifySubscribers).toBe(false);
+    });
+
+    it("sends notifySubscribers only after the admin ticks the box and confirms", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+      const { fetchMock } = setup("article", route());
+      expect(await screen.findByText(/7 مشترك مؤكَّد/)).toBeTruthy();
+      fireEvent.change(screen.getByLabelText("العنوان (عربي)"), { target: { value: "مقال" } });
+      fireEvent.change(screen.getByLabelText("الحالة"), { target: { value: "published" } });
+      fireEvent.click(screen.getByRole("checkbox", { name: /إشعار المشتركين/ }));
+      fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
+      await waitFor(() => expect(fetchMock.mock.calls.some(([u]) => u === "/api/admin/cms/items")).toBe(true));
+      expect(confirm).toHaveBeenCalled();
+      expect(saveBody(fetchMock).notifySubscribers).toBe(true);
+      confirm.mockRestore();
+    });
+
+    it("declining the confirmation cancels the save", async () => {
+      const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+      const { fetchMock } = setup("article", route());
+      fireEvent.change(screen.getByLabelText("العنوان (عربي)"), { target: { value: "مقال" } });
+      fireEvent.change(screen.getByLabelText("الحالة"), { target: { value: "published" } });
+      fireEvent.click(screen.getByRole("checkbox", { name: /إشعار المشتركين/ }));
+      fireEvent.click(screen.getByRole("button", { name: "حفظ" }));
+      await waitFor(() => expect(confirm).toHaveBeenCalled());
+      expect(fetchMock.mock.calls.some(([u]) => u === "/api/admin/cms/items")).toBe(false);
+      confirm.mockRestore();
+    });
+
+    it("events have no notify option", () => {
+      setup("event", route());
+      expect(screen.queryByTestId("newsletter-notify")).toBeNull();
+    });
+  });
 });

@@ -19,13 +19,25 @@ interface Slide {
   badgeAr: string; badgeEn: string; titleAr: string; titleEn: string; summaryAr: string; summaryEn: string;
   imageUrl: string; ctaLabelAr: string; ctaLabelEn: string; href: string;
   linkedTitleAr: string | null; linkedStatus: string | null;
+  linked?: Partial<Record<"titleAr" | "titleEn" | "summaryAr" | "summaryEn" | "imageUrl" | "href", string>> | null;
 }
-type Draft = Omit<Slide, "id" | "position" | "linkedTitleAr" | "linkedStatus"> & { id?: number; pickedLabel?: string };
+type Draft = Omit<Slide, "id" | "position" | "linkedTitleAr" | "linkedStatus" | "linked"> & { linked?: Slide["linked"] } & { id?: number; pickedLabel?: string };
 
 const emptyDraft = (): Draft => ({
   isActive: true, sourceKind: "content", contentItemId: null, medusaProductId: null,
   badgeAr: "", badgeEn: "", titleAr: "", titleEn: "", summaryAr: "", summaryEn: "", imageUrl: "", ctaLabelAr: "", ctaLabelEn: "", href: "",
 });
+const toDraft = (s: Slide): Draft => {
+  const { position: _p, linkedTitleAr, linkedStatus: _l, ...rest } = s;
+  const l = rest.linked ?? {};
+  const fill = (k: "titleAr" | "titleEn" | "summaryAr" | "summaryEn" | "imageUrl" | "href") => (rest[k]?.trim() ? rest[k] : (l[k] ?? ""));
+  return {
+    ...rest,
+    titleAr: fill("titleAr"), titleEn: fill("titleEn"), summaryAr: fill("summaryAr"), summaryEn: fill("summaryEn"),
+    imageUrl: fill("imageUrl"), href: fill("href"),
+    pickedLabel: linkedTitleAr ?? undefined,
+  };
+};
 const inputCls = "w-full min-h-10 px-3 border border-line rounded bg-white";
 const SOURCE_LABELS: Record<Source, string> = { content: "محتوى من الموقع", book: "كتاب من المتجر", custom: "بطاقة مخصصة" };
 
@@ -56,7 +68,7 @@ export default function AdminFeatured() {
   };
 
   const persist = async (d: Draft) => {
-    const { id, pickedLabel: _p, ...body } = d;
+    const { id, pickedLabel: _p, linked: _k, ...body } = d;
     const r = await adminFetch(id ? `/api/admin/cms/featured/${id}` : "/api/admin/cms/featured", {
       method: id ? "PUT" : "POST", headers: adminJsonHeaders(), body: JSON.stringify(body),
     });
@@ -64,7 +76,7 @@ export default function AdminFeatured() {
     if (!r.ok) return show(res.issues?.map((i: { message: string }) => i.message).join("، ") || res.error || "تعذّر الحفظ", "error");
     show("تم الحفظ"); setDraft(null); void load();
   };
-  const toggle = (s: Slide) => persist({ ...s, isActive: !s.isActive });
+  const toggle = (s: Slide) => persist({ ...toDraft(s), ...(s.sourceKind === "content" ? { titleAr: s.titleAr, titleEn: s.titleEn, summaryAr: s.summaryAr, summaryEn: s.summaryEn, imageUrl: s.imageUrl, href: s.href } : {}), isActive: !s.isActive });
   const remove = async (s: Slide) => {
     if (!window.confirm("حذف هذه البطاقة من المختارات؟")) return;
     const r = await adminFetch(`/api/admin/cms/featured/${s.id}`, { method: "DELETE" });
@@ -83,7 +95,7 @@ export default function AdminFeatured() {
         <SortableContext items={slides.map((s) => s.id)} strategy={verticalListSortingStrategy}>
           <ol className="space-y-2">
             {slides.map((s, i) => (
-              <SortableRow key={s.id} slide={s} index={i} total={slides.length} onMove={move} onEdit={() => setDraft({ ...s })} onToggle={() => toggle(s)} onRemove={() => remove(s)} />
+              <SortableRow key={s.id} slide={s} index={i} total={slides.length} onMove={move} onEdit={() => setDraft(toDraft(s))} onToggle={() => toggle(s)} onRemove={() => remove(s)} />
             ))}
           </ol>
         </SortableContext>
@@ -139,13 +151,13 @@ function SlideDialog({ draft, onChange, onClose, onSave }: { draft: Draft; onCha
         <p className="text-xs text-ink-muted">{custom ? "كل الحقول التالية مطلوبة للبطاقة المخصصة (العنوان والرابط والصورة على الأقل)." : "اترك الحقول التالية فارغة لاستخدام بيانات المادة المرتبطة، أو املأها لتجاوزها."}</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {([["badgeAr", "الشارة (عربي)"], ["badgeEn", "الشارة (إنجليزي)"], ["titleAr", "العنوان (عربي)"], ["titleEn", "العنوان (إنجليزي)"], ["ctaLabelAr", "نص الزر (عربي)"], ["ctaLabelEn", "نص الزر (إنجليزي)"]] as const).map(([k, label]) => (
-            <label key={k} className="block"><span className="text-sm">{label}</span><input aria-label={label} className={inputCls} value={draft[k]} onChange={(e) => set(k, e.target.value)} /></label>
+            <label key={k} className="block"><span className="text-sm">{label}</span><input aria-label={label} className={inputCls} value={draft[k]} placeholder={draft.linked?.[k as "titleAr"]} onChange={(e) => set(k, e.target.value)} /></label>
           ))}
           {([["summaryAr", "الملخص (عربي)"], ["summaryEn", "الملخص (إنجليزي)"]] as const).map(([k, label]) => (
-            <label key={k} className="block sm:col-span-2"><span className="text-sm">{label}</span><textarea aria-label={label} rows={2} className={`${inputCls} py-2`} value={draft[k]} onChange={(e) => set(k, e.target.value)} /></label>
+            <label key={k} className="block sm:col-span-2"><span className="text-sm">{label}</span><textarea aria-label={label} rows={2} className={`${inputCls} py-2`} value={draft[k]} placeholder={draft.linked?.[k]} onChange={(e) => set(k, e.target.value)} /></label>
           ))}
-          <label className="block sm:col-span-2"><span className="text-sm">الرابط</span><input aria-label="الرابط" dir="ltr" className={inputCls} value={draft.href} placeholder="/academy" onChange={(e) => set("href", e.target.value)} /></label>
-          <div className="sm:col-span-2"><span className="text-sm">الصورة</span><ImageUploadField value={draft.imageUrl} onChange={(v) => set("imageUrl", v)} folder="featured" /></div>
+          <label className="block sm:col-span-2"><span className="text-sm">الرابط</span><input aria-label="الرابط" dir="ltr" className={inputCls} value={draft.href} placeholder={draft.linked?.href ?? "/academy"} onChange={(e) => set("href", e.target.value)} /></label>
+          <div className="sm:col-span-2"><span className="text-sm">الصورة</span>{!draft.imageUrl && draft.linked?.imageUrl && <img src={draft.linked.imageUrl} alt="" className="w-24 h-16 object-cover mb-2 opacity-70" />}<ImageUploadField value={draft.imageUrl} onChange={(v) => set("imageUrl", v)} folder="featured" aspect={1} /></div>
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" className="rounded-none" onClick={onClose}>إلغاء</Button>

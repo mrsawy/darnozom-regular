@@ -4,24 +4,41 @@ import { useLanguage } from "@/lib/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 
-// Round 1: UI only. No email is stored or sent until the newsletter backend ships.
 export function NewsletterBlock({ id = "newsletter" }: { id?: string }) {
   const { isArabic } = useLanguage();
+  const [busy, setBusy] = useState(false);
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
   const t = (ar: string, en: string) => (isArabic ? ar : en);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError(t("يرجى إدخال بريد إلكتروني صحيح", "Please enter a valid email"));
     if (!consent) return setError(t("يرجى الموافقة على استلام الرسائل", "Please agree to receive emails"));
     setError("");
-    toast({
-      title: t("النشرة البريدية قيد الإطلاق", "The newsletter is launching soon"),
-      description: t("سنفعّل الاشتراك قريبًا، ولم يُحفظ بريدك بعد.", "Subscriptions open soon; your email has not been saved yet."),
-    });
+    setBusy(true);
+    try {
+      const res = await fetch("/api/newsletter/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), consent: true, locale: isArabic ? "ar" : "en" }),
+      });
+      if (res.status === 429) return setError(t("محاولات كثيرة، حاول لاحقًا", "Too many attempts, please try again later"));
+      if (!res.ok) return setError(t("تعذّر الاشتراك، حاول مرة أخرى", "Could not subscribe, please try again"));
+      setEmail("");
+      setConsent(false);
+      toast({
+        title: t("تحقق من بريدك الإلكتروني", "Check your inbox"),
+        description: t("أرسلنا لك رسالة لتأكيد الاشتراك.", "We sent you an email to confirm your subscription."),
+      });
+    } catch {
+      setError(t("تعذّر الاتصال بالخادم", "Could not reach the server"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -42,7 +59,7 @@ export function NewsletterBlock({ id = "newsletter" }: { id?: string }) {
               placeholder="name@example.com" aria-label={t("البريد الإلكتروني", "Email")}
               className="flex-1 min-h-12 px-4 rounded-[4px] bg-white text-ink placeholder:text-ink-muted"
             />
-            <button type="submit" className="min-h-12 px-6 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
+            <button type="submit" disabled={busy} className="min-h-12 disabled:opacity-60 px-6 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
               {t("اشترك في النشرة", "Subscribe")}
             </button>
           </div>
