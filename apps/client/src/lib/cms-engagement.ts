@@ -12,7 +12,7 @@ export interface Engagement {
   commentsEnabled: boolean;
   liked: boolean;
 }
-export interface PublicComment { id: number; authorName: string; body: string; createdAt: string; mine: boolean; isGuest: boolean }
+export interface PublicComment { id: number; authorName: string; body: string; createdAt: string; mine: boolean }
 
 /** Public share-intent URLs. Pure so it can be unit tested. */
 export function shareUrl(channel: Exclude<ShareChannel, "copy" | "native" | "instagram">, url: string, title: string): string {
@@ -89,7 +89,7 @@ export function useComments(itemId: number, enabled: boolean) {
 export function usePostComment(itemId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { body: string; guestName?: string }) => send<PublicComment>(`/api/cms/items/${itemId}/comments`, "POST", v),
+    mutationFn: (body: string) => send<PublicComment>(`/api/cms/items/${itemId}/comments`, "POST", { body }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["cms", "comments", itemId] });
       void qc.invalidateQueries({ queryKey: ["cms", "engagement", itemId] });
