@@ -7,6 +7,7 @@ import { adminFetch, adminFetchJson, adminJsonHeaders } from "@/lib/admin-api";
 import { searchStoreBooks } from "@/lib/book-catalog";
 import type { ContentItem, ListResponse } from "@/lib/cms-types";
 import { TYPE_CONFIG } from "@/lib/content-types";
+import { contentPath } from "@/lib/cms-labels";
 import { PageHeader, Toast, useToast } from "@/pages/admin/layout";
 import { ImageUploadField } from "@/pages/admin/_image-upload";
 import { Button } from "@/components/ui/button";
@@ -21,23 +22,47 @@ interface Slide {
   linkedTitleAr: string | null; linkedStatus: string | null;
   linked?: Partial<Record<"titleAr" | "titleEn" | "summaryAr" | "summaryEn" | "imageUrl" | "href", string>> | null;
 }
-type Draft = Omit<Slide, "id" | "position" | "linkedTitleAr" | "linkedStatus" | "linked"> & { linked?: Slide["linked"] } & { id?: number; pickedLabel?: string };
+type Linked = NonNullable<Slide["linked"]>;
+/** Fields a linked (article/book) slide can either inherit or override, grouped as the admin sees them. */
+const GROUPS = {
+  title: { label: "العنوان", keys: ["titleAr", "titleEn"] },
+  summary: { label: "الملخص", keys: ["summaryAr", "summaryEn"] },
+  image: { label: "الصورة", keys: ["imageUrl"] },
+  href: { label: "الرابط", keys: ["href"] },
+} as const;
+type Group = keyof typeof GROUPS;
+type Overrides = Record<Group, boolean>;
+type Draft = Omit<Slide, "id" | "position" | "linkedTitleAr" | "linkedStatus" | "linked"> & {
+  id?: number; pickedLabel?: string; linked?: Slide["linked"];
+  /** true = the slide uses its own value for this group; false = it shows the linked article's value. */
+  custom: Overrides;
+};
 
+const noOverrides = (): Overrides => ({ title: false, summary: false, image: false, href: false });
 const emptyDraft = (): Draft => ({
   isActive: true, sourceKind: "content", contentItemId: null, medusaProductId: null,
   badgeAr: "", badgeEn: "", titleAr: "", titleEn: "", summaryAr: "", summaryEn: "", imageUrl: "", ctaLabelAr: "", ctaLabelEn: "", href: "",
+  custom: noOverrides(),
 });
+// The slide keeps only its own values; the linked article's data is shown beside them, never copied in.
 const toDraft = (s: Slide): Draft => {
   const { position: _p, linkedTitleAr, linkedStatus: _l, ...rest } = s;
-  const l = rest.linked ?? {};
-  const fill = (k: "titleAr" | "titleEn" | "summaryAr" | "summaryEn" | "imageUrl" | "href") => (rest[k]?.trim() ? rest[k] : (l[k] ?? ""));
-  return {
-    ...rest,
-    titleAr: fill("titleAr"), titleEn: fill("titleEn"), summaryAr: fill("summaryAr"), summaryEn: fill("summaryEn"),
-    imageUrl: fill("imageUrl"), href: fill("href"),
-    pickedLabel: linkedTitleAr ?? undefined,
-  };
+  const custom = Object.fromEntries(
+    (Object.keys(GROUPS) as Group[]).map((g) => [g, GROUPS[g].keys.some((k) => rest[k].trim() !== "")]),
+  ) as Overrides;
+  return { ...rest, custom, pickedLabel: linkedTitleAr ?? undefined };
 };
+/** Request body: groups left on "use article data" are sent empty so the site keeps following the article. */
+const toBody = (d: Draft) => {
+  const { id: _i, pickedLabel: _p, linked: _k, custom, ...body } = d;
+  if (body.sourceKind !== "custom") {
+    for (const g of Object.keys(GROUPS) as Group[]) if (!custom[g]) for (const k of GROUPS[g].keys) body[k] = "";
+  }
+  return body;
+};
+const linkedFromItem = (i: ContentItem): Linked => ({
+  titleAr: i.titleAr, titleEn: i.titleEn, summaryAr: i.summaryAr, summaryEn: i.summaryEn, imageUrl: i.coverImageUrl, href: contentPath(i.type, i.slug),
+});
 const inputCls = "w-full min-h-10 px-3 border border-line rounded bg-white";
 const SOURCE_LABELS: Record<Source, string> = { content: "محتوى من الموقع", book: "كتاب من المتجر", custom: "بطاقة مخصصة" };
 
@@ -68,15 +93,15 @@ export default function AdminFeatured() {
   };
 
   const persist = async (d: Draft) => {
-    const { id, pickedLabel: _p, linked: _k, ...body } = d;
+    const id = d.id;
     const r = await adminFetch(id ? `/api/admin/cms/featured/${id}` : "/api/admin/cms/featured", {
-      method: id ? "PUT" : "POST", headers: adminJsonHeaders(), body: JSON.stringify(body),
+      method: id ? "PUT" : "POST", headers: adminJsonHeaders(), body: JSON.stringify(toBody(d)),
     });
     const res = await r.json().catch(() => ({}));
     if (!r.ok) return show(res.issues?.map((i: { message: string }) => i.message).join("، ") || res.error || "تعذّر الحفظ", "error");
     show("تم الحفظ"); setDraft(null); void load();
   };
-  const toggle = (s: Slide) => persist({ ...toDraft(s), ...(s.sourceKind === "content" ? { titleAr: s.titleAr, titleEn: s.titleEn, summaryAr: s.summaryAr, summaryEn: s.summaryEn, imageUrl: s.imageUrl, href: s.href } : {}), isActive: !s.isActive });
+  const toggle = (s: Slide) => persist({ ...toDraft(s), isActive: !s.isActive });
   const remove = async (s: Slide) => {
     if (!window.confirm("حذف هذه البطاقة من المختارات؟")) return;
     const r = await adminFetch(`/api/admin/cms/featured/${s.id}`, { method: "DELETE" });
@@ -115,11 +140,12 @@ function SortableRow({ slide, index, total, onMove, onEdit, onToggle, onRemove }
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`flex items-center gap-3 bg-white border p-3 ${index === 0 ? "border-gold" : "border-line"}`}>
       <button type="button" {...attributes} {...listeners} aria-label="سحب لإعادة الترتيب" className="cursor-grab p-1"><GripVertical className="w-4 h-4" /></button>
-      {slide.imageUrl && <img src={slide.imageUrl} alt="" className="w-20 h-10 object-cover" />}
+      {(slide.imageUrl || slide.linked?.imageUrl) && <img src={slide.imageUrl || slide.linked?.imageUrl} alt="" className="w-20 h-10 object-cover" />}
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{title}</p>
         <p className="text-xs text-ink-muted">
           {SOURCE_LABELS[slide.sourceKind]}{index === 0 && " · البطاقة الكبيرة"}{!slide.isActive && " · مخفية"}
+          {slide.sourceKind !== "custom" && slide.imageUrl && " · صورة خاصة بالواجهة"}
           {warn && <span className="text-amber-700"> · المحتوى المرتبط غير منشور، فلن تظهر البطاقة</span>}
         </p>
       </div>
@@ -135,30 +161,89 @@ function SortableRow({ slide, index, total, onMove, onEdit, onToggle, onRemove }
 function SlideDialog({ draft, onChange, onClose, onSave }: { draft: Draft; onChange: (d: Draft) => void; onClose: () => void; onSave: () => void }) {
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => onChange({ ...draft, [k]: v });
   const custom = draft.sourceKind === "custom";
+  const linked = draft.linked ?? undefined;
+  // Switching a group to "custom" starts from the article's text so it can be tweaked; the image starts empty so a new one is chosen.
+  const setMode = (g: Group, own: boolean) => {
+    const next: Draft = { ...draft, custom: { ...draft.custom, [g]: own } };
+    if (own && g !== "image") for (const k of GROUPS[g].keys) if (!next[k].trim()) next[k] = linked?.[k] ?? "";
+    onChange(next);
+  };
+
+  const fields: Record<Group, React.ReactNode> = {
+    title: (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {([["titleAr", "العنوان (عربي)"], ["titleEn", "العنوان (إنجليزي)"]] as const).map(([k, label]) => (
+          <label key={k} className="block"><span className="text-sm">{label}</span><input aria-label={label} className={inputCls} value={draft[k]} onChange={(e) => set(k, e.target.value)} /></label>
+        ))}
+      </div>
+    ),
+    summary: (
+      <div className="grid gap-3">
+        {([["summaryAr", "الملخص (عربي)"], ["summaryEn", "الملخص (إنجليزي)"]] as const).map(([k, label]) => (
+          <label key={k} className="block"><span className="text-sm">{label}</span><textarea aria-label={label} rows={2} className={`${inputCls} py-2`} value={draft[k]} onChange={(e) => set(k, e.target.value)} /></label>
+        ))}
+      </div>
+    ),
+    image: (
+      <div>
+        <span className="text-xs text-muted-foreground">تُقص بنسبة 2:1 وتُصغَّر إلى 1920px عرضًا. هذه الصورة للواجهة فقط ولا تغيّر صورة المادة.</span>
+        <ImageUploadField value={draft.imageUrl} onChange={(v) => set("imageUrl", v)} folder="featured" aspect={2} maxWidth={1920} />
+      </div>
+    ),
+    href: <label className="block"><span className="text-sm">الرابط</span><input aria-label="الرابط" dir="ltr" className={inputCls} value={draft.href} placeholder="/academy" onChange={(e) => set("href", e.target.value)} /></label>,
+  };
+
+  const inherited = (g: Group): React.ReactNode => {
+    if (!linked) return <p className="text-sm text-ink-muted">{draft.sourceKind === "book" ? "تُستخدم بيانات الكتاب من المتجر." : "اختر مادة لعرض بياناتها."}</p>;
+    if (g === "image") return linked.imageUrl ? <img src={linked.imageUrl} alt="" className="w-40 h-20 object-cover opacity-80" /> : <p className="text-sm text-ink-muted">لا توجد صورة للمادة.</p>;
+    if (g === "href") return <p dir="ltr" className="text-sm text-ink-muted text-start">{linked.href}</p>;
+    return <div className="text-sm text-ink-muted space-y-1">{GROUPS[g].keys.map((k) => <p key={k} className="line-clamp-2">{linked[k] || "—"}</p>)}</div>;
+  };
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogTitle>{draft.id ? "تعديل بطاقة" : "إضافة بطاقة"}</DialogTitle>
         <div role="tablist" className="flex gap-2 border-b border-line">
           {(Object.keys(SOURCE_LABELS) as Source[]).map((s) => (
-            <button key={s} type="button" role="tab" aria-selected={draft.sourceKind === s} onClick={() => onChange({ ...draft, sourceKind: s, contentItemId: null, medusaProductId: null, pickedLabel: undefined })} className={`px-3 min-h-10 border-b-2 ${draft.sourceKind === s ? "border-gold text-navy font-semibold" : "border-transparent"}`}>
+            <button key={s} type="button" role="tab" aria-selected={draft.sourceKind === s} onClick={() => onChange({ ...draft, sourceKind: s, contentItemId: null, medusaProductId: null, pickedLabel: undefined, linked: null })} className={`px-3 min-h-10 border-b-2 ${draft.sourceKind === s ? "border-gold text-navy font-semibold" : "border-transparent"}`}>
               {SOURCE_LABELS[s]}
             </button>
           ))}
         </div>
-        {draft.sourceKind === "content" && <ContentPicker draft={draft} onPick={(id, label) => onChange({ ...draft, contentItemId: id, pickedLabel: label })} />}
+        {draft.sourceKind === "content" && <ContentPicker draft={draft} onPick={(item) => onChange({ ...draft, contentItemId: item.id, pickedLabel: item.titleAr, linked: linkedFromItem(item) })} />}
         {draft.sourceKind === "book" && <BookPicker draft={draft} onPick={(id, label) => onChange({ ...draft, medusaProductId: id, pickedLabel: label })} />}
-        <p className="text-xs text-ink-muted">{custom ? "كل الحقول التالية مطلوبة للبطاقة المخصصة (العنوان والرابط والصورة على الأقل)." : "اترك الحقول التالية فارغة لاستخدام بيانات المادة المرتبطة، أو املأها لتجاوزها."}</p>
+
         <div className="grid gap-3 sm:grid-cols-2">
-          {([["badgeAr", "الشارة (عربي)"], ["badgeEn", "الشارة (إنجليزي)"], ["titleAr", "العنوان (عربي)"], ["titleEn", "العنوان (إنجليزي)"], ["ctaLabelAr", "نص الزر (عربي)"], ["ctaLabelEn", "نص الزر (إنجليزي)"]] as const).map(([k, label]) => (
-            <label key={k} className="block"><span className="text-sm">{label}</span><input aria-label={label} className={inputCls} value={draft[k]} placeholder={draft.linked?.[k as "titleAr"]} onChange={(e) => set(k, e.target.value)} /></label>
+          {([["badgeAr", "الشارة (عربي)"], ["badgeEn", "الشارة (إنجليزي)"], ["ctaLabelAr", "نص الزر (عربي)"], ["ctaLabelEn", "نص الزر (إنجليزي)"]] as const).map(([k, label]) => (
+            <label key={k} className="block"><span className="text-sm">{label}</span><input aria-label={label} className={inputCls} value={draft[k]} onChange={(e) => set(k, e.target.value)} /></label>
           ))}
-          {([["summaryAr", "الملخص (عربي)"], ["summaryEn", "الملخص (إنجليزي)"]] as const).map(([k, label]) => (
-            <label key={k} className="block sm:col-span-2"><span className="text-sm">{label}</span><textarea aria-label={label} rows={2} className={`${inputCls} py-2`} value={draft[k]} placeholder={draft.linked?.[k]} onChange={(e) => set(k, e.target.value)} /></label>
-          ))}
-          <label className="block sm:col-span-2"><span className="text-sm">الرابط</span><input aria-label="الرابط" dir="ltr" className={inputCls} value={draft.href} placeholder={draft.linked?.href ?? "/academy"} onChange={(e) => set("href", e.target.value)} /></label>
-          <div className="sm:col-span-2"><span className="text-sm">الصورة <span className="text-xs text-muted-foreground">(تُقص بنسبة 2:1 وتُصغَّر إلى 1920px عرضًا)</span></span>{!draft.imageUrl && draft.linked?.imageUrl && <img src={draft.linked.imageUrl} alt="" className="w-24 h-16 object-cover mb-2 opacity-70" />}<ImageUploadField value={draft.imageUrl} onChange={(v) => set("imageUrl", v)} folder="featured" aspect={2} maxWidth={1920} /></div>
         </div>
+
+        {custom ? (
+          <>
+            <p className="text-xs text-ink-muted">العنوان والرابط والصورة مطلوبة للبطاقة المخصصة.</p>
+            {(Object.keys(GROUPS) as Group[]).map((g) => <div key={g}>{fields[g]}</div>)}
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-ink-muted">لكل حقل: استخدم بيانات {draft.sourceKind === "book" ? "الكتاب" : "المادة"} كما هي، أو أدخل بيانات خاصة بالواجهة. البيانات الخاصة لا تغيّر {draft.sourceKind === "book" ? "الكتاب" : "المادة"} نفسها.</p>
+            {(Object.keys(GROUPS) as Group[]).map((g) => (
+              <section key={g} aria-label={GROUPS[g].label} className="border border-line p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-sm">{GROUPS[g].label}</span>
+                  <div role="radiogroup" aria-label={`مصدر ${GROUPS[g].label}`} className="flex text-xs border border-line">
+                    {([[false, draft.sourceKind === "book" ? "من الكتاب" : "من المادة"], [true, "مخصص للواجهة"]] as const).map(([own, label]) => (
+                      <button key={label} type="button" role="radio" aria-checked={draft.custom[g] === own} onClick={() => setMode(g, own)} className={`px-3 min-h-8 ${draft.custom[g] === own ? "bg-navy text-white" : "bg-white"}`}>{label}</button>
+                    ))}
+                  </div>
+                </div>
+                {draft.custom[g] ? fields[g] : inherited(g)}
+              </section>
+            ))}
+          </>
+        )}
+
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" className="rounded-none" onClick={onClose}>إلغاء</Button>
           <Button type="button" className="rounded-none" onClick={onSave}>حفظ البطاقة</Button>
@@ -168,7 +253,7 @@ function SlideDialog({ draft, onChange, onClose, onSave }: { draft: Draft; onCha
   );
 }
 
-function ContentPicker({ draft, onPick }: { draft: Draft; onPick: (id: number, label: string) => void }) {
+function ContentPicker({ draft, onPick }: { draft: Draft; onPick: (item: ContentItem) => void }) {
   const [type, setType] = useState<keyof typeof TYPE_CONFIG>("study");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ContentItem[]>([]);
@@ -190,7 +275,7 @@ function ContentPicker({ draft, onPick }: { draft: Draft; onPick: (id: number, l
       {draft.contentItemId && <p className="text-sm">المختار: <strong>{draft.pickedLabel ?? `#${draft.contentItemId}`}</strong></p>}
       <ul className="max-h-48 overflow-y-auto border border-line divide-y divide-line">
         {items.map((i) => (
-          <li key={i.id}><button type="button" onClick={() => onPick(i.id, i.titleAr)} className={`w-full text-start px-3 py-2 hover:bg-mist ${draft.contentItemId === i.id ? "bg-mist" : ""}`}>{i.titleAr}</button></li>
+          <li key={i.id}><button type="button" onClick={() => onPick(i)} className={`w-full text-start px-3 py-2 hover:bg-mist ${draft.contentItemId === i.id ? "bg-mist" : ""}`}>{i.titleAr}</button></li>
         ))}
         {items.length === 0 && <li className="px-3 py-2 text-sm text-ink-muted">لا يوجد محتوى منشور مطابق.</li>}
       </ul>

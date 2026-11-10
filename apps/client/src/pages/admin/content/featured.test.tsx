@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 vi.mock("@/pages/admin/_image-upload", () => ({ ImageUploadField: ({ onChange }: any) => <button type="button" onClick={() => onChange("/seed/hero.webp")}>رفع صورة</button> }));
 vi.mock("@/lib/book-catalog", () => ({ searchStoreBooks: vi.fn(async () => ({ products: [], total: 0 })) }));
@@ -46,6 +46,60 @@ describe("AdminFeatured", () => {
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(([u, i]) => u === "/api/admin/cms/featured" && i?.method === "POST");
       expect(JSON.parse(String(call![1]!.body))).toMatchObject({ sourceKind: "custom", titleAr: "جديد", href: "/academy", imageUrl: "/seed/hero.webp" });
+    });
+  });
+
+  it("keeps the hero's own image and leaves article-backed fields empty so the article is never copied", async () => {
+    const linkedSlide = {
+      ...slide(5, ""), sourceKind: "content", contentItemId: 23, imageUrl: "", href: "",
+      linkedTitleAr: "مقال", linkedStatus: "published",
+      linked: { titleAr: "مقال", titleEn: "Article", summaryAr: "ملخص المقال", summaryEn: "", imageUrl: "/cms/article.webp", href: "/articles/x" },
+    };
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === "/api/admin/cms/featured" && !init?.method) return new Response(JSON.stringify([linkedSlide]));
+      if (url.startsWith("/api/admin/cms/items")) return new Response(JSON.stringify({ items: [] }));
+      return new Response(JSON.stringify(linkedSlide));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AdminFeatured />);
+    fireEvent.click(await screen.findByRole("button", { name: "تعديل" }));
+    // Article data is shown as the inherited value, not copied into the inputs.
+    expect(screen.getByText("ملخص المقال")).toBeTruthy();
+    expect(screen.queryByLabelText("العنوان (عربي)")).toBeNull();
+    // Give the hero its own image only.
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "مصدر الصورة" })).getByRole("radio", { name: "مخصص للواجهة" }));
+    fireEvent.click(screen.getByText("رفع صورة"));
+    fireEvent.click(screen.getByRole("button", { name: "حفظ البطاقة" }));
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([u, i]) => u === "/api/admin/cms/featured/5" && i?.method === "PUT");
+      expect(JSON.parse(String(call![1]!.body))).toMatchObject({
+        contentItemId: 23, imageUrl: "/seed/hero.webp", titleAr: "", titleEn: "", summaryAr: "", href: "",
+      });
+    });
+  });
+
+  it("switching a field to custom starts from the article text and saves it on the slide", async () => {
+    const linkedSlide = {
+      ...slide(6, ""), sourceKind: "content", contentItemId: 23, imageUrl: "", href: "",
+      linkedTitleAr: "مقال", linkedStatus: "published",
+      linked: { titleAr: "مقال", titleEn: "Article", summaryAr: "", summaryEn: "", imageUrl: "", href: "/articles/x" },
+    };
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === "/api/admin/cms/featured" && !init?.method) return new Response(JSON.stringify([linkedSlide]));
+      if (url.startsWith("/api/admin/cms/items")) return new Response(JSON.stringify({ items: [] }));
+      return new Response(JSON.stringify(linkedSlide));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AdminFeatured />);
+    fireEvent.click(await screen.findByRole("button", { name: "تعديل" }));
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "مصدر العنوان" })).getByRole("radio", { name: "مخصص للواجهة" }));
+    const input = screen.getByLabelText("العنوان (عربي)") as HTMLInputElement;
+    expect(input.value).toBe("مقال");
+    fireEvent.change(input, { target: { value: "عنوان الواجهة" } });
+    fireEvent.click(screen.getByRole("button", { name: "حفظ البطاقة" }));
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(([u, i]) => u === "/api/admin/cms/featured/6" && i?.method === "PUT");
+      expect(JSON.parse(String(call![1]!.body))).toMatchObject({ titleAr: "عنوان الواجهة", titleEn: "Article", imageUrl: "" });
     });
   });
 });

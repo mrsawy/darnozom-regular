@@ -24,10 +24,25 @@ catalog:
   kysely: ^0.29.5
   zod: ^3.25.76
 
+# pnpm 10 reads onlyBuiltDependencies; pnpm 11+ reads allowBuilds and fails the
+# install on any build script not listed. Keep both lists in sync.
 onlyBuiltDependencies:
   - esbuild
 
+allowBuilds:
+  esbuild: true
+  '@medusajs/telemetry': false
+  '@swc/core': false
+  msgpackr-extract: false
+  protobufjs: false
+
 overrides:
+  # Moved from package.json "pnpm.overrides" (pnpm 11+ no longer reads that field).
+  '@types/react': ^19.2.0
+  '@types/react-dom': ^19.2.0
   # drizzle-kit bundles an older, vulnerable esbuild internally; pin it forward.
-  '@esbuild-kit/esm-loader': 'npm:tsx@^4.21.0'
-  esbuild: '0.27.3'
+  # DISABLED: these never took effect (the package.json "pnpm" block used to win),
+  # and enabling them collapses every esbuild (0.18/0.21/0.25/0.28) to 0.27.3.
+  # Re-enable only after checking vite/tsx/medusa builds still work.
+  # '@esbuild-kit/esm-loader': 'npm:tsx@^4.21.0'
+  # esbuild: '0.27.3'
