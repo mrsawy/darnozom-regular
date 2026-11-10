@@ -49,6 +49,20 @@ export const TYPE_CONFIG: Record<ContentType, { labelAr: string; pluralAr: strin
     ],
   },
   news: { labelAr: "خبر", pluralAr: "الأخبار", detailFields: [{ kind: "links", key: "relatedLinks", labelAr: "روابط ذات صلة" }] },
+  case_study: {
+    labelAr: "نموذج أعمال", pluralAr: "نماذج الأعمال",
+    detailFields: [
+      { kind: "text", key: "industry", labelAr: "القطاع", bilingual: true },
+      { kind: "text", key: "practice", labelAr: "خط الخدمة", bilingual: true },
+      { kind: "text", key: "geography", labelAr: "المنطقة الجغرافية", bilingual: true },
+      { kind: "html", key: "challenge", labelAr: "التحدي" },
+      { kind: "html", key: "approach", labelAr: "المنهجية" },
+      { kind: "html", key: "solution", labelAr: "الحل" },
+      { kind: "html", key: "impact", labelAr: "الأثر" },
+      { kind: "text", key: "quote", labelAr: "اقتباس العميل (اختياري)", bilingual: true },
+      { kind: "text", key: "quoteAttribution", labelAr: "صاحب الاقتباس", bilingual: true },
+    ],
+  },
   event: {
     labelAr: "فعالية", pluralAr: "الفعاليات",
     detailFields: [

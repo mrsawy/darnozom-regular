@@ -495,4 +495,20 @@ chmod +x "$DEPLOY_DIR/setup-ssl.sh"
   "$DEPLOY_DIR/nginx.api.conf" \
   "$DEPLOY_DIR/nginx.medusa.conf"
 
+# ---------------------------------------------------------------------------
+# 8. Server-log traffic report (GoAccess) for the admin Visitors dashboard.
+#    Best-effort: a failure here must never fail the deploy.
+# ---------------------------------------------------------------------------
+(
+  set +e
+  if ! command -v goaccess >/dev/null 2>&1; then
+    log "Installing goaccess"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y goaccess
+  fi
+  install -m 755 "$DEPLOY_DIR/goaccess-report.sh" /usr/local/bin/darnozom-goaccess
+  echo '*/15 * * * * root /usr/local/bin/darnozom-goaccess >/dev/null 2>&1' > /etc/cron.d/darnozom-goaccess
+  chmod 644 /etc/cron.d/darnozom-goaccess
+  /usr/local/bin/darnozom-goaccess && log "GoAccess report generated" || log "GoAccess report not generated (non-fatal)"
+) || true
+
 log "Deploy complete $(date -u +%Y-%m-%dT%H:%M:%SZ)"

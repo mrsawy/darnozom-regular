@@ -1,5 +1,6 @@
+import { DEFAULT_ABOUT, mergeAbout, type AboutContent } from "./about-content";
 import { useQuery } from "@tanstack/react-query";
-import type { HomeResponse, ItemResponse, ListParams, ListResponse } from "./cms-types";
+import type { ClientLogo, HomeResponse, ItemResponse, ListParams, ListResponse } from "./cms-types";
 
 export class NotFoundError extends Error {
   constructor() {
@@ -48,4 +49,20 @@ export function useCmsItem(slug: string, preview: boolean) {
 
 export function useCmsHome() {
   return useQuery({ queryKey: ["cms", "home"], queryFn: () => getJson<HomeResponse>("/api/cms/home") });
+}
+
+export function useClientLogos() {
+  return useQuery({ queryKey: ["cms", "client-logos"], queryFn: () => getJson<ClientLogo[]>("/api/cms/client-logos") });
+}
+
+export function useAboutContent() {
+  return useQuery({
+    queryKey: ["cms", "about"],
+    queryFn: async () => mergeAbout(await getJson<Partial<AboutContent>>("/api/cms/about")),
+    placeholderData: DEFAULT_ABOUT,
+  });
+}
+
+export function useClientLogo(id: string) {
+  return useQuery({ queryKey: ["cms", "client-logos", id], queryFn: () => getJson<ClientLogo>(`/api/cms/client-logos/${encodeURIComponent(id)}`), retry: false });
 }

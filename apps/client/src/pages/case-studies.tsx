@@ -21,6 +21,8 @@ import {
   type TaxonomyTag,
 } from "@/lib/case-studies";
 import { useLanguage } from "@/lib/language-context";
+import { useCmsList } from "@/lib/cms-api";
+import { pickLang } from "@/lib/cms-labels";
 import { SiteFooter } from "@/components/site-footer";
 
 const ALL = "__ALL__";
@@ -96,6 +98,8 @@ export default function CaseStudies() {
     });
   }, [industry, practice, geography]);
 
+  const cms = useCmsList({ types: ["case_study"], pageSize: 100 });
+  const cmsItems = (industry !== ALL || practice !== ALL || geography !== ALL) ? [] : cms.data?.items ?? [];
   const isFiltered = industry !== ALL || practice !== ALL || geography !== ALL;
 
   const renderSelect = (
@@ -287,7 +291,7 @@ export default function CaseStudies() {
             )}
           </div>
 
-          {filtered.length === 0 ? (
+          {filtered.length === 0 && cmsItems.length === 0 ? (
             <div
               className="border border-dashed border-border p-10 text-center"
               data-testid="case-empty-state"
@@ -299,6 +303,34 @@ export default function CaseStudies() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((cs, i) => (
                 <CaseStudyCard key={cs.id} caseStudy={cs} index={i} />
+              ))}
+              {cmsItems.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/case-studies/${item.slug}`}
+                  className="group relative bg-background border border-border hover:border-secondary/60 transition-colors flex flex-col p-7 md:p-8"
+                  data-testid={`case-study-cms-${item.slug}`}
+                >
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-secondary/40 group-hover:bg-secondary transition-colors" />
+                  <div className="flex flex-wrap gap-2 mb-5">
+                    {(["industry", "practice", "geography"] as const).map((k) => {
+                      const v = pickLang(item.details, k, language);
+                      return v ? (
+                        <span key={k} className="text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 border bg-muted text-muted-foreground border-border">{v}</span>
+                      ) : null;
+                    })}
+                  </div>
+                  <h3 className="font-black leading-tight text-primary text-xl md:text-2xl group-hover:text-secondary transition-colors mb-3">
+                    {pickLang(item, "title", language)}
+                  </h3>
+                  <p className="text-sm md:text-base leading-relaxed text-muted-foreground mb-6 flex-1">
+                    {pickLang(item, "summary", language)}
+                  </p>
+                  <span className="inline-flex items-center gap-2 font-bold text-sm text-secondary border-b border-secondary pb-0.5 w-fit">
+                    {isArabic ? "اقرأ الحالة كاملة" : "Read the full case"}
+                    <Arrow size={14} />
+                  </span>
+                </Link>
               ))}
             </div>
           )}

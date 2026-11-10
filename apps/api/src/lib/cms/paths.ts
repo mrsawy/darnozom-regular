@@ -7,6 +7,7 @@ const BASE: Record<ContentType, string> = {
   publication: "/publications",
   news: "/news-events",
   event: "/news-events",
+  case_study: "/case-studies",
 };
 
 export function contentPath(type: ContentType, slug: string): string {

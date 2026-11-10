@@ -17,9 +17,86 @@ import CaseStudyCard from "@/components/case-study-card";
 import NotFound from "@/pages/not-found";
 import { getCaseStudyById, getRelatedCaseStudies } from "@/lib/case-studies";
 import { useLanguage } from "@/lib/language-context";
+import { NotFoundError, useCmsItem } from "@/lib/cms-api";
+import { pickLang } from "@/lib/cms-labels";
+import { RichHtml } from "@/components/content/rich-html";
 import { SiteFooter } from "@/components/site-footer";
 
 export default function CaseStudyDetail() {
+  const { id } = useParams<{ id: string }>();
+  if (id && !getCaseStudyById(id)) return <CmsCaseStudyDetail slug={id} />;
+  return <StaticCaseStudyDetail />;
+}
+
+/** Case study added from the admin panel (content type "case_study"). */
+function CmsCaseStudyDetail({ slug }: { slug: string }) {
+  const { language, isArabic } = useLanguage();
+  const preview = new URLSearchParams(window.location.search).get("preview") === "1";
+  const q = useCmsItem(slug, preview);
+  const item = q.data?.item;
+  if (q.error instanceof NotFoundError || (item && item.type !== "case_study")) return <NotFound />;
+  const sections = [
+    { key: "challenge", ar: "التحدي", en: "The Challenge" },
+    { key: "approach", ar: "المنهجية", en: "Our Approach" },
+    { key: "solution", ar: "الحل", en: "The Solution" },
+    { key: "impact", ar: "الأثر", en: "Impact" },
+  ] as const;
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans" dir={isArabic ? "rtl" : "ltr"}>
+      <SiteNav mode="page" />
+      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-20">
+        <div className="container mx-auto px-6 md:px-12">
+          <div className="flex items-center gap-2 text-white/50 text-xs mb-8 uppercase tracking-widest">
+            <Link href="/" className="hover:text-secondary">{isArabic ? "الرئيسية" : "Home"}</Link>
+            <span>·</span>
+            <Link href="/case-studies" className="hover:text-secondary">{isArabic ? "نماذج الأعمال" : "Case Studies"}</Link>
+          </div>
+          {item && (
+            <>
+              <div className="flex flex-wrap gap-2 mb-6">
+                {(["industry", "practice", "geography"] as const).map((k) => {
+                  const v = pickLang(item.details, k, language);
+                  return v ? <span key={k} className="text-[10px] font-bold tracking-[0.22em] uppercase px-3 py-1.5 border bg-white/5 text-white/80 border-white/20">{v}</span> : null;
+                })}
+              </div>
+              <h1 className="font-black text-white leading-tight mb-6 max-w-4xl" style={{ fontSize: "clamp(2rem, 4.5vw, 3.5rem)" }}>{pickLang(item, "title", language)}</h1>
+              <p className="text-white/70 text-lg max-w-3xl leading-relaxed">{pickLang(item, "summary", language)}</p>
+            </>
+          )}
+        </div>
+      </section>
+      {item && (
+        <div className="container mx-auto px-6 md:px-12 py-16 max-w-4xl">
+          {item.coverImageUrl && <img src={item.coverImageUrl} alt="" className="mb-10 w-full max-h-[460px] object-cover" />}
+          <RichHtml html={pickLang(item, "body", language)} className="mb-10" />
+          {sections.map((s) => {
+            const html = pickLang(item.details, s.key, language);
+            return html ? (
+              <section key={s.key} className="mb-12">
+                <h2 className="font-black text-primary text-2xl mb-4">{isArabic ? s.ar : s.en}</h2>
+                <RichHtml html={html} />
+              </section>
+            ) : null;
+          })}
+          {pickLang(item.details, "quote", language) && (
+            <figure className="border-s-4 border-secondary ps-6 mb-12">
+              <blockquote className="text-primary text-xl font-medium leading-relaxed">“{pickLang(item.details, "quote", language)}”</blockquote>
+              {pickLang(item.details, "quoteAttribution", language) && (
+                <figcaption className="text-muted-foreground text-sm mt-3">— {pickLang(item.details, "quoteAttribution", language)}</figcaption>
+              )}
+            </figure>
+          )}
+          <Link href="/case-studies" className="text-secondary font-bold border-b-2 border-secondary pb-1">
+            {isArabic ? "العودة إلى جميع النماذج" : "Back to all case studies"}
+          </Link>
+        </div>
+      )}
+      <SiteFooter />
+    </div>
+  );
+}
+
+function StaticCaseStudyDetail() {
   const { id } = useParams<{ id: string }>();
   const { language, isArabic } = useLanguage();
   const Arrow = isArabic ? ArrowLeft : ArrowRight;

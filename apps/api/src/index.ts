@@ -7,6 +7,7 @@ import { seedJobOpenings } from "./lib/seed/seedJobOpenings";
 import { seedAdminUsers } from "./lib/seed/seedAdminUsers";
 import { migrateEventsToContent } from "./lib/seed/migrateEventsToContent";
 import { seedCmsContent } from "./lib/seed/seedCmsContent";
+import { seedClientLogos } from "./lib/seed/seedClientLogos";
 import { ensureContentAreas } from "./lib/cms/areas";
 import { startPayPalReconciliationJob } from "./lib/payments/reconcilePayPalOrders";
 import { startPaymobReconciliationJob } from "./lib/payments/reconcilePaymobOrders";
@@ -33,6 +34,7 @@ server.listen(port, () => {
   void seedStoreApps();
   void seedJobOpenings();
   void seedAdminUsers();
+  void seedClientLogos().catch((err) => logger.error({ err }, "seedClientLogos failed"));
   void (async () => {
     await ensureContentAreas();
     await migrateEventsToContent();

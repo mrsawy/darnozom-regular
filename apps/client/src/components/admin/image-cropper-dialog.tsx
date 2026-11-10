@@ -10,12 +10,14 @@ function initialCrop(width: number, height: number, aspect: number): Crop {
   return centerCrop(makeAspectCrop({ unit: "%", width: 100 }, aspect, width, height), width, height);
 }
 
-function cropToFile(img: HTMLImageElement, crop: PixelCrop, source: File): Promise<File> {
+function cropToFile(img: HTMLImageElement, crop: PixelCrop, source: File, maxWidth?: number): Promise<File> {
   const scaleX = img.naturalWidth / img.width;
   const scaleY = img.naturalHeight / img.height;
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(crop.width * scaleX);
-  canvas.height = Math.round(crop.height * scaleY);
+  // Downscale (never upscale) so uploads match the size the site actually displays.
+  const shrink = maxWidth ? Math.min(1, maxWidth / (crop.width * scaleX)) : 1;
+  canvas.width = Math.round(crop.width * scaleX * shrink);
+  canvas.height = Math.round(crop.height * scaleY * shrink);
   const ctx = canvas.getContext("2d");
   if (!ctx) return Promise.reject(new Error("canvas unavailable"));
   ctx.imageSmoothingQuality = "high";
@@ -27,9 +29,11 @@ function cropToFile(img: HTMLImageElement, crop: PixelCrop, source: File): Promi
 }
 
 /** Asks the admin to crop `file` to an exact aspect ratio before it is uploaded. */
-export function ImageCropperDialog({ file, aspect, onCropped, onCancel }: {
+export function ImageCropperDialog({ file, aspect, maxWidth, onCropped, onCancel }: {
   file: File | null;
   aspect: number;
+  /** Output is scaled down to at most this many pixels wide. */
+  maxWidth?: number;
   onCropped: (file: File) => void;
   onCancel: () => void;
 }) {
@@ -56,7 +60,7 @@ export function ImageCropperDialog({ file, aspect, onCropped, onCancel }: {
   async function confirm() {
     if (!file || !imgRef.current || !done?.width || !done.height) return;
     setBusy(true);
-    try { onCropped(await cropToFile(imgRef.current, done, file)); } finally { setBusy(false); }
+    try { onCropped(await cropToFile(imgRef.current, done, file, maxWidth)); } finally { setBusy(false); }
   }
 
   return (

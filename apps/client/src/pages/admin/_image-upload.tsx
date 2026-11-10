@@ -10,6 +10,7 @@ export function ImageUploadField({
   folder,
   placeholder = "رابط الصورة أو ارفع",
   aspect,
+  maxWidth,
 }: {
   value: string;
   onChange: (url: string) => void;
@@ -17,6 +18,8 @@ export function ImageUploadField({
   placeholder?: string;
   /** Width / height. When set, the admin must crop each picked image to this exact ratio before upload. */
   aspect?: number;
+  /** Cropped image is resized down to at most this width in pixels. */
+  maxWidth?: number;
 }) {
   const [toCrop, setToCrop] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,7 +54,7 @@ export function ImageUploadField({
   return (
     <div>
       {aspect && (
-        <ImageCropperDialog file={toCrop} aspect={aspect} onCancel={() => setToCrop(null)}
+        <ImageCropperDialog file={toCrop} aspect={aspect} maxWidth={maxWidth} onCancel={() => setToCrop(null)}
           onCropped={(f) => { setToCrop(null); void upload(f); }} />
       )}
       <div className="flex gap-2">
@@ -63,7 +66,7 @@ export function ImageUploadField({
         </label>
       </div>
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      {value && <img src={value} alt="" className="h-16 mt-2 border border-border" />}
+      {value && <img src={value} alt="" className="h-16 mt-2 border border-border max-w-full object-cover" />}
     </div>
   );
 }

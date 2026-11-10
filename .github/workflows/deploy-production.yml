@@ -41,6 +41,11 @@ jobs:
           VITE_MEDUSA_BACKEND_URL: ${{ secrets.VITE_MEDUSA_BACKEND_URL }}
           VITE_MEDUSA_PUBLISHABLE_KEY: ${{ secrets.VITE_MEDUSA_PUBLISHABLE_KEY }}
           VITE_MEDUSA_BOOK_PRODUCT_TYPE_ID: ${{ secrets.VITE_MEDUSA_BOOK_PRODUCT_TYPE_ID }}
+          # Public analytics ids (shipped in the browser bundle anyway).
+          VITE_GTM_ID: GTM-KF9R4P6B
+          VITE_UMAMI_SRC: https://cloud.umami.is/script.js
+          VITE_UMAMI_WEBSITE_ID: 428d76bc-08c9-42e0-bce1-a461019353c9
+          VITE_UMAMI_SHARE_URL: https://cloud.umami.is/analytics/us/share/qiVqiytDpPo62bl7
         run: |
           export VITE_MEDUSA_BACKEND_URL="${VITE_MEDUSA_BACKEND_URL:-https://ecommerce.darnozom.com}"
           pnpm run build:client

@@ -1,45 +1,12 @@
 import { useEffect } from "react";
 import { Link } from "wouter";
+import { ArrowLeft, Compass, Target } from "lucide-react";
+import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 import SiteNav from "@/components/site-nav";
 import { useLanguage } from "@/lib/language-context";
 import { SiteFooter } from "@/components/site-footer";
-import { PageHero } from "@/components/content/page-hero";
-
-const APPROACH_STEPS = [
-  {
-    ar: "نفهم الاحتياجات ونحدد الفجوات",
-    en: "Understand Needs & Identify Gaps",
-    descAr: "نتعرّف إلى أهداف الجهة وتحدياتها، ونستمع إلى أصحاب المصلحة، ونحدد الفجوات في السياسات والأداء والقدرات؛ لنتفق على الأولويات والنتائج المطلوبة.",
-    descEn: "We identify organizational goals and challenges, listen to stakeholders, and identify gaps in policy, performance, and capacity to align on priorities and desired outcomes.",
-  },
-  {
-    ar: "نؤصّل ونحلل",
-    en: "Ground & Analyze",
-    descAr: "ندرس الأصول الشرعية ذات الصلة، ونحلل الواقع والبيانات وأسباب الفجوات، ونستفيد من مناهج العلوم السياسية والإدارية والخبرات والتجارب المقارنة؛ لبناء فهم متكامل تستند إليه الحلول.",
-    descEn: "We study relevant Sharia foundations, analyze data and underlying causes of gaps, and draw on political and administrative sciences as well as comparative benchmarks to build a holistic foundation for solutions.",
-  },
-  {
-    ar: "نصمم الحلول والبرامج",
-    en: "Design Solutions & Programs",
-    descAr: "نطوّر دراسات وتوصيات وسياسات وبرامج تدريب وأدوات عملية تستجيب للاحتياجات، وتراعي الموارد المتاحة والسياق المؤسسي ومتطلبات التنفيذ.",
-    descEn: "We develop studies, policy recommendations, training programs, and practical tools tailored to needs, taking into account available resources, institutional context, and execution requirements.",
-  },
-  {
-    ar: "ندعم التنفيذ ونقيّم الأثر",
-    en: "Support Execution & Assess Impact",
-    descAr: "نساند وضع خطط التنفيذ وتحديد المسؤوليات ومؤشرات المتابعة، ونقيّم النتائج والأثر، ونستفيد مما نتعلمه في تطوير الحلول وتحسين الأداء.",
-    descEn: "We assist in formulating implementation plans, defining responsibilities and KPIs, evaluate outcomes and impact, and leverage insights for continuous performance improvement.",
-  },
-];
-
-const VALUES = [
-  { ar: "الالتزام بالمرجعية الإسلامية", en: "Commitment to Islamic Foundations" },
-  { ar: "الأمانة العلمية", en: "Scholarly Integrity" },
-  { ar: "الانضباط المنهجي", en: "Methodological Rigor" },
-  { ar: "المصلحة العامة", en: "Public Interest" },
-  { ar: "التكامل", en: "Integration" },
-  { ar: "الجودة", en: "Quality" },
-];
+import { useAboutContent } from "@/lib/cms-api";
+import { DEFAULT_ABOUT } from "@/lib/about-content";
 
 const STRUCTURE = [
   { ar: "مركز دار نظم للبحوث والدراسات", en: "DarNozom Research and Studies Center", href: "/center" },
@@ -51,81 +18,93 @@ const STRUCTURE = [
 export default function About() {
   const { isArabic } = useLanguage();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
+  const c = useAboutContent().data ?? DEFAULT_ABOUT;
+  const wrap = `mx-auto ${HOME_MAX_W} ${HOME_PX}`;
+  const num = (i: number) => String(i + 1).padStart(2, "0");
 
   useEffect(() => {
+    document.title = isArabic ? "من نحن — دار نظم" : "About — DarNozom";
     if (window.location.hash) {
       const id = window.location.hash.slice(1);
       setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }), 100);
     }
-  }, []);
+  }, [isArabic]);
 
   return (
     <div className="min-h-screen bg-background text-foreground" dir={isArabic ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
 
-      <PageHero
-        title={t("من نحن", "Who We Are")}
-        subtitle={t(
-          "دار نظم مؤسسة متخصصة في البحوث والاستشارات والتدريب وبناء القدرات في مجالات السياسات العامة والإدارة والقيادة والحوكمة. تضم نخبة من الباحثين والخبراء المتخصصين، وتجمع بين المرجعية الإسلامية والعلوم السياسية والإدارية والخبرة التطبيقية المعاصرة. وتعمل مع الحكومات والمؤسسات العامة والشركات ذات الدور الاستراتيجي والمنظمات غير الربحية على إنتاج المعرفة وصياغة الحلول الداعمة لصنع القرار، وتطوير السياسات وتأهيل القيادات وبناء مؤسسات فاعلة؛ بما يعزز كفاءة الأداء، ويحسّن الخدمات، ويسهم في التنمية وتحقيق المصالح العامة.",
-          "DarNozom is an institution specialized in research, consulting, training, and capacity building in public policy, management, leadership, and governance. It brings together an elite group of researchers and specialized experts, combining an Islamic frame of reference with political and administrative sciences and contemporary applied expertise. It collaborates with governments, public entities, strategically vital companies, and non-profit organizations to generate knowledge, formulate decision-support solutions, develop policies, qualify leaders, and build effective institutions—thereby enhancing performance efficiency, improving public services, and contributing to development and the public interest."
+      {/* Hero: image first, text over it */}
+      <section className="dark relative isolate overflow-hidden bg-[#183650] text-white">
+        {c.imageUrl && (
+          <>
+            <img src={c.imageUrl} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#183650] via-[#183650]/85 to-[#183650]/55" />
+          </>
         )}
-      />
-
-      {/* Vision */}
-      <section id="vision" className="bg-white py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-page">
-          <h2 className="text-[26px] font-bold text-ink mb-7">{t("رؤيتنا", "Our Vision")}</h2>
-          <p className="max-w-[850px] text-ink-muted leading-relaxed">
-            {t(
-              "أن تكون دار نظم مؤسسة مرجعية وشريكًا موثوقًا في تطوير السياسات وبناء قيادات ومؤسسات فاعلة، من خلال التكامل بين المرجعية الإسلامية والعلوم السياسية والإدارية والخبرة المعاصرة.",
-              "For DarNozom to be a benchmark institution and a trusted partner in developing policies and building effective leaders and institutions, through the integration of an Islamic frame of reference, political and administrative sciences, and contemporary expertise."
-            )}
+        <div className={`${wrap} pt-36 pb-28 lg:pt-44 lg:pb-36`}>
+          <div className="mb-6 flex items-center gap-3 text-sm text-gold">
+            <span className="h-px w-10 bg-gold" aria-hidden />
+            <span>{t("من نحن", "About us")}</span>
+          </div>
+          <h1 className="max-w-3xl text-4xl font-bold leading-tight md:text-6xl">{t(c.titleAr, c.titleEn)}</h1>
+          <p className="mt-8 max-w-3xl whitespace-pre-line text-base leading-8 text-white/80 md:text-lg">
+            {t(c.introAr, c.introEn)}
           </p>
         </div>
       </section>
 
-      {/* Mission */}
-      <section id="mission" className="py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-page">
-          <h2 className="text-[26px] font-bold text-ink mb-7">{t("رسالتنا", "Our Mission")}</h2>
-          <p className="max-w-[850px] text-ink-muted leading-relaxed">
-            {t(
-              "ننتج معرفة تدعم القرار، ونطوّر سياسات وحلولًا تستجيب للاحتياجات والتحديات، ونؤهّل القيادات ونبني القدرات، ونساند تأسيس المؤسسات وتطوير إدارتها وحوكمتها. ونربط التأصيل الشرعي بالبحث العلمي والخبرة التطبيقية؛ لتحويل المعرفة إلى ممارسات قابلة للتنفيذ ونتائج قابلة للتقييم، بما يرتقي بالأداء والخدمات، ويسهم في التنمية وتحقيق المصالح العامة.",
-              "We produce decision-support knowledge, develop policies and solutions responsive to needs and challenges, train leaders, and build institutional capacities. We assist in establishing organizations and developing their management and governance systems, linking Islamic grounding with scientific research and applied expertise to translate knowledge into actionable practices and measurable outcomes—elevating performance and services, and advancing development and the public interest."
-            )}
-          </p>
+      {/* Vision & Mission, pulled up over the hero */}
+      <section className="relative z-10 -mt-16 pb-20 lg:-mt-20">
+        <div className={`${wrap} grid gap-6 md:grid-cols-2`}>
+          {[
+            { id: "vision", icon: Compass, title: t("رؤيتنا", "Our Vision"), body: t(c.visionAr, c.visionEn) },
+            { id: "mission", icon: Target, title: t("رسالتنا", "Our Mission"), body: t(c.missionAr, c.missionEn) },
+          ].map(({ id, icon: Icon, title, body }) => (
+            <article key={id} id={id} className="scroll-mt-28 rounded-lg border border-line border-t-4 border-t-gold bg-white p-8 shadow-xl shadow-navy/10 lg:p-10">
+              <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full bg-mist text-navy">
+                <Icon className="h-6 w-6" strokeWidth={1.5} aria-hidden />
+              </span>
+              <h2 className="mb-4 text-2xl font-bold text-navy">{title}</h2>
+              <p className="leading-8 text-ink-muted">{body}</p>
+            </article>
+          ))}
         </div>
       </section>
 
-      {/* Our Approach */}
-      <section id="method" className="bg-white py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-page">
-          <h2 className="text-[26px] font-bold text-ink mb-7">{t("منهجنا", "Our Approach")}</h2>
-          <p className="max-w-[850px] text-ink-muted leading-relaxed mb-7">
-            {t(
-              "ننطلق من فهم الاحتياجات وتحديد الفجوات بين الواقع والنتائج المستهدفة، ونجمع بين التأصيل الشرعي والتحليل العلمي والخبرة العملية؛ لتطوير حلول تستند إلى الأدلة، وتناسب السياق والإمكانات، مع دعم تنفيذها وتقييم أثرها وتحسينها.",
-              "We start by understanding needs and identifying gaps between current reality and targeted outcomes, combining Islamic grounding, scientific analysis, and practical experience to develop evidence-based solutions tailored to context and resources, while supporting execution, evaluating impact, and driving continuous improvement."
-            )}
-          </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-[30px]">
-            {APPROACH_STEPS.map((s, i) => (
-              <article key={s.en} className="bg-white border border-line border-t-[3px] border-t-gold rounded-lg p-[22px]">
-                <span className="block text-[11px] text-gold mb-5" dir="ltr">0{i + 1}</span>
-                <h3 className="font-bold text-ink mb-2">{isArabic ? s.ar : s.en}</h3>
-                <p className="text-[13px] text-ink-muted leading-relaxed">{isArabic ? s.descAr : s.descEn}</p>
-              </article>
-            ))}
+      {/* Approach */}
+      <section id="method" className="scroll-mt-24 bg-mist py-20">
+        <div className={wrap}>
+          <div className="grid gap-10 lg:grid-cols-[1fr_2fr] lg:gap-16">
+            <div className="lg:sticky lg:top-28 lg:self-start">
+              <h2 className="text-3xl font-bold text-navy">{t("منهجنا", "Our Approach")}</h2>
+              <span className="mt-4 block h-1 w-14 bg-gold" aria-hidden />
+              <p className="mt-6 leading-8 text-ink-muted">{t(c.approachIntroAr, c.approachIntroEn)}</p>
+            </div>
+            <ol className="m-0 list-none space-y-5 p-0">
+              {c.steps.map((s, i) => (
+                <li key={i} className="flex gap-6 rounded-lg border border-line bg-white p-6 lg:p-8">
+                  <span className="text-4xl font-bold leading-none text-gold" dir="ltr">{num(i)}</span>
+                  <div>
+                    <h3 className="mb-2 text-lg font-bold text-navy">{isArabic ? s.ar : s.en}</h3>
+                    <p className="leading-8 text-ink-muted">{isArabic ? s.descAr : s.descEn}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </section>
 
       {/* Values */}
-      <section id="values" className="bg-mist py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-page">
-          <h2 className="text-[26px] font-bold text-ink mb-7">{t("قيمنا", "Our Values")}</h2>
-          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 list-none p-0 m-0">
-            {VALUES.map((v) => (
-              <li key={v.en} className="bg-white border border-line rounded-lg p-6 text-navy text-[17px]">
+      <section id="values" className="dark scroll-mt-24 bg-[#183650] py-20 text-white">
+        <div className={wrap}>
+          <h2 className="text-3xl font-bold">{t("قيمنا", "Our Values")}</h2>
+          <span className="mt-4 block h-1 w-14 bg-gold" aria-hidden />
+          <ul className="m-0 mt-10 grid list-none grid-cols-1 gap-px overflow-hidden rounded-lg bg-white/15 p-0 sm:grid-cols-2 lg:grid-cols-3">
+            {c.values.map((v, i) => (
+              <li key={i} className="flex items-center gap-4 bg-[#183650] p-6 text-lg">
+                <span className="text-sm text-gold" dir="ltr">{num(i)}</span>
                 {isArabic ? v.ar : v.en}
               </li>
             ))}
@@ -134,29 +113,28 @@ export default function About() {
       </section>
 
       {/* Institutional Structure */}
-      <section id="structure" className="bg-white py-[70px] scroll-mt-24">
-        <div className="mx-auto max-w-[1200px] px-page">
-          <div className="flex items-end justify-between gap-6 mb-7">
-            <div>
-              <h2 className="text-[26px] font-bold text-ink mb-2">{t("هيكل المؤسسة", "Institutional Structure")}</h2>
-              <p className="max-w-[700px] text-ink-muted">
-                {t("أذرع متكاملة في مؤسسة واحدة", "Complementary functions within one institution")}
-              </p>
-            </div>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {STRUCTURE.map((item) => (
+      <section id="structure" className="scroll-mt-24 bg-white py-20">
+        <div className={wrap}>
+          <h2 className="text-3xl font-bold text-navy">{t("هيكل المؤسسة", "Institutional Structure")}</h2>
+          <span className="mt-4 block h-1 w-14 bg-gold" aria-hidden />
+          <p className="mt-6 max-w-2xl text-ink-muted">
+            {t("أذرع متكاملة في مؤسسة واحدة", "Complementary functions within one institution")}
+          </p>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {STRUCTURE.map((item, i) => (
               <Link
                 key={item.en}
                 href={item.href}
-                className="group flex flex-col bg-white border border-line rounded-[10px] p-[26px] transition-transform hover:-translate-y-0.5"
+                className="group flex flex-col rounded-lg border border-line bg-white p-7 transition hover:-translate-y-1 hover:border-gold hover:shadow-lg"
               >
-                <h3 className="font-bold text-ink mb-2">{isArabic ? item.ar : item.en}</h3>
-                <p className="text-ink-muted text-sm leading-[2]">
+                <span className="mb-6 text-sm text-gold" dir="ltr">{num(i)}</span>
+                <h3 className="mb-3 text-lg font-bold text-navy">{isArabic ? item.ar : item.en}</h3>
+                <p className="text-sm leading-7 text-ink-muted">
                   {t("منهج وهوية مشتركة ومخرجات متخصصة.", "A shared approach and identity, with specialized outputs.")}
                 </p>
-                <span className="self-start mt-5 text-[13px] text-navy border-b border-gold pb-0.5">
-                  {t("اكتشف المزيد", "Explore more")} <span aria-hidden="true">{isArabic ? "←" : "→"}</span>
+                <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-navy">
+                  {t("اكتشف المزيد", "Explore more")}
+                  <ArrowLeft className={`h-4 w-4 transition-transform group-hover:-translate-x-1 ${isArabic ? "" : "rotate-180 group-hover:translate-x-1"}`} aria-hidden />
                 </span>
               </Link>
             ))}

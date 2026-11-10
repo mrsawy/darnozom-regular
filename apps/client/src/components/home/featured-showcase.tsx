@@ -7,7 +7,6 @@ import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 import type { FeaturedCard } from "@/lib/cms-types";
 import { typeBadge } from "@/lib/cms-labels";
 import { useStoreBook } from "@/lib/darnozom-books";
-import { CategoryBadge } from "@/components/content/category-badge";
 
 function useCardText(card: FeaturedCard, lang: "ar" | "en") {
   const book = useStoreBook(card.sourceKind === "book" ? card.medusaProductId : null).data;
@@ -45,56 +44,49 @@ export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
   const PrevIcon = isArabic ? ChevronRight : ChevronLeft;
 
   return (
-    <section aria-roledescription="carousel" aria-label={t("مختارات دار نظم", "DarNozom Highlights")} role="region" onKeyDown={onKeyDown} className={`mx-auto ${HOME_MAX_W} ${HOME_PX} pt-8`}>
-      <h1 className="text-[25px] lg:text-[31px] font-bold text-navy">{t("مختارات دار نظم", "DarNozom Highlights")}</h1>
-      <p className="text-ink-muted mb-5">{t("معرفة وبرامج وحلول تدعم القرار والمؤسسات", "Knowledge, programs and solutions that support decisions and institutions")}</p>
-      <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
-        <div
-          className="relative min-w-0 bg-navy text-white rounded-[4px] overflow-hidden"
-          onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
-          onTouchEnd={(e) => {
-            if (touchX.current == null) return;
-            const dx = e.changedTouches[0].clientX - touchX.current;
-            if (Math.abs(dx) > 40) ((dx < 0) !== isArabic ? next : prev)();
-            touchX.current = null;
-          }}
-        >
-          {/* Keyed fade-in (no exit wait) so the selected card swaps in immediately. */}
-          <motion.div key={cards[index].id} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.28 }}>
-            <MainCard
-              card={cards[index]}
-              lang={lang}
-              isArabic={isArabic}
-              controls={
-                cards.length > 1 && (
-                  <>
-              <button type="button" onClick={prev} aria-label={t("العنصر السابق", "Previous item")} className="absolute top-1/2 -translate-y-1/2 start-3 w-11 h-11 rounded-full bg-navy/80 text-white flex items-center justify-center hover:bg-navy">
-                <PrevIcon className="w-5 h-5" />
-              </button>
-              <button type="button" onClick={next} aria-label={t("العنصر التالي", "Next item")} className="absolute top-1/2 -translate-y-1/2 end-3 w-11 h-11 rounded-full bg-navy/80 text-white flex items-center justify-center hover:bg-navy">
-                <NextIcon className="w-5 h-5" />
-              </button>
-                    <div className="absolute bottom-2 inset-x-0 flex justify-center gap-1">
-                      {cards.map((c, i) => (
-                        <button key={c.id} type="button" onClick={() => go(i)} aria-label={t(`عرض العنصر ${i + 1}`, `Show item ${i + 1}`)} aria-current={i === index} className="w-5 h-5 flex items-center justify-center">
-                          <span className={`block rounded-full ${i === index ? "w-2.5 h-2.5 bg-gold-light" : "w-2 h-2 bg-white/60"}`} />
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )
-              }
-            />
-          </motion.div>
-          <LiveTitle card={cards[index]} lang={lang} />
-        </div>
+    <section
+      aria-roledescription="carousel"
+      aria-label={t("مختارات دار نظم", "DarNozom Highlights")}
+      role="region"
+      onKeyDown={onKeyDown}
+      onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
+      onTouchEnd={(e) => {
+        if (touchX.current == null) return;
+        const dx = e.changedTouches[0].clientX - touchX.current;
+        if (Math.abs(dx) > 40) ((dx < 0) !== isArabic ? next : prev)();
+        touchX.current = null;
+      }}
+      className="relative w-full bg-navy text-white overflow-hidden min-h-[460px] lg:min-h-[520px] flex flex-col"
+    >
+      <h1 className="sr-only">{t("مختارات دار نظم", "DarNozom Highlights")}</h1>
+      {/* Full-bleed background: the selected card's image, darkened so the headline stays legible. */}
+      <motion.div key={cards[index].id} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} className="absolute inset-0">
+        <HeroBackground card={cards[index]} lang={lang} />
+      </motion.div>
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
 
-        <div className="min-w-0 flex lg:flex-col gap-4 overflow-x-auto snap-x lg:overflow-visible -mx-5 px-5 lg:mx-0 lg:px-0 justify-between">
-          {cards.slice(1).map((card, i) => (
-            <SideCard key={card.id} card={card} lang={lang} isArabic={isArabic} current={index === i + 1} onSelect={() => go(i + 1)} />
-          ))}
-        </div>
+      <div className={`relative mx-auto w-full ${HOME_MAX_W} ${HOME_PX} flex-1 flex flex-col justify-end pt-16 pb-6`}>
+        <motion.div key={`t-${cards[index].id}`} initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+          <MainText card={cards[index]} lang={lang} isArabic={isArabic} />
+        </motion.div>
+
+        {cards.length > 1 && (
+          <div className="mt-6 flex items-stretch gap-2">
+            <button type="button" onClick={prev} aria-label={t("العنصر السابق", "Previous item")} className="hidden lg:flex shrink-0 w-11 items-center justify-center bg-black/40 hover:bg-black/60 text-white rounded-[2px]">
+              <PrevIcon className="w-5 h-5" />
+            </button>
+            <div className="flex-1 min-w-0 flex gap-3 overflow-x-auto snap-x lg:overflow-visible">
+              {cards.map((card, i) => (
+                <TabCard key={card.id} card={card} lang={lang} current={i === index} onSelect={() => go(i)} />
+              ))}
+            </div>
+            <button type="button" onClick={next} aria-label={t("العنصر التالي", "Next item")} className="hidden lg:flex shrink-0 w-11 items-center justify-center bg-black/40 hover:bg-black/60 text-white rounded-[2px]">
+              <NextIcon className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
+      <LiveTitle card={cards[index]} lang={lang} />
     </section>
   );
 }
@@ -112,42 +104,41 @@ function LiveTitle({ card, lang }: { card: FeaturedCard; lang: "ar" | "en" }) {
   return <p data-testid="featured-live" aria-live="polite" className="sr-only">{title}</p>;
 }
 
-function MainCard({ card, lang, isArabic, controls }: { card: FeaturedCard; lang: "ar" | "en"; isArabic: boolean; controls?: React.ReactNode }) {
+function HeroBackground({ card, lang }: { card: FeaturedCard; lang: "ar" | "en" }) {
+  const { image } = useCardText(card, lang);
+  return image ? <img src={image} alt="" className="w-full h-full object-cover" /> : null;
+}
+
+function MainText({ card, lang, isArabic }: { card: FeaturedCard; lang: "ar" | "en"; isArabic: boolean }) {
   const c = useCardText(card, lang);
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
-    <>
-      {/* Arrows sit over the image, as in the reference. */}
-      <div className="relative">
-        {c.image ? <img src={c.image} alt="" className="w-full aspect-square object-contain bg-navy" /> : <div className="aspect-[4/1]" />}
-        {controls}
-      </div>
-      <div className="px-5 py-4 lg:px-6">
-        {c.badge && <CategoryBadge>{c.badge}</CategoryBadge>}
-        <h2 data-testid="featured-main-title" className="mt-2 text-xl lg:text-2xl font-bold leading-snug">{c.title}</h2>
-        {c.summary && <p className="mt-2 text-white/85">{c.summary}</p>}
-        <CardLink href={card.href} className="mt-3 inline-flex items-center gap-2 min-h-11 px-5 rounded-[4px] bg-gold-light text-ink font-bold hover:bg-gold">
-          {c.cta} <Arrow className="w-4 h-4" aria-hidden />
-        </CardLink>
-      </div>
-    </>
+    <div className="max-w-3xl">
+      {c.badge && (
+        <span className="inline-block border-s-4 border-gold-light ps-2 text-sm font-semibold leading-5">{c.badge}</span>
+      )}
+      <h2 data-testid="featured-main-title" className="mt-2 text-2xl lg:text-[32px] font-bold leading-snug [text-shadow:0_2px_8px_rgba(0,0,0,.6)]">{c.title}</h2>
+      {c.summary && <p className="mt-2 text-white/85 line-clamp-2">{c.summary}</p>}
+      <CardLink href={card.href} className="mt-3 inline-flex items-center gap-2 min-h-11 text-gold-light font-bold hover:underline">
+        {c.cta} <Arrow className="w-4 h-4" aria-hidden />
+      </CardLink>
+    </div>
   );
 }
 
-function SideCard({ card, lang, isArabic, current, onSelect }: { card: FeaturedCard; lang: "ar" | "en"; isArabic: boolean; current: boolean; onSelect: () => void }) {
+function TabCard({ card, lang, current, onSelect }: { card: FeaturedCard; lang: "ar" | "en"; current: boolean; onSelect: () => void }) {
   const c = useCardText(card, lang);
-  const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
-    <div className={`relative snap-start shrink-0 w-[80vw] sm:w-[60vw] lg:w-auto flex bg-white border rounded-[4px] overflow-hidden ${current ? "border-gold ring-1 ring-gold" : "border-line"}`}>
-      {c.image && <img src={c.image} alt="" loading="lazy" className="w-[30%] max-w-32 object-cover" />}
-      <div className="flex-1 min-w-0 p-4 flex flex-col items-start">
-        <button type="button" onClick={onSelect} aria-current={current} className="text-start" aria-label={c.title}>
-          {c.badge && <CategoryBadge>{c.badge}</CategoryBadge>}
-          <span className="block mt-2 font-bold text-navy">{c.title}</span>
-          {c.summary && <span className="block mt-1 text-sm text-ink-muted line-clamp-2">{c.summary}</span>}
-        </button>
-        <CardLink href={card.href} className="mt-auto pt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-navy hover:text-gold">{c.cta} <Arrow className="w-4 h-4" aria-hidden /></CardLink>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-current={current}
+      aria-label={c.title}
+      className={`snap-start shrink-0 w-[70vw] sm:w-[45vw] lg:w-auto lg:flex-1 lg:basis-0 min-w-0 min-h-[84px] px-4 py-3 text-start rounded-[2px] backdrop-blur-sm transition-colors ${
+        current ? "bg-gold-light text-ink" : "bg-navy/70 text-white hover:bg-navy/90"
+      }`}
+    >
+      <span className="block font-semibold leading-snug line-clamp-3">{c.title}</span>
+    </button>
   );
 }

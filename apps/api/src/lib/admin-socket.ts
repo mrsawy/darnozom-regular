@@ -104,6 +104,13 @@ function emitToAdmins(event: string, payload: { id: number | string }): void {
   io.to(ADMIN_ROOM).emit(event, payload);
 }
 
+/** Live website-visitor snapshot for the admin dashboard. */
+export const VISITORS_LIVE_EVENT = "visitors:live" as const;
+
+export function emitVisitorsLive(payload: unknown): void {
+  io?.to(ADMIN_ROOM).emit(VISITORS_LIVE_EVENT, payload);
+}
+
 export function emitOrderNew(payload: OrderNewPayload): void {
   emitToAdmins(ORDER_NEW_EVENT, payload);
 }

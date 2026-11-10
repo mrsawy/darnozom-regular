@@ -34,6 +34,8 @@ import ResearchCenter from "@/pages/research-center";
 import ResearchUnit from "@/pages/research-unit";
 import CaseStudies from "@/pages/case-studies";
 import CaseStudyDetail from "@/pages/case-study-detail";
+import Clients from "@/pages/clients";
+import ClientDetail from "@/pages/client-detail";
 import PrivacyPolicyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import ReturnPolicyPage from "@/pages/return-policy";
@@ -56,6 +58,7 @@ import CheckoutPaymobPayPage from "@/pages/checkout-paymob-pay";
 import CheckoutPaymobWalletPage from "@/pages/checkout-paymob-wallet";
 import CheckoutManualPage from "@/pages/checkout-manual";
 import ContentListPage from "@/pages/content/content-list-page";
+import { usePageTracking } from "@/lib/visitor-tracking";
 import NewsletterStatusPage from "@/pages/newsletter-status";
 import ContentDetailPage from "@/pages/content/content-detail-page";
 import { AdminGate } from "@/pages/admin/layout";
@@ -83,7 +86,10 @@ import type { ContentType } from "@/lib/cms-types";
 const AdminContentList = lazy(() => import("@/pages/admin/content/content-list"));
 const AdminContentAreas = lazy(() => import("@/pages/admin/content/areas"));
 const AdminFeatured = lazy(() => import("@/pages/admin/content/featured"));
+const AdminAbout = lazy(() => import("@/pages/admin/content/about"));
+const AdminClientLogos = lazy(() => import("@/pages/admin/content/client-logos"));
 const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
+const AdminVisitors = lazy(() => import("@/pages/admin/visitors"));
 const AdminContentEditor = lazy(() => import("@/pages/admin/content/content-editor"));
 const queryClient = new QueryClient();
 
@@ -98,8 +104,11 @@ function AdminRouter() {
         <Route path="/admin/store-courses" component={AdminStoreCourses} />
         <Route path="/admin/academy" component={AdminAcademy} />
         <Route path="/admin/featured" component={AdminFeatured} />
+        <Route path="/admin/about" component={AdminAbout} />
+        <Route path="/admin/client-logos" component={AdminClientLogos} />
         <Route path="/admin/content-areas" component={AdminContentAreas} />
         <Route path="/admin/newsletter" component={AdminNewsletter} />
+        <Route path="/admin/visitors" component={AdminVisitors} />
         <Route path="/admin/events"><Redirect to="/admin/content/event" /></Route>
         <Route path="/admin/content/:type/:id">{(p) => <AdminContentEditor key={`${p.type}-${p.id}`} type={p.type as ContentType} id={p.id} />}</Route>
         <Route path="/admin/content/:type">{(p) => <AdminContentList key={p.type} type={p.type as ContentType} />}</Route>
@@ -128,12 +137,15 @@ function RfpRedirect() {
 }
 
 function Router() {
+  usePageTracking();
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/about" component={About} />
       <Route path="/case-studies" component={CaseStudies} />
       <Route path="/case-studies/:id" component={CaseStudyDetail} />
+      <Route path="/clients" component={Clients} />
+      <Route path="/clients/:id" component={ClientDetail} />
       <Route path="/نماذج-الأعمال" component={CaseStudies} />
       <Route path="/services" component={Services} />
       <Route path="/sectors" component={Sectors} />

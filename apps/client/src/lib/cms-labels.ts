@@ -41,6 +41,7 @@ const TYPE_BADGES: Record<ContentType, Pair> = {
   publication: pair("إصدار", "Publication"),
   news: pair("خبر", "News"),
   event: pair("فعالية", "Event"),
+  case_study: pair("نموذج أعمال", "Case study"),
 };
 
 const CTAS: Record<string, Pair> = {
@@ -53,6 +54,7 @@ const CTAS: Record<string, Pair> = {
   book: pair("تفاصيل الكتاب", "Book details"),
   news: pair("تفاصيل الخبر", "News details"),
   event: pair("تفاصيل الفعالية", "Event details"),
+  case_study: pair("اقرأ الحالة كاملة", "Read the full case"),
 };
 
 export function pickLang(item: Record<string, any>, field: string, lang: Lang): string {
@@ -79,6 +81,7 @@ const BASE: Record<ContentType, string> = {
   publication: "/publications",
   news: "/news-events",
   event: "/news-events",
+  case_study: "/case-studies",
 };
 
 export function contentPath(type: ContentType, slug: string): string {

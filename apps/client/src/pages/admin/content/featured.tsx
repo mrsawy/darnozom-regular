@@ -115,7 +115,7 @@ function SortableRow({ slide, index, total, onMove, onEdit, onToggle, onRemove }
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={`flex items-center gap-3 bg-white border p-3 ${index === 0 ? "border-gold" : "border-line"}`}>
       <button type="button" {...attributes} {...listeners} aria-label="سحب لإعادة الترتيب" className="cursor-grab p-1"><GripVertical className="w-4 h-4" /></button>
-      {slide.imageUrl && <img src={slide.imageUrl} alt="" className="w-16 h-10 object-cover" />}
+      {slide.imageUrl && <img src={slide.imageUrl} alt="" className="w-20 h-10 object-cover" />}
       <div className="flex-1 min-w-0">
         <p className="font-semibold truncate">{title}</p>
         <p className="text-xs text-ink-muted">
@@ -157,7 +157,7 @@ function SlideDialog({ draft, onChange, onClose, onSave }: { draft: Draft; onCha
             <label key={k} className="block sm:col-span-2"><span className="text-sm">{label}</span><textarea aria-label={label} rows={2} className={`${inputCls} py-2`} value={draft[k]} placeholder={draft.linked?.[k]} onChange={(e) => set(k, e.target.value)} /></label>
           ))}
           <label className="block sm:col-span-2"><span className="text-sm">الرابط</span><input aria-label="الرابط" dir="ltr" className={inputCls} value={draft.href} placeholder={draft.linked?.href ?? "/academy"} onChange={(e) => set("href", e.target.value)} /></label>
-          <div className="sm:col-span-2"><span className="text-sm">الصورة</span>{!draft.imageUrl && draft.linked?.imageUrl && <img src={draft.linked.imageUrl} alt="" className="w-24 h-16 object-cover mb-2 opacity-70" />}<ImageUploadField value={draft.imageUrl} onChange={(v) => set("imageUrl", v)} folder="featured" aspect={1} /></div>
+          <div className="sm:col-span-2"><span className="text-sm">الصورة <span className="text-xs text-muted-foreground">(تُقص بنسبة 2:1 وتُصغَّر إلى 1920px عرضًا)</span></span>{!draft.imageUrl && draft.linked?.imageUrl && <img src={draft.linked.imageUrl} alt="" className="w-24 h-16 object-cover mb-2 opacity-70" />}<ImageUploadField value={draft.imageUrl} onChange={(v) => set("imageUrl", v)} folder="featured" aspect={2} maxWidth={1920} /></div>
         </div>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" className="rounded-none" onClick={onClose}>إلغاء</Button>

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const CONTENT_TYPES = ["observatory", "article", "study", "publication", "news", "event"] as const;
+export const CONTENT_TYPES = ["observatory", "article", "study", "publication", "news", "event", "case_study"] as const;
 export const CONTENT_STATUSES = ["draft", "review", "published", "archived"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];
@@ -66,6 +66,26 @@ export const DETAILS_SCHEMAS = {
     pdfUrl: urlOrPath,
   }),
   news: z.object({ relatedLinks: links }),
+  case_study: z.object({
+    industryAr: optText(200),
+    industryEn: optText(200),
+    practiceAr: optText(200),
+    practiceEn: optText(200),
+    geographyAr: optText(200),
+    geographyEn: optText(200),
+    challengeAr: html,
+    challengeEn: html,
+    approachAr: html,
+    approachEn: html,
+    solutionAr: html,
+    solutionEn: html,
+    impactAr: html,
+    impactEn: html,
+    quoteAr: optText(2000),
+    quoteEn: optText(2000),
+    quoteAttributionAr: optText(300),
+    quoteAttributionEn: optText(300),
+  }),
   event: z
     .object({
       kind: z.enum(["training", "workshop", "seminar", "conference", "exhibition"]),
@@ -104,6 +124,14 @@ export const HTML_DETAIL_KEYS = [
   "findingsEn",
   "recommendationsAr",
   "recommendationsEn",
+  "challengeAr",
+  "challengeEn",
+  "approachAr",
+  "approachEn",
+  "solutionAr",
+  "solutionEn",
+  "impactAr",
+  "impactEn",
 ] as const;
 
 export const contentItemInput = z.object({

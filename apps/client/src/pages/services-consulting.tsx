@@ -74,6 +74,15 @@ export default function ServicesConsulting() {
               />
             ))}
           </div>
+          <div className="mt-10">
+            <Link
+              href="/case-studies"
+              className="inline-flex items-center gap-3 font-bold text-sm text-primary border-b-2 border-primary pb-1 hover:opacity-80 transition-opacity"
+            >
+              {isAr ? "نماذج الأعمال" : "Case Studies"}
+              <ArrowRight size={16} className={isAr ? "rotate-180" : ""} />
+            </Link>
+          </div>
         </div>
       </section>
 

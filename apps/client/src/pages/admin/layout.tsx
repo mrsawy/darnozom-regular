@@ -4,7 +4,7 @@ import { signOut, useSession } from "@/lib/auth-client";
 import {
   LayoutDashboard, BookOpen, GraduationCap, School, CalendarDays,
   Users, LogOut, Loader2, Menu, X, ShieldAlert, ShieldCheck,
-  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet, Star, Radar, Newspaper, FileSearch, Library, Megaphone, Tags, Mail } from "lucide-react";
+  Briefcase, FileText, Package, RefreshCw, Truck, Video, Clock, Wallet, Radar, Newspaper, FileSearch, Library, Megaphone, Tags, Mail, ChevronDown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { OrderNotificationsBell } from "@/components/admin/order-notifications";
 import { useAdminStatus } from "@/lib/use-admin-status";
@@ -17,11 +17,22 @@ interface NavItem {
   href: string;
   label: string;
   icon: typeof LayoutDashboard;
+  /** When set, the item is a collapsible group and `href` is only used as its key. */
+  children?: { href: string; label: string }[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "نظرة عامة", icon: LayoutDashboard },
-  { href: "/admin/featured", label: "مختارات الرئيسية", icon: Star },
+  {
+    href: "pages",
+    label: "الصفحات",
+    icon: FileText,
+    children: [
+      { href: "/admin/featured", label: "الرئيسية (المختارات)" },
+      { href: "/admin/about", label: "من نحن" },
+      { href: "/admin/client-logos", label: "عملاؤنا" },
+    ],
+  },
   { href: "/admin/content-areas", label: "المجالات", icon: Tags },
   { href: "/admin/content/observatory", label: "المرصد", icon: Radar },
   { href: "/admin/content/article", label: "المقالات", icon: Newspaper },
@@ -29,6 +40,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/content/publication", label: "الإصدارات", icon: Library },
   { href: "/admin/content/news", label: "الأخبار", icon: Megaphone },
   { href: "/admin/content/event", label: "الفعاليات", icon: CalendarDays },
+  { href: "/admin/content/case_study", label: "نماذج الأعمال", icon: Briefcase },
+  { href: "/admin/visitors", label: "الزوار", icon: Activity },
   { href: "/admin/newsletter", label: "النشرة البريدية", icon: Mail },
   { href: "/admin/books", label: "الكتب", icon: BookOpen },
   { href: "/admin/store-courses", label: "دورات المتجر", icon: GraduationCap },
@@ -210,24 +223,51 @@ function AdminShell({ children, currentPath }: { children: ReactNode; currentPat
 }
 
 function SidebarNav({ currentPath, onNavigate }: { currentPath: string; onNavigate?: () => void }) {
+  const isActive = (href: string) =>
+    href === "/admin"
+      ? currentPath === "/admin" || currentPath === "/admin/"
+      : currentPath === href || currentPath.startsWith(href + "/");
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const linkCls = (active: boolean) =>
+    `flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold transition-colors border-r-2 ${
+      active
+        ? "bg-secondary/15 text-secondary border-secondary"
+        : "text-muted-foreground hover:text-primary hover:bg-muted/40 border-transparent"
+    }`;
+
   return (
     <nav className="p-3 space-y-1">
       {NAV_ITEMS.map(item => {
         const Icon = item.icon;
-        const active = item.href === "/admin"
-          ? currentPath === "/admin" || currentPath === "/admin/"
-          : currentPath === item.href || currentPath.startsWith(item.href + "/");
+        if (item.children) {
+          const childActive = item.children.some(c => isActive(c.href));
+          const expanded = open[item.href] ?? childActive;
+          return (
+            <div key={item.href}>
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setOpen(o => ({ ...o, [item.href]: !expanded }))}
+                className={`w-full ${linkCls(childActive && !expanded)}`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1 text-right">{item.label}</span>
+                <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
+              </button>
+              {expanded && (
+                <div className="mr-4 mt-1 space-y-1 border-r border-border">
+                  {item.children.map(c => (
+                    <Link key={c.href} href={c.href} onClick={onNavigate} className={linkCls(isActive(c.href))}>
+                      <span>{c.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={onNavigate}
-            className={`flex items-center gap-2.5 px-3 py-2.5 text-sm font-bold transition-colors border-r-2 ${
-              active
-                ? "bg-secondary/15 text-secondary border-secondary"
-                : "text-muted-foreground hover:text-primary hover:bg-muted/40 border-transparent"
-            }`}
-          >
+          <Link key={item.href} href={item.href} onClick={onNavigate} className={linkCls(isActive(item.href))}>
             <Icon className="w-4 h-4 shrink-0" />
             <span>{item.label}</span>
           </Link>

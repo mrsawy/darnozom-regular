@@ -20,12 +20,12 @@ describe("FeaturedShowcase", () => {
     fireEvent.click(screen.getByRole("button", { name: "العنصر السابق" }));
     fireEvent.click(screen.getByRole("button", { name: "العنصر السابق" }));
     expect(mainTitle()).toBe("الرابع");
-    fireEvent.click(screen.getByRole("button", { name: "عرض العنصر 3" }));
+    fireEvent.click(screen.getByRole("button", { name: "الثالث" }));
     expect(mainTitle()).toBe("الثالث");
   });
   it("selects a side card and marks it current", () => {
     render(<FeaturedShowcase cards={cards} />);
-    const side = screen.getByRole("button", { name: /الثاني/ });
+    const side = screen.getByRole("button", { name: "الثاني" });
     fireEvent.click(side);
     expect(mainTitle()).toBe("الثاني");
     expect(side.getAttribute("aria-current")).toBe("true");

@@ -28,3 +28,5 @@ export * from "./consultationSlots.js";
 export * from "./consultationBookings.js";
 export * from "./contentItems.js";
 export * from "./newsletter.js";
+export * from "./clientLogos.js";
+export * from "./pageViews.js";

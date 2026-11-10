@@ -19,6 +19,7 @@ export const contentTypeEnum = pgEnum("content_type", [
   "publication",
   "news",
   "event",
+  "case_study",
 ]);
 export const contentStatusEnum = pgEnum("content_status", ["draft", "review", "published", "archived"]);
 export const featuredSourceEnum = pgEnum("featured_source", ["content", "book", "custom"]);

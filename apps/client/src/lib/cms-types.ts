@@ -1,4 +1,4 @@
-export type ContentType = "observatory" | "article" | "study" | "publication" | "news" | "event";
+export type ContentType = "observatory" | "article" | "study" | "publication" | "news" | "event" | "case_study";
 export type ContentStatus = "draft" | "review" | "published" | "archived";
 /** Slug of an admin-managed content area (see /admin/content-areas). */
 export type ContentArea = string;
@@ -70,4 +70,15 @@ export interface ListParams {
   q?: string;
   page?: number;
   pageSize?: number;
+}
+
+export interface ClientLogo {
+  id: number;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  descriptionEn: string;
+  logoUrl: string;
+  websiteUrl: string;
+  darkBackground: boolean;
 }

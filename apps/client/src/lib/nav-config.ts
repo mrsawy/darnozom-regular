@@ -20,13 +20,14 @@ const l = (labelAr: string, labelEn: string, href: string): NavLink => ({ labelA
 export const MAIN_NAV: NavEntry[] = [
   {
     key: "about", labelAr: "عن دار نظم", labelEn: "About DarNozom", href: "/about",
-    match: ["/about", "/careers", "/case-studies"],
+    match: ["/about", "/careers", "/clients"],
     columns: [{ links: [
       l("من نحن", "Who we are", "/about"),
       l("رؤيتنا", "Our vision", "/about#vision"),
       l("رسالتنا", "Our mission", "/about#mission"),
       l("منهجنا", "Our approach", "/about#method"),
       l("قيمنا والهيكل", "Values and structure", "/about#values"),
+      l("عملاؤنا", "Our clients", "/clients"),
     ] }],
   },
   {
@@ -92,9 +93,10 @@ export const MAIN_NAV: NavEntry[] = [
   },
   {
     key: "news", labelAr: "الأخبار والفعاليات", labelEn: "News and Events", href: "/news-events",
-    match: ["/news-events"],
+    match: ["/news-events", "/case-studies"],
     columns: [{ links: [
       l("أخبار المؤسسة", "DarNozom news", "/news-events?tab=news"),
+      l("نماذج الأعمال", "Case studies", "/case-studies"),
       l("تدريب", "Training", "/news-events?tab=events&kind=training"),
       l("ورش", "Workshops", "/news-events?tab=events&kind=workshop"),
       l("ندوات", "Seminars", "/news-events?tab=events&kind=seminar"),
