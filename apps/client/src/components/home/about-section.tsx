@@ -14,7 +14,7 @@ export function AboutSection() {
   const { isArabic } = useLanguage();
   const t = (ar: string, en: string) => (isArabic ? ar : en);
   return (
-    <section className="mt-8 bg-[#FFFFFF] py-8">
+    <section className="mt-4 bg-[#FFFFFF] py-4">
       <div className={`mx-auto ${HOME_MAX_W} ${HOME_PX} grid gap-8 lg:grid-cols-2 lg:items-center`}>
         <div>
           <h2 className="text-lg font-bold text-navy">{t("عن دار نظم", "About DarNozom")}</h2>
@@ -36,10 +36,10 @@ export function AboutSection() {
         </div>
         <img src="/seed/about.webp" alt="" className="w-full aspect-[2.2/1] object-cover rounded-[4px]" />
       </div>
-      <div className="mt-10  border-y border-line bg-[#F8F6F1]">
+      <div className="mt-6 border-y border-line bg-[#F8F6F1]">
         <ul className={`mx-auto ${HOME_MAX_W} ${HOME_PX} grid grid-cols-2 lg:grid-cols-4`}>
           {SERVICES.map(({ icon: Icon, ar, en, href }, i) => (
-            <li key={href} className={`py-5 ${i > 0 ? "lg:border-s lg:border-gold/60" : ""}`}>
+            <li key={href} className={`py-3 ${i > 0 ? "lg:border-s lg:border-gold/60" : ""}`}>
               <Link href={href} className="flex items-center justify-center gap-3 min-h-11 text-navy font-semibold hover:text-gold">
                 <Icon className="w-6 h-6" strokeWidth={1.5} aria-hidden /> {t(ar, en)}
               </Link>

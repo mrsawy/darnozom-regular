@@ -30,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
     children: [
       { href: "/admin/featured", label: "الرئيسية (المختارات)" },
       { href: "/admin/about", label: "من نحن" },
+      { href: "/admin/designs", label: "تصاميم الصفحات" },
       { href: "/admin/client-logos", label: "عملاؤنا" },
     ],
   },

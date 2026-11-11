@@ -1,28 +1,28 @@
 import { useRef, useState } from "react";
-import { Link } from "wouter";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 import type { FeaturedCard } from "@/lib/cms-types";
-import { typeBadge } from "@/lib/cms-labels";
-import { useStoreBook } from "@/lib/darnozom-books";
+import type { HomeHeroDesign } from "@/lib/page-designs";
+import { CardLink, useCardText } from "./hero-shared";
+import { CenteredHero, MagazineHero, SplitHero } from "./hero-variants";
+import { JusoorHero, MasaratHero, RosewellHero, SidebarHero, ThumbsHero } from "./hero-variants-more";
 
-function useCardText(card: FeaturedCard, lang: "ar" | "en") {
-  const book = useStoreBook(card.sourceKind === "book" ? card.medusaProductId : null).data;
-  const pick = (ar: string, en: string) => (lang === "en" && en ? en : ar);
-  const badge = pick(card.badgeAr, card.badgeEn) ||
-    (card.contentType ? typeBadge(card.contentType, { kind: card.contentKind }, lang) : card.sourceKind === "book" ? (lang === "ar" ? "كتاب" : "Book") : "");
-  return {
-    badge,
-    title: pick(card.titleAr, card.titleEn) || book?.title || "",
-    summary: pick(card.summaryAr, card.summaryEn),
-    image: card.imageUrl || book?.imageUrl || "",
-    cta: pick(card.ctaLabelAr, card.ctaLabelEn) || (lang === "ar" ? "اكتشف المزيد" : "Learn more"),
-  };
+export function FeaturedShowcase({ cards, design = "classic" }: { cards: FeaturedCard[]; design?: HomeHeroDesign }) {
+  if (cards.length === 0) return null;
+  if (design === "split") return <SplitHero cards={cards} />;
+  if (design === "centered") return <CenteredHero cards={cards} />;
+  if (design === "magazine") return <MagazineHero cards={cards} />;
+  if (design === "thumbs") return <ThumbsHero cards={cards} />;
+  if (design === "sidebar") return <SidebarHero cards={cards} />;
+  if (design === "jusoor") return <JusoorHero cards={cards} />;
+  if (design === "masarat") return <MasaratHero cards={cards} />;
+  if (design === "rosewell") return <RosewellHero cards={cards} />;
+  return <ClassicHero cards={cards} />;
 }
 
-export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
+function ClassicHero({ cards }: { cards: FeaturedCard[] }) {
   const { language: lang, isArabic } = useLanguage();
   const [rawIndex, setIndex] = useState(0);
   const reduce = useReducedMotion();
@@ -89,14 +89,6 @@ export function FeaturedShowcase({ cards }: { cards: FeaturedCard[] }) {
       <LiveTitle card={cards[index]} lang={lang} />
     </section>
   );
-}
-
-/** Site paths use client-side routing; slide hrefs may also be external http(s) URLs. */
-function CardLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
-  if (/^https?:\/\//i.test(href)) {
-    return <a href={href} target="_blank" rel="noopener noreferrer" className={className}>{children}</a>;
-  }
-  return <Link href={href} className={className}>{children}</Link>;
 }
 
 function LiveTitle({ card, lang }: { card: FeaturedCard; lang: "ar" | "en" }) {

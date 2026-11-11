@@ -13,6 +13,7 @@ const str = (max: number) => z.string().max(max);
 const aboutInput = z
   .object({
     imageUrl: str(500),
+    visionImageUrl: str(500), missionImageUrl: str(500), approachImageUrl: str(500), valuesImageUrl: str(500), structureImageUrl: str(500),
     titleAr: str(200), titleEn: str(200),
     introAr: str(5000), introEn: str(5000),
     visionAr: str(3000), visionEn: str(3000),

@@ -87,6 +87,7 @@ const AdminContentList = lazy(() => import("@/pages/admin/content/content-list")
 const AdminContentAreas = lazy(() => import("@/pages/admin/content/areas"));
 const AdminFeatured = lazy(() => import("@/pages/admin/content/featured"));
 const AdminAbout = lazy(() => import("@/pages/admin/content/about"));
+const AdminDesigns = lazy(() => import("@/pages/admin/content/designs"));
 const AdminClientLogos = lazy(() => import("@/pages/admin/content/client-logos"));
 const AdminNewsletter = lazy(() => import("@/pages/admin/newsletter"));
 const AdminVisitors = lazy(() => import("@/pages/admin/visitors"));
@@ -105,6 +106,7 @@ function AdminRouter() {
         <Route path="/admin/academy" component={AdminAcademy} />
         <Route path="/admin/featured" component={AdminFeatured} />
         <Route path="/admin/about" component={AdminAbout} />
+        <Route path="/admin/designs" component={AdminDesigns} />
         <Route path="/admin/client-logos" component={AdminClientLogos} />
         <Route path="/admin/content-areas" component={AdminContentAreas} />
         <Route path="/admin/newsletter" component={AdminNewsletter} />

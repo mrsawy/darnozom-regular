@@ -1,4 +1,5 @@
 import { DEFAULT_ABOUT, mergeAbout, type AboutContent } from "./about-content";
+import { DEFAULT_DESIGNS, mergeDesigns, type PageDesigns } from "./page-designs";
 import { useQuery } from "@tanstack/react-query";
 import type { ClientLogo, HomeResponse, ItemResponse, ListParams, ListResponse } from "./cms-types";
 
@@ -60,6 +61,15 @@ export function useAboutContent() {
     queryKey: ["cms", "about"],
     queryFn: async () => mergeAbout(await getJson<Partial<AboutContent>>("/api/cms/about")),
     placeholderData: DEFAULT_ABOUT,
+  });
+}
+
+export function usePageDesigns() {
+  return useQuery({
+    queryKey: ["cms", "design"],
+    queryFn: async () => mergeDesigns(await getJson<Partial<PageDesigns>>("/api/cms/design")),
+    placeholderData: DEFAULT_DESIGNS,
+    staleTime: 30_000,
   });
 }
 

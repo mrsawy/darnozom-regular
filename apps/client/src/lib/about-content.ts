@@ -4,6 +4,12 @@ export interface AboutValue { ar: string; en: string }
 /** Everything on /about that the admin can edit. The institutional-structure links stay in code. */
 export interface AboutContent {
   imageUrl: string;
+  /** Images shown beside each section in the "rosewell" About design. */
+  visionImageUrl: string;
+  missionImageUrl: string;
+  approachImageUrl: string;
+  valuesImageUrl: string;
+  structureImageUrl: string;
   titleAr: string; titleEn: string;
   introAr: string; introEn: string;
   visionAr: string; visionEn: string;
@@ -51,6 +57,11 @@ const DEFAULT_VALUES: AboutValue[] = [
 
 export const DEFAULT_ABOUT: AboutContent = {
   imageUrl: "/about-overview.png",
+  visionImageUrl: "/seed/research.webp",
+  missionImageUrl: "/seed/about.webp",
+  approachImageUrl: "/seed/workshop.webp",
+  valuesImageUrl: "/seed/seminar.webp",
+  structureImageUrl: "/seed/academy.webp",
   titleAr: "من نحن", titleEn: "Who We Are",
   introAr: "دار نظم مؤسسة متخصصة في البحوث والاستشارات والتدريب وبناء القدرات في مجالات السياسات العامة والإدارة والقيادة والحوكمة. تضم نخبة من الباحثين والخبراء المتخصصين، وتجمع بين المرجعية الإسلامية والعلوم السياسية والإدارية والخبرة التطبيقية المعاصرة. وتعمل مع الحكومات والمؤسسات العامة والشركات ذات الدور الاستراتيجي والمنظمات غير الربحية على إنتاج المعرفة وصياغة الحلول الداعمة لصنع القرار، وتطوير السياسات وتأهيل القيادات وبناء مؤسسات فاعلة؛ بما يعزز كفاءة الأداء، ويحسّن الخدمات، ويسهم في التنمية وتحقيق المصالح العامة.",
   introEn: "DarNozom is an institution specialized in research, consulting, training, and capacity building in public policy, management, leadership, and governance. It brings together an elite group of researchers and specialized experts, combining an Islamic frame of reference with political and administrative sciences and contemporary applied expertise. It collaborates with governments, public entities, strategically vital companies, and non-profit organizations to generate knowledge, formulate decision-support solutions, develop policies, qualify leaders, and build effective institutions—thereby enhancing performance efficiency, improving public services, and contributing to development and the public interest.",
@@ -70,7 +81,7 @@ export function mergeAbout(stored: Partial<AboutContent> | null | undefined): Ab
   for (const [k, v] of Object.entries(stored ?? {})) {
     if (!(k in DEFAULT_ABOUT)) continue;
     if (Array.isArray(v)) { if (v.length > 0) out[k] = v; }
-    else if (typeof v === "string" && (v.trim() !== "" || k === "imageUrl")) out[k] = v;
+    else if (typeof v === "string" && (v.trim() !== "" || k.endsWith("ImageUrl") || k === "imageUrl")) out[k] = v;
   }
   return out as unknown as AboutContent;
 }

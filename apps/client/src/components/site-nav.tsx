@@ -4,6 +4,7 @@ import { ChevronDown, Menu, Search, X } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { MAIN_NAV, activeNavKey, type NavEntry } from "@/lib/nav-config";
 import { BRAND } from "@/lib/site-constants";
+import type { NavVariant } from "@/lib/page-designs";
 import { MobileAuthSlot } from "@/components/nav/account-controls";
 import { useCart } from "@/lib/cart-context";
 import SearchSection from "@/components/search-section";
@@ -13,9 +14,9 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 const LOGO = `${import.meta.env.BASE_URL}darnozom-n-logo-navy.png`;
 const CLOSE_DELAY_MS = 200;
 
-type Props = { mode?: "home" | "page"; theme?: string };
+type Props = { mode?: "home" | "page"; theme?: string; variant?: NavVariant };
 
-export default function SiteNav(_props: Props) {
+export default function SiteNav({ variant = "default" }: Props) {
   const { language, isArabic, toggleLanguage } = useLanguage();
   const { count: cartCount } = useCart();
   const [location, navigate] = useLocation();
@@ -26,6 +27,19 @@ export default function SiteNav(_props: Props) {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navRef = useRef<HTMLElement>(null);
   const t = (ar: string, en: string) => (isArabic ? ar : en);
+  const [scrolled, setScrolled] = useState(false);
+  const overlay = variant === "overlay";
+  const compact = variant === "compact";
+  // Over a hero image the bar is transparent with light text; it turns solid once the page scrolls.
+  const light = overlay && !scrolled;
+
+  useEffect(() => {
+    if (!overlay) return;
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [overlay]);
 
   useEffect(() => {
     setOpenKey(null);
@@ -84,13 +98,17 @@ export default function SiteNav(_props: Props) {
         </div>
       </div>
 
-      <header className="sticky top-0 z-40 bg-white border-b border-line">
-        <div className="mx-auto max-w-[1200px] px-page min-h-[85px] xl:min-h-[100px] flex items-center gap-4 xl:gap-6">
+      <header className={`sticky top-0 z-40 border-b transition-colors duration-300 ${
+        light ? "-mb-[85px] xl:-mb-[100px] border-white/15 bg-gradient-to-b from-black/50 to-transparent text-white"
+          : overlay ? "-mb-[85px] xl:-mb-[100px] border-line bg-white/95 shadow-sm backdrop-blur"
+          : compact ? "border-line bg-white/95 shadow-[0_1px_0_0_hsl(var(--gold))] backdrop-blur" : "border-line bg-white"
+      }`}>
+        <div className={`mx-auto max-w-[1200px] px-page flex items-center gap-4 xl:gap-6 ${compact ? "min-h-[64px] xl:min-h-[72px]" : "min-h-[85px] xl:min-h-[100px]"}`}>
           <Link href="/" className="flex items-center gap-3.5 shrink-0" aria-label={t(BRAND.nameAr, BRAND.nameEn)}>
-            <img src={LOGO} alt="" className="h-11 w-auto" />
+            <img src={LOGO} alt="" className={`w-auto transition ${compact ? "h-9" : "h-11"} ${light ? "brightness-0 invert" : ""}`} />
             <span className="flex flex-col leading-[1.45]">
-              <span className="text-[23px] xl:text-[27px] font-bold text-navy">{t(BRAND.nameAr, BRAND.nameEn)}</span>
-              <span className="text-[11px] xl:text-xs text-ink-muted">{t(BRAND.taglineAr, BRAND.taglineEn)}</span>
+              <span className={`font-bold ${light ? "text-white" : "text-navy"} ${compact ? "text-[20px] xl:text-[22px]" : "text-[23px] xl:text-[27px]"}`}>{t(BRAND.nameAr, BRAND.nameEn)}</span>
+              <span className={`text-[11px] xl:text-xs ${light ? "text-white/75" : "text-ink-muted"}`}>{t(BRAND.taglineAr, BRAND.taglineEn)}</span>
             </span>
           </Link>
 
@@ -101,6 +119,7 @@ export default function SiteNav(_props: Props) {
                 entry={entry}
                 isArabic={isArabic}
                 isActive={active === entry.key}
+                light={light}
                 isOpen={openKey === entry.key}
                 onOpen={() => {
                   cancelClose();
@@ -113,11 +132,11 @@ export default function SiteNav(_props: Props) {
             ))}
           </nav>
 
-          <span className="hidden 2xl:block ms-auto text-sm font-bold tracking-[0.35em] text-navy" dir="ltr">DARNOZOM</span>
+          <span className={`hidden 2xl:block ms-auto text-sm font-bold tracking-[0.35em] ${light ? "text-white" : "text-navy"}`} dir="ltr">DARNOZOM</span>
 
           <button
             type="button"
-            className="xl:hidden ms-auto inline-flex items-center justify-center w-11 h-11 text-navy"
+            className={`xl:hidden ms-auto inline-flex items-center justify-center w-11 h-11 ${light ? "text-white" : "text-navy"}`}
             onClick={() => setMobileOpen(true)}
             aria-label={t("فتح القائمة", "Open menu")}
           >
@@ -158,9 +177,9 @@ export default function SiteNav(_props: Props) {
 }
 
 function DesktopItem({
-  entry, isArabic, isActive, isOpen, onOpen, onToggle, onClose, onLeave,
+  entry, isArabic, isActive, isOpen, light, onOpen, onToggle, onClose, onLeave,
 }: {
-  entry: NavEntry; isArabic: boolean; isActive: boolean; isOpen: boolean;
+  entry: NavEntry; isArabic: boolean; isActive: boolean; isOpen: boolean; light: boolean;
   onOpen: () => void; onToggle: () => void; onClose: () => void; onLeave: () => void;
 }) {
   const panelId = useId();
@@ -179,7 +198,7 @@ function DesktopItem({
           href={entry.href}
           aria-current={isActive ? "page" : undefined}
           className={`px-1.5 h-full inline-flex items-center whitespace-nowrap font-semibold border-b-2 transition-colors ${
-            isActive ? "text-navy border-gold" : "text-ink border-transparent hover:text-navy"
+            isActive ? `${light ? "text-white" : "text-navy"} border-gold` : `${light ? "text-white/90 hover:text-white" : "text-ink hover:text-navy"} border-transparent`
           }`}
         >
           {label}
@@ -194,7 +213,7 @@ function DesktopItem({
         href={entry.href}
         aria-current={isActive ? "page" : undefined}
         className={`ps-1.5 h-full inline-flex items-center whitespace-nowrap font-semibold border-b-2 transition-colors ${
-          isActive ? "text-navy border-gold" : "text-ink border-transparent hover:text-navy"
+          isActive ? `${light ? "text-white" : "text-navy"} border-gold` : `${light ? "text-white/90 hover:text-white" : "text-ink hover:text-navy"} border-transparent`
         }`}
       >
         {label}
@@ -206,7 +225,7 @@ function DesktopItem({
         aria-controls={panelId}
         aria-label={isArabic ? `فتح قائمة ${entry.labelAr}` : `Open ${entry.labelEn} menu`}
         onClick={onToggle}
-        className="w-4 h-11 inline-flex items-center justify-center text-ink-muted hover:text-navy"
+        className={`w-4 h-11 inline-flex items-center justify-center ${light ? "text-white/80 hover:text-white" : "text-ink-muted hover:text-navy"}`}
       >
         <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden />
       </button>
