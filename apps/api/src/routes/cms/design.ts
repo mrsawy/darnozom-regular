@@ -11,7 +11,7 @@ const router = Router();
 
 const designInput = z
   .object({
-    homeHero: z.enum(["classic", "split", "centered", "magazine", "thumbs", "sidebar", "jusoor", "masarat", "rosewell"]),
+    homeHero: z.enum(["classic", "split", "centered", "magazine", "thumbs", "sidebar", "jusoor", "masarat", "rosewell", "mokha"]),
     about: z.enum(["classic", "split", "editorial", "immersive", "rosewell"]),
   })
   .partial()

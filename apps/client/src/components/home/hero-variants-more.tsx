@@ -236,3 +236,56 @@ function GlassCard({ card, lang, n, current, onSelect }: { card: FeaturedCard; l
     </li>
   );
 }
+
+/* ───────── Mokha: news-portal hero — big slide with a 01/06 counter beside a stack of items ───────── */
+export function MokhaHero({ cards }: HeroProps) {
+  const { lang, s, reduce, t, card, c, Arrow, label } = useHero(cards);
+  const others = cards.map((o, i) => ({ o, i })).filter(({ i }) => i !== s.index).slice(0, 5);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    <section role="region" aria-roledescription="carousel" aria-label={label} {...s.handlers} className="w-full bg-white py-4 text-ink lg:py-5">
+      <h1 className="sr-only">{label}</h1>
+      <div className={`mx-auto grid ${HOME_MAX_W} ${HOME_PX} gap-4 ${others.length ? "lg:grid-cols-[2fr_1fr]" : ""}`}>
+        <div className="relative isolate flex min-h-[340px] flex-col justify-end overflow-hidden bg-navy-deep text-white lg:min-h-[440px]">
+          <motion.div key={`i-${card.id}`} {...fade(reduce)} className="absolute inset-0 -z-20"><CardImage card={card} lang={lang} /></motion.div>
+          <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          {cards.length > 1 && (
+            <div className="absolute end-4 top-4 flex items-center gap-2 bg-black/50 px-3 py-1.5 text-sm font-bold tabular-nums backdrop-blur" dir="ltr">
+              <button type="button" onClick={s.prev} aria-label={t("العنصر السابق", "Previous item")} className="hover:text-gold-light">‹</button>
+              <span>{pad(s.index + 1)}<span className="text-white/50"> / {pad(cards.length)}</span></span>
+              <button type="button" onClick={s.next} aria-label={t("العنصر التالي", "Next item")} className="hover:text-gold-light">›</button>
+            </div>
+          )}
+          <motion.div key={card.id} initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl p-5 lg:p-8">
+            {c.badge && <span className="inline-block bg-gold-light px-3 py-1 text-xs font-bold text-ink">{c.badge}</span>}
+            <h2 className="mt-3 text-2xl font-bold leading-snug lg:text-4xl">{c.title}</h2>
+            {c.summary && <p className="mt-2 text-white/85 line-clamp-2">{c.summary}</p>}
+            <CardLink href={card.href} className="mt-2 inline-flex min-h-10 items-center gap-2 font-bold text-gold-light hover:underline">{c.cta} <Arrow className="h-4 w-4" aria-hidden /></CardLink>
+          </motion.div>
+          <div aria-hidden className="h-1 w-full bg-white/20"><div className="h-full bg-gold-light transition-all" style={{ width: `${((s.index + 1) / cards.length) * 100}%` }} /></div>
+        </div>
+        {others.length > 0 && (
+          <ul className="m-0 flex list-none gap-3 overflow-x-auto p-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:divide-y lg:divide-line" aria-label={t("المزيد من المختارات", "More highlights")}>
+            {others.map(({ o, i }) => <MokhaRow key={o.id} card={o} lang={lang} onSelect={() => s.go(i)} />)}
+          </ul>
+        )}
+      </div>
+      <p className="sr-only" aria-live="polite">{c.title}</p>
+    </section>
+  );
+}
+
+function MokhaRow({ card, lang, onSelect }: { card: FeaturedCard; lang: "ar" | "en"; onSelect: () => void }) {
+  const c = useCardText(card, lang);
+  return (
+    <li className="w-[78vw] shrink-0 sm:w-[48vw] lg:w-auto lg:flex-1 lg:shrink">
+      <button type="button" onClick={onSelect} aria-label={c.title} className="group flex h-full w-full items-center gap-3 py-2 text-start lg:py-1.5">
+        <span className="h-16 w-24 shrink-0 overflow-hidden bg-mist lg:h-full lg:max-h-[72px]"><CardImage card={card} lang={lang} className="h-full w-full object-cover transition group-hover:scale-105" /></span>
+        <span className="min-w-0">
+          {c.badge && <span className="block text-xs font-bold text-gold">{c.badge}</span>}
+          <span className="block text-sm font-semibold leading-snug text-navy line-clamp-2 group-hover:text-gold">{c.title}</span>
+        </span>
+      </button>
+    </li>
+  );
+}

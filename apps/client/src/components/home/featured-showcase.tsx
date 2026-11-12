@@ -7,7 +7,7 @@ import type { FeaturedCard } from "@/lib/cms-types";
 import type { HomeHeroDesign } from "@/lib/page-designs";
 import { CardLink, useCardText } from "./hero-shared";
 import { CenteredHero, MagazineHero, SplitHero } from "./hero-variants";
-import { JusoorHero, MasaratHero, RosewellHero, SidebarHero, ThumbsHero } from "./hero-variants-more";
+import { JusoorHero, MasaratHero, MokhaHero, RosewellHero, SidebarHero, ThumbsHero } from "./hero-variants-more";
 
 export function FeaturedShowcase({ cards, design = "classic" }: { cards: FeaturedCard[]; design?: HomeHeroDesign }) {
   if (cards.length === 0) return null;
@@ -18,6 +18,7 @@ export function FeaturedShowcase({ cards, design = "classic" }: { cards: Feature
   if (design === "sidebar") return <SidebarHero cards={cards} />;
   if (design === "jusoor") return <JusoorHero cards={cards} />;
   if (design === "masarat") return <MasaratHero cards={cards} />;
+  if (design === "mokha") return <MokhaHero cards={cards} />;
   if (design === "rosewell") return <RosewellHero cards={cards} />;
   return <ClassicHero cards={cards} />;
 }

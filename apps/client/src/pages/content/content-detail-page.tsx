@@ -50,6 +50,12 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
         {item && (
           <div className="grid gap-10 lg:grid-cols-[1fr_320px]">
             <article>
+              {/* Cover first, shown whole (never cropped), at the very start of the article. */}
+              {item.coverImageUrl && (
+                <div className="mb-6 overflow-hidden rounded-[4px] bg-mist">
+                  <img src={item.coverImageUrl} alt="" className="mx-auto block h-auto max-h-[80vh] w-full object-contain" />
+                </div>
+              )}
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <CategoryBadge>{typeBadge(item.type, item.details, lang)}</CategoryBadge>
                 <CategoryBadge tone="outline">{item.isExternal ? t("مرجع من جهة أخرى", "External reference") : t("إصدار دار نظم", "DarNozom publication")}</CategoryBadge>
@@ -61,7 +67,6 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
                 {[pickLang(item, "author", lang), formatDate(item.publishedAt, lang)].filter(Boolean).join(" · ")}
               </p>
               {pickLang(item, "summary", lang) && <p className="mt-5 text-lg text-ink">{pickLang(item, "summary", lang)}</p>}
-              {item.coverImageUrl && <img src={item.coverImageUrl} alt="" className="mt-6 w-full max-h-[460px] object-cover rounded-[4px]" />}
               {lang === "en" && !item.bodyEn && item.bodyAr && (
                 <p className="mt-6 text-sm bg-mist px-4 py-2 text-navy">This item has not been translated yet. The Arabic original is shown below.</p>
               )}

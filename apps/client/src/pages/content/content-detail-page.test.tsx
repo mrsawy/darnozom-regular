@@ -56,4 +56,14 @@ describe("ContentDetailPage", () => {
     setup("news-events", "e1", { status: 200, body: { item: { ...obs, type: "event", details: { kind: "seminar", registration: "interest", mode: "in_person" } }, related: [] } });
     expect(await screen.findByRole("link", { name: "سجّل اهتمامك" })).toBeTruthy();
   });
+
+  it("shows the cover image uncropped, before the title", async () => {
+    setup("observatory", "o1", { status: 200, body: { item: { ...obs, coverImageUrl: "/c.jpg" }, related: [] } });
+    const h1 = await screen.findByRole("heading", { level: 1, name: "رصد" });
+    const img = document.querySelector('article img[src="/c.jpg"]') as HTMLImageElement;
+    expect(img).toBeTruthy();
+    expect(img.className).toContain("object-contain");
+    expect(img.className).not.toContain("object-cover");
+    expect(img.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

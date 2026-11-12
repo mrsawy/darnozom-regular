@@ -66,6 +66,12 @@ const HERO_PREVIEWS: Record<string, React.ReactNode> = {
         <div className="space-y-1 border-s border-[#D7E0E8] ps-1">{[0, 1, 2].map((i) => <div key={i} className="flex gap-1"><div className="h-3 w-4 bg-[#7d93a8]" /><Bar c={N} /></div>)}</div></div>
     </div>
   ),
+  mokha: (
+    <div className="grid h-full grid-cols-[2fr_1fr] gap-1.5 bg-white p-1.5">
+      <div className={`${N} relative flex flex-col justify-end gap-1 p-1.5`}><div className="absolute end-1 top-1 h-2 w-6 bg-white/30" /><Bar c={G} w="w-5" /><Bar c="bg-white" w="w-3/4" h="h-1.5" /><div className="mt-0.5 h-0.5 w-full bg-white/20"><div className={`${G} h-full w-1/6`} /></div></div>
+      <div className="flex flex-col gap-1">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="flex flex-1 items-center gap-0.5 border-b border-[#D7E0E8]"><div className="h-full w-1/3 bg-[#7d93a8]" /><div className="flex-1 space-y-0.5"><Bar c={G} w="w-1/3" /><Bar c={N} /></div></div>)}</div>
+    </div>
+  ),
   rosewell: (
     <div className={`${N} flex h-full flex-col justify-between p-2`}>
       <div className="h-1 w-full bg-white/20" />

@@ -3,7 +3,7 @@ export function RichHtml({ html, className = "" }: { html: string; className?: s
   if (!html) return null;
   return (
     <div
-      className={`prose prose-lg max-w-none prose-headings:text-navy prose-headings:font-bold prose-a:text-navy prose-blockquote:border-gold prose-p:text-ink ${className}`}
+      className={`prose prose-lg max-w-none prose-headings:text-navy prose-headings:font-bold prose-a:text-navy prose-blockquote:border-gold prose-p:text-ink prose-img:h-auto prose-img:max-w-full prose-img:object-contain ${className}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

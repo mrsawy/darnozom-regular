@@ -1,4 +1,4 @@
-export const HOME_HERO_DESIGNS = ["classic", "split", "centered", "magazine", "thumbs", "sidebar", "jusoor", "masarat", "rosewell"] as const;
+export const HOME_HERO_DESIGNS = ["classic", "split", "centered", "magazine", "thumbs", "sidebar", "jusoor", "masarat", "rosewell", "mokha"] as const;
 export const ABOUT_DESIGNS = ["classic", "split", "editorial", "immersive", "rosewell"] as const;
 export type HomeHeroDesign = (typeof HOME_HERO_DESIGNS)[number];
 export type AboutDesign = (typeof ABOUT_DESIGNS)[number];
@@ -25,13 +25,14 @@ export const HOME_HERO_META: Record<HomeHeroDesign, { titleAr: string; descAr: s
   jusoor: { titleAr: "على طريقة جسور", descAr: "صورة بعرض الصفحة وعنوان كبير أسفلها وأزرار تنقل دائرية، وشريط تنقل نظيف." },
   masarat: { titleAr: "على طريقة مسارات", descAr: "مدمج وأنيق: بطاقة رئيسية وقائمة عناصر مرتبة، مع مسافات أصغر بين الأقسام." },
   rosewell: { titleAr: "على طريقة روزويل", descAr: "غلاف كبير بشريط تنقل شفاف، وبطاقات زجاجية مرقّمة للعناصر في أسفله." },
+  mokha: { titleAr: "على طريقة المخا", descAr: "نمط بوابة إخبارية: شريحة كبيرة بعدّاد «01/06» بجانب قائمة عناصر بصور مصغّرة وتصنيف وعنوان." },
 };
 
 /** The navbar look that goes best with each hero. */
 export type NavVariant = "default" | "compact" | "overlay";
 export const HERO_NAV: Record<HomeHeroDesign, NavVariant> = {
   classic: "default", split: "default", centered: "overlay", magazine: "compact",
-  thumbs: "default", sidebar: "default", jusoor: "compact", masarat: "compact", rosewell: "overlay",
+  thumbs: "default", sidebar: "default", jusoor: "compact", masarat: "compact", rosewell: "overlay", mokha: "compact",
 };
 
 export const ABOUT_META: Record<AboutDesign, { titleAr: string; descAr: string }> = {
