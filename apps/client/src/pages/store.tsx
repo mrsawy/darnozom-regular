@@ -59,7 +59,7 @@ export default function StorePage() {
     <div className="min-h-screen bg-[hsl(43_33%_97%)]">
       <SiteNav />
 
-      <section className="relative pt-28 pb-12 px-4 overflow-hidden border-b border-border/60 bg-[hsl(43_33%_97%)]">
+      <section className="relative pt-10 pb-12 px-4 overflow-hidden border-b border-border/60 bg-[hsl(43_33%_97%)]">
         <div
           className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(24,54,80,0.10),_transparent_60%)]"
           aria-hidden

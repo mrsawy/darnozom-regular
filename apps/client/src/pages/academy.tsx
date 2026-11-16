@@ -25,7 +25,7 @@ export default function Academy() {
       />
 
       {/* Learning Tracks */}
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <div className="mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-primary mb-3">
@@ -60,7 +60,7 @@ export default function Academy() {
       </section>
 
       {/* Programmes & Institutional Training */}
-      <section className="py-24 bg-background border-b border-border">
+      <section className="py-14 bg-background border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <div className="max-w-2xl mb-8">
             <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">

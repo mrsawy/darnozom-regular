@@ -36,7 +36,7 @@ export default function AcademyCoursesPage() {
 
       {/* Hero */}
       <section className="bg-primary text-primary-foreground border-b border-primary">
-        <div className="container mx-auto px-6 md:px-12 pt-32 pb-20">
+        <div className="container mx-auto px-6 md:px-12 pt-12 pb-20">
           <nav className="flex items-center gap-2 text-xs text-white/60 mb-8" aria-label="breadcrumb">
             <Link href="/" className="hover:text-secondary">{isAr ? "الرئيسية" : "Home"}</Link>
             <ChevronLeft className={`w-3 h-3 ${isAr ? "" : "rotate-180"}`} />
@@ -64,7 +64,7 @@ export default function AcademyCoursesPage() {
       </section>
 
       {/* Tracks */}
-      <section className="py-20 bg-background">
+      <section className="py-12 bg-background">
         <div className="container mx-auto px-6 md:px-12">
           <h2 className="text-2xl font-bold text-primary mb-10">
             {isAr ? "المسارات التعليمية" : "Learning Tracks"}
@@ -97,7 +97,7 @@ export default function AcademyCoursesPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="py-24 bg-[#EAF0F6] text-primary">
+      <section className="py-14 bg-[#EAF0F6] text-primary">
         <div className="container mx-auto px-6 md:px-12 max-w-4xl text-center">
           <h2 className="font-black mb-4 leading-tight" style={{ fontSize: "clamp(1.75rem, 3vw, 2.5rem)" }}>
             {isAr ? "تريد التسجيل أو الاستفسار؟" : "Want to register or enquire?"}

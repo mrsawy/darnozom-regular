@@ -6,6 +6,7 @@ import { areaExists } from "../../lib/cms/areas";
 import { notifyIfRequested } from "../../lib/newsletter/notify";
 import {
   adminList,
+  bookPublicationCounts,
   createItem,
   deleteItem,
   getItemById,
@@ -22,6 +23,7 @@ const listQuery = z.object({
   type: z.enum(CONTENT_TYPES),
   status: z.enum(CONTENT_STATUSES).optional(),
   q: z.string().trim().max(100).optional(),
+  includeResearch: z.enum(["1", "true"]).optional().transform((v) => v !== undefined),
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });
@@ -39,6 +41,15 @@ router.get("/admin/cms/items", requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Failed to list content" });
+  }
+});
+
+router.get("/admin/cms/book-usage", requireAdmin, async (_req, res) => {
+  try {
+    return res.json({ counts: await bookPublicationCounts() });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Failed to load book usage" });
   }
 });
 

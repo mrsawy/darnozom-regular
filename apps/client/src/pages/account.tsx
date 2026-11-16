@@ -787,7 +787,7 @@ export default function AccountPage() {
   return (
     <div className="min-h-[100dvh] bg-background islamic-pattern flex flex-col" dir={isAr ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
-      <main className="flex-1 pt-28 pb-16">
+      <main className="flex-1 pt-10 pb-16">
         <div className="max-w-5xl mx-auto px-4 lg:px-6 space-y-6">
           {/* Header */}
           <header>

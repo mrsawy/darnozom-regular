@@ -8,6 +8,7 @@ export interface SectionTab {
   labelEn: string;
   types: ContentType[];
   kind?: string;
+  publicationKind?: string;
   books?: boolean;
   defaultWhen?: "upcoming" | "past";
   subKinds?: Record<string, { ar: string; en: string }>;
@@ -16,6 +17,8 @@ export interface SectionConfig {
   key: SectionKey;
   path: string;
   types: ContentType[];
+  /** Also list publications of this kind (research papers) alongside `types`. */
+  publicationKind?: string;
   titleAr: string; titleEn: string;
   introAr: string; introEn: string;
   tabs?: SectionTab[];
@@ -23,8 +26,8 @@ export interface SectionConfig {
 }
 
 // Prototype's `publications()` header blurb (files/source/app.full.js) — shared verbatim across articles/studies/publications.
-const KNOWLEDGE_INTRO_AR = "إنتاج دار نظم في الكتب والمقالات والدراسات والأبحاث العلمية والدوريات والمرصد.";
-const KNOWLEDGE_INTRO_EN = "DarNozom outputs in books, articles, studies, research papers, periodicals and the Observatory.";
+const KNOWLEDGE_INTRO_AR = "إنتاج دار نظم في الكتب والمقالات والدراسات والأبحاث العلمية والمرصد.";
+const KNOWLEDGE_INTRO_EN = "DarNozom outputs in books, articles, studies, research papers and the Observatory.";
 
 export const SECTIONS: Record<SectionKey, SectionConfig> = {
   observatory: {
@@ -48,8 +51,8 @@ export const SECTIONS: Record<SectionKey, SectionConfig> = {
     filters: ["area"],
   },
   studies: {
-    key: "studies", path: "/studies", types: ["study"],
-    titleAr: "دراسات", titleEn: "Studies",
+    key: "studies", path: "/studies", types: ["study", "publication"], publicationKind: "research",
+    titleAr: "الدراسات والأبحاث", titleEn: "Studies and Research",
     introAr: KNOWLEDGE_INTRO_AR, introEn: KNOWLEDGE_INTRO_EN,
     filters: ["area"],
   },
@@ -61,10 +64,8 @@ export const SECTIONS: Record<SectionKey, SectionConfig> = {
       { value: "all", labelAr: "الكل", labelEn: "All", types: ["publication", "article", "study", "observatory"] },
       { value: "books", labelAr: "كتب", labelEn: "Books", types: ["publication"], books: true },
       { value: "report", labelAr: "تقارير", labelEn: "Reports", types: ["publication"], kind: "report" },
-      { value: "periodical", labelAr: "دوريات", labelEn: "Periodicals", types: ["publication"], kind: "periodical" },
-      { value: "research", labelAr: "أبحاث علمية", labelEn: "Research Papers", types: ["publication"], kind: "research" },
       { value: "articles", labelAr: "مقالات", labelEn: "Articles", types: ["article"] },
-      { value: "studies", labelAr: "دراسات", labelEn: "Studies", types: ["study"] },
+      { value: "studies", labelAr: "الدراسات والأبحاث", labelEn: "Studies and Research", types: ["study", "publication"], publicationKind: "research" },
       { value: "observatory", labelAr: "المرصد", labelEn: "Observatory", types: ["observatory"] },
     ],
     filters: ["area"],

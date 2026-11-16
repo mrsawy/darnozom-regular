@@ -1116,7 +1116,7 @@ export default function CheckoutPage() {
                     key={it.lineItemId}
                     className="flex items-start gap-3 text-sm"
                   >
-                    <div className="w-12 h-12 shrink-0 bg-muted/40 border border-border overflow-hidden">
+                    <div className="w-10 aspect-[7/9] shrink-0 bg-muted/40 border border-border overflow-hidden">
                       {it.thumbnail ? (
                         <img src={it.thumbnail} alt="" className="w-full h-full object-cover" />
                       ) : (

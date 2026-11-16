@@ -133,7 +133,7 @@ export default function CheckoutManualPage() {
   const shell = (children: React.ReactNode) => (
     <div className="min-h-screen bg-background" dir={lang === "ar" ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
-      <div className="container mx-auto max-w-xl px-4 pt-28 pb-16 space-y-6">{children}</div>
+      <div className="container mx-auto max-w-xl px-4 pt-10 pb-16 space-y-6">{children}</div>
     </div>
   );
 

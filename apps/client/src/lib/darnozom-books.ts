@@ -8,6 +8,8 @@ export interface BookCard { id: string; title: string; imageUrl: string; href: s
 
 export interface PublicationCardData {
   key: string;
+  /** Dashboard page for editing this card (CMS items only). */
+  editHref?: string;
   kind: "book" | "report" | "periodical" | "research";
   titleAr: string; titleEn: string;
   summaryAr: string; summaryEn: string;
@@ -54,6 +56,7 @@ export function mergePublications(items: ContentItem[], books: BookCard[], n: nu
     kind: (i.details?.kind ?? "report") as PublicationCardData["kind"],
     titleAr: i.titleAr, titleEn: i.titleEn, summaryAr: i.summaryAr, summaryEn: i.summaryEn,
     imageUrl: i.coverImageUrl, href: contentPath("publication", i.slug), date: i.publishedAt,
+    editHref: `/admin/content/${i.type}/${i.id}`,
   }));
   const fromBooks: PublicationCardData[] = books.map((b) => ({
     key: `book:${b.id}`, kind: "book",

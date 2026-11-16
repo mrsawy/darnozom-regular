@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { FittedCover } from "@/components/content/fitted-cover";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { Link, useSearch } from "wouter";
 import { ExternalLink } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
@@ -52,9 +54,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
             <article>
               {/* Cover first, shown whole (never cropped), at the very start of the article. */}
               {item.coverImageUrl && (
-                <div className="mb-6 overflow-hidden rounded-[4px] bg-mist">
-                  <img src={item.coverImageUrl} alt="" className="mx-auto block h-auto max-h-[80vh] w-full object-contain" />
-                </div>
+                <FittedCover src={item.coverImageUrl} className="mb-6 rounded-[4px]" />
               )}
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <CategoryBadge>{typeBadge(item.type, item.details, lang)}</CategoryBadge>
@@ -62,6 +62,7 @@ export default function ContentDetailPage({ section, slug }: { section: SectionK
                 {item.area && <span className="text-sm text-ink-muted">{labelFor(item.area, lang)}</span>}
                 <RegionTag item={item} lang={lang} />
               </div>
+              <AdminEditButton href={`/admin/content/${item.type}/${item.id}`} className="mb-3" />
               <h1 className="text-3xl lg:text-4xl font-bold text-navy leading-tight">{pickLang(item, "title", lang)}</h1>
               <p className="mt-3 text-sm text-ink-muted">
                 {[pickLang(item, "author", lang), formatDate(item.publishedAt, lang)].filter(Boolean).join(" · ")}

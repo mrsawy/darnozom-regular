@@ -11,6 +11,7 @@ import { ImageUploadField } from "@/pages/admin/_image-upload";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { FileUploadField } from "@/components/admin/file-upload-field";
 import { Button } from "@/components/ui/button";
+import { StoreBookPicker } from "@/components/admin/store-book-picker";
 import { STATUS_LABELS } from "./content-list";
 import { DEFAULT_EVENT_TZ, browserTimeZone, fromZonedInput, toZonedInput } from "@/lib/datetime";
 import NotFound from "@/pages/not-found";
@@ -73,7 +74,6 @@ function CommentsModeration({ itemId, show }: { itemId: string; show: (m: string
 }
 
 const OTHER_SITE_TYPES = [
-  { labelAr: "كتاب", href: "/admin/books" },
   { labelAr: "مقال", href: "/admin/content/article/new" },
   { labelAr: "دراسة", href: "/admin/content/study/new" },
   { labelAr: "مادة المرصد", href: "/admin/content/observatory/new" },
@@ -117,6 +117,21 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
   const setD = (k: string, v: unknown) => setForm((f) => ({ ...f, details: { ...f.details, [k]: v } }));
   const sfx = lang === "ar" ? "Ar" : "En";
+  const [pickedBookId, setPickedBookId] = useState<string | null>(null);
+  const [pickedBookTitle, setPickedBookTitle] = useState("");
+  // Prefill a new publication from a book already added to the bookstore.
+  const pickBook = (b: { id: string; title?: string | null; thumbnail?: string | null; images?: { url: string }[] | null }) => {
+    setPickedBookId(b.id);
+    setPickedBookTitle(b.title ?? b.id);
+    setForm((f) => ({
+      ...f,
+      titleAr: b.title ?? f.titleAr,
+      titleEn: f.titleEn || (b.title ?? ""),
+      coverImageUrl: b.thumbnail ?? b.images?.[0]?.url ?? f.coverImageUrl,
+      externalUrl: `/services/store/books/${b.id}`,
+      details: { ...f.details, kind: "book" },
+    }));
+  };
 
   const save = async () => {
     setSaving(true); setIssues([]);
@@ -174,7 +189,7 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
               {type === "publication" && f.key === "kind" && isNew && OTHER_SITE_TYPES.map((o) => <option key={o.href} value={`goto:${o.href}`}>{o.labelAr}</option>)}
             </select>
             {type === "publication" && f.key === "kind" && isNew && (
-              <span className="block text-xs text-ink-muted mt-1">ملاحظة: اختيار كتاب أو مقال أو دراسة أو مادة المرصد سينقلك إلى الصفحة المسؤولة عن إضافة هذا النوع.</span>
+              <span className="block text-xs text-ink-muted mt-1">ملاحظة: اختيار مقال أو دراسة أو مادة المرصد سينقلك إلى الصفحة المسؤولة عن إضافة هذا النوع.</span>
             )}
           </label>
         );
@@ -266,6 +281,15 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
         </ul>
       )}
 
+      {type === "publication" && isNew && (
+        <section className="mb-6 border border-line rounded p-3 space-y-2" aria-label="اختيار كتاب من المتجر">
+          <h2 className="text-sm font-semibold">اختيار كتاب من متجر الكتب (اختياري)</h2>
+          <p className="text-xs text-ink-muted">اختر كتابًا مضافًا بالفعل في المتجر لتعبئة العنوان والغلاف ورابط الكتاب تلقائيًا، أو اتركه وأدخل البيانات يدويًا.</p>
+          <StoreBookPicker selectedId={pickedBookId} onPick={pickBook} />
+          {pickedBookId && <p role="status" className="text-sm text-green-700">✓ تم اختيار «{pickedBookTitle}» — عُبّئ العنوان والغلاف والرابط أدناه.</p>}
+        </section>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-3 mb-6">
         <label className="block">
           <span className="text-sm font-semibold">الحالة</span>
@@ -334,7 +358,7 @@ function ContentEditor({ type, id }: { type: ContentType; id: string }) {
         {!isNew && <CommentsModeration itemId={id} show={show} />}
         <div className="sm:col-span-3">
           <span className="text-sm font-semibold">صورة الغلاف</span>
-          <ImageUploadField value={form.coverImageUrl} onChange={(v) => set("coverImageUrl", v)} folder="cms" />
+          <ImageUploadField value={form.coverImageUrl} onChange={(v) => set("coverImageUrl", v)} folder="cms" aspect={4 / 3} maxWidth={1600} />
         </div>
       </div>
 

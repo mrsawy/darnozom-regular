@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { Link, useRoute } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -190,7 +191,7 @@ export default function StoreCourseDetailPage() {
       <SiteNav />
 
       {loading && (
-        <div className="pt-32 pb-20 px-4">
+        <div className="pt-12 pb-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="grid lg:grid-cols-[420px_1fr] gap-12">
               <div className="aspect-square rounded-3xl bg-card animate-pulse" />
@@ -206,7 +207,7 @@ export default function StoreCourseDetailPage() {
       )}
 
       {!loading && error && (
-        <div className="pt-32 pb-20 px-4">
+        <div className="pt-12 pb-20 px-4">
           <div className="container mx-auto max-w-md">
             <FetchError onRetry={() => setReloadKey((k) => k + 1)} />
           </div>
@@ -214,7 +215,7 @@ export default function StoreCourseDetailPage() {
       )}
 
       {!loading && !error && !course && (
-        <div className="pt-32 pb-20 px-4">
+        <div className="pt-12 pb-20 px-4">
           <div className="container mx-auto max-w-md text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-card border border-border flex items-center justify-center">
               <GraduationCap className="w-10 h-10 text-muted-foreground/40" />
@@ -239,7 +240,7 @@ export default function StoreCourseDetailPage() {
             <div className="absolute -top-20 right-1/4 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl" />
           </div>
 
-          <section className="relative pt-28 pb-16 px-4 bg-[#EAF0F6]">
+          <section className="relative pt-10 pb-16 px-4 bg-[#EAF0F6]">
             <div className="container mx-auto max-w-6xl">
               {/* Breadcrumb */}
               <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-10">
@@ -304,6 +305,7 @@ export default function StoreCourseDetailPage() {
                   </div>
 
                   {/* Title */}
+                  <AdminEditButton href="/admin/store-courses" className="mb-3" />
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight">
                     {title}
                   </h1>

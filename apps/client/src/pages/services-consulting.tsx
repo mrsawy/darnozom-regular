@@ -59,7 +59,7 @@ export default function ServicesConsulting() {
       />
 
       {/* Consulting Domains */}
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-10">
             {isAr ? "محالات الاستشارات" : "Consulting Areas"}
@@ -87,7 +87,7 @@ export default function ServicesConsulting() {
       </section>
 
       {/* Outputs and cooperation */}
-      <section className="py-24 bg-[#F5F0E8] border-b border-border">
+      <section className="py-14 bg-[#F5F0E8] border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
             {isAr ? "المخرجات وطريقة التعاون" : "Outputs and Cooperation"}

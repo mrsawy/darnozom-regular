@@ -148,7 +148,7 @@ export default function AcademyApplyPage() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-12 pb-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -223,7 +223,7 @@ export default function AcademyApplyPage() {
       </section>
 
       {/* Path 1: By Program */}
-      <section className="py-20 bg-background border-b border-border" id="by-program">
+      <section className="py-12 bg-background border-b border-border" id="by-program">
         <div className="container mx-auto px-6 md:px-12">
           <div className="max-w-3xl mb-10">
             <div className="flex items-center gap-3 mb-4">
@@ -295,7 +295,7 @@ export default function AcademyApplyPage() {
       </section>
 
       {/* Path 2: By Level */}
-      <section className="py-20 bg-muted/20 border-b border-border" id="by-level">
+      <section className="py-12 bg-muted/20 border-b border-border" id="by-level">
         <div className="container mx-auto px-6 md:px-12">
           <div className="max-w-3xl mb-10">
             <div className="flex items-center gap-3 mb-4">
@@ -343,7 +343,7 @@ export default function AcademyApplyPage() {
       </section>
 
       {/* Path 3: By Diploma */}
-      <section className="py-20 bg-background border-b border-border" id="by-diploma">
+      <section className="py-12 bg-background border-b border-border" id="by-diploma">
         <div className="container mx-auto px-6 md:px-12">
           <div className="grid lg:grid-cols-[1fr_auto] gap-10 items-end mb-10">
             <div className="max-w-3xl">
@@ -394,7 +394,7 @@ export default function AcademyApplyPage() {
       </section>
 
       {/* Path 4: By Course */}
-      <section className="py-20 bg-muted/20 border-b border-border" id="by-course">
+      <section className="py-12 bg-muted/20 border-b border-border" id="by-course">
         <div className="container mx-auto px-6 md:px-12">
           <div className="grid lg:grid-cols-[1fr_auto] gap-10 items-end mb-10">
             <div className="max-w-3xl">
@@ -445,7 +445,7 @@ export default function AcademyApplyPage() {
       </section>
 
       {/* Other options: Institutional + Consultation */}
-      <section className="py-20 bg-background border-b border-border">
+      <section className="py-12 bg-background border-b border-border">
         <div className="container mx-auto px-6 md:px-12">
           <div className="max-w-3xl mb-10">
             <div className="flex items-center gap-3 mb-4">

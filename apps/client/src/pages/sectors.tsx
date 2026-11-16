@@ -91,7 +91,7 @@ export default function Sectors() {
     <div className="min-h-screen bg-background text-foreground" dir={isArabic ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
 
-      <section className="dark pt-40 pb-20 bg-primary relative overflow-hidden">
+      <section className="dark pt-12 pb-20 bg-primary relative overflow-hidden">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_30%_50%,#B59B6B_0%,transparent_60%)]" />
         <div className="max-w-[1250px] mx-auto px-page relative">
           <div className="text-secondary text-xs font-bold tracking-[0.3em] uppercase mb-4">
@@ -104,7 +104,7 @@ export default function Sectors() {
         </div>
       </section>
 
-      <section id="sectors" className="py-24 bg-background">
+      <section id="sectors" className="py-14 bg-background">
         <div className="container mx-auto px-6 md:px-12 max-w-[1100px]">
           <div className="space-y-0 divide-y divide-border">
             {t.items.map((sector, i) => (
@@ -137,7 +137,7 @@ export default function Sectors() {
       </section>
 
       {/* Case studies from our sector portfolio */}
-      <section className="py-24 bg-[#EAF0F6] border-t border-border">
+      <section className="py-14 bg-[#EAF0F6] border-t border-border">
         <div className="container mx-auto px-6 md:px-12">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12">
             <div>

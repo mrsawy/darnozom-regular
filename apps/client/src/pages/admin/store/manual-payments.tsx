@@ -1,3 +1,4 @@
+import { ImageCropperDialog } from "@/components/admin/image-cropper-dialog";
 import { useEffect, useState } from "react";
 import { Loader2, Save, Upload } from "lucide-react";
 import { adminFetch } from "../../../lib/admin-api";
@@ -40,6 +41,7 @@ function MethodCard({
   const [form, setForm] = useState<Method>(initial);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [toCrop, setToCrop] = useState<File | null>(null);
   const set = (k: keyof Method, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   async function uploadQr(file: File) {
@@ -105,6 +107,7 @@ function MethodCard({
         </label>
       ))}
       <div className="space-y-2">
+        <ImageCropperDialog file={toCrop} aspect={1} maxWidth={800} onCancel={() => setToCrop(null)} onCropped={(f) => { setToCrop(null); void uploadQr(f); }} />
         <span className="text-xs font-bold text-muted-foreground">
           صورة رمز QR {form.code === "vodafone_cash" ? "(اختياري)" : ""}
         </span>
@@ -124,7 +127,7 @@ function MethodCard({
               accept="image/png,image/jpeg,image/webp"
               className="hidden"
               disabled={uploading}
-              onChange={(e) => e.target.files?.[0] && uploadQr(e.target.files[0])}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) setToCrop(f); e.target.value = ""; }}
             />
           </label>
           {form.qr_image_url && (

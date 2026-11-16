@@ -13,8 +13,8 @@ const CARDS = [
   },
   {
     href: "/publications",
-    ar: { title: "إصدارات دار نظم", desc: "الإنتاج البحثي والمعرفي لدار نظم من كتب و مقالات ودراسات وأبحاث ودوريات." },
-    en: { title: "DarNozom Publications", desc: "DarNozom's research and knowledge output: articles, studies, research, and periodicals." },
+    ar: { title: "إصدارات دار نظم", desc: "الإنتاج البحثي والمعرفي لدار نظم من كتب و مقالات ودراسات وأبحاث." },
+    en: { title: "DarNozom Publications", desc: "DarNozom's research and knowledge output: articles, studies, and research." },
   },
 ];
 
@@ -26,7 +26,7 @@ export default function PublishingPage() {
     <div className="min-h-screen bg-background text-foreground" dir={isAr ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
 
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-12">
             {isAr ? "المتجر والإصدارات" : "Store and Publications"}

@@ -16,7 +16,7 @@ export default function RelatedBooks({ productIds, isArabic }: { productIds: str
   return (
     <section className="mt-12">
       <h2 className="text-xl font-black text-primary mb-4">{isArabic ? "كتب ذات صلة" : "Related books"}</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {products.map((p) => {
           const info = getBookVariantInfo(p);
           const prices = [...info.paperEditions, ...info.digitalEditions].filter((e) => e.inStock).map((e) => e.price);

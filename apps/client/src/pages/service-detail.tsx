@@ -39,8 +39,8 @@ const SERVICES: Record<string, ServiceData> = {
     slug: "publishing",
     name: { ar: "النشر والمعرفة", en: "Publishing and Knowledge" },
     desc: {
-      ar: "كتب ومقالات وتقارير وأبحاث ودراسات ودوريات تجمع إنتاج دار نظم والمراجع ذات الصلة بمجالاتها.",
-      en: "Books, articles, reports, research, studies and periodicals bringing together DarNozom outputs and relevant references.",
+      ar: "كتب ومقالات وتقارير وأبحاث ودراسات تجمع إنتاج دار نظم والمراجع ذات الصلة بمجالاتها.",
+      en: "Books, articles, reports, research and studies bringing together DarNozom outputs and relevant references.",
     },
     audience: {
       ar: "الباحثون والمؤلفون والمؤسسات والمهنيون.",
@@ -134,7 +134,7 @@ export default function ServiceDetail() {
       />
 
       {/* Who Is This Service For? */}
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
             {isAr ? "لمن نقدم الخدمة؟" : "Who Is This Service For?"}
@@ -146,7 +146,7 @@ export default function ServiceDetail() {
       </section>
 
       {/* Expected Outputs */}
-      <section className="py-24 bg-background border-b border-border">
+      <section className="py-14 bg-background border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
             {isAr ? "المخرجات المتوقعة" : "Expected Outputs"}
@@ -158,7 +158,7 @@ export default function ServiceDetail() {
       </section>
 
       {/* How Does Cooperation Begin? */}
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-6">
             {isAr ? "كيف يبدأ التعاون؟" : "How Does Cooperation Begin?"}

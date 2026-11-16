@@ -280,9 +280,9 @@ export function BookStorePanel({ lockDarnozom = false, defaultDarnozom = false, 
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] bg-card/80 border border-border/60 rounded-2xl animate-pulse" />
+              <div key={i} className="aspect-[7/9] bg-card/80 border border-border/60 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : error ? (
@@ -300,7 +300,7 @@ export function BookStorePanel({ lockDarnozom = false, defaultDarnozom = false, 
           </div>
         ) : (
           <>
-            <motion.div layout className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            <motion.div layout className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
               {items.map((item) => <ProductCard key={item.id} item={item} />)}
             </motion.div>
             {products.length < total && (

@@ -95,7 +95,7 @@ export default function FeaturedBooksSection() {
           .filter((p) =>
             productIsFeatured(p as Parameters<typeof productIsFeatured>[0]),
           )
-          .slice(0, 4)
+          .slice(0, 3)
           .map((p) => toCardItem(p as Parameters<typeof toCardItem>[0], isArabic));
         setItems(featured);
       } catch {
@@ -145,13 +145,13 @@ export default function FeaturedBooksSection() {
         </div>
 
         {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[0, 1, 2, 3].map((i) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[0, 1, 2].map((i) => (
               <div key={i} className="h-72 rounded-xl bg-muted/40 animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {items.map((item) => (
               <ProductCard key={item.id} item={item} />
             ))}

@@ -1,5 +1,3 @@
-import { Link } from "wouter";
-import { ArrowRight } from "lucide-react";
 import SiteNav from "@/components/site-nav";
 import { useLanguage } from "@/lib/language-context";
 import { SiteFooter } from "@/components/site-footer";
@@ -11,22 +9,13 @@ export default function ResearchCenter() {
   const { language } = useLanguage();
   const isAr = language === "ar";
 
+  const desc = { ar: "محتوى مرتبط بمجالات دار نظم.", en: "Content linked to DarNozom fields." };
+  // Same order as the "Publications" menu.
   const exploreLinks = [
-    {
-      href: "/articles",
-      ar: { title: "مقالات", desc: "محتوى مرتبط بمجالات دار نظم." },
-      en: { title: "Articles", desc: "Content linked to DarNozom fields." },
-    },
-    {
-      href: "/studies",
-      ar: { title: "دراسات", desc: "محتوى مرتبط بمجالات دار نظم." },
-      en: { title: "Studies", desc: "Content linked to DarNozom fields." },
-    },
-    {
-      href: "/observatory",
-      ar: { title: "المرصد", desc: "محتوى مرتبط بمجالات دار نظم." },
-      en: { title: "Observatory", desc: "Content linked to DarNozom fields." },
-    },
+    { href: "/publications?tab=books", ar: { title: "كتب", desc: desc.ar }, en: { title: "Books", desc: desc.en } },
+    { href: "/articles", ar: { title: "مقالات", desc: desc.ar }, en: { title: "Articles", desc: desc.en } },
+    { href: "/studies", ar: { title: "الدراسات والأبحاث", desc: desc.ar }, en: { title: "Studies and Research", desc: desc.en } },
+    { href: "/observatory", ar: { title: "المرصد", desc: desc.ar }, en: { title: "Observatory", desc: desc.en } },
   ];
 
   return (
@@ -42,7 +31,7 @@ export default function ResearchCenter() {
       />
 
       {/* Research Units */}
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-12">
             {isAr ? "الوحدات البحثية" : "Research Units"}
@@ -61,42 +50,11 @@ export default function ResearchCenter() {
         </div>
       </section>
 
-      {/* Research Projects */}
-      <section className="py-24 bg-background border-b border-border">
-        <div className="max-w-[1250px] mx-auto px-page">
-          <h2 className="text-3xl md:text-4xl font-bold text-primary mb-10">
-            {isAr ? "المشروعات البحثية" : "Research Projects"}
-          </h2>
-          <Link
-            href="/case-studies"
-            className="group block bg-white border border-border hover:border-secondary/60 transition-colors p-10"
-          >
-            <div className="text-secondary text-xs font-bold tracking-[0.2em] uppercase mb-3">
-              {isAr ? "مشروع حالي" : "Current Project"}
-            </div>
-            <h3 className="text-2xl font-bold text-primary mb-3">
-              {isAr
-                ? "نحو تأسيس علم السياسة الشرعية المعاصرة"
-                : "Towards Establishing Contemporary Sharia Governance as a Discipline"}
-            </h3>
-            <p className="text-muted-foreground leading-relaxed mb-6">
-              {isAr
-                ? "دراسة في المفهوم والموضوع والحدود والبنية العلمية والمنهج."
-                : "A study of the concept, subject, boundaries, scholarly structure and methodology."}
-            </p>
-            <span className="inline-flex items-center gap-2 text-sm text-secondary font-bold">
-              {isAr ? "اكتشف المزيد" : "Explore more"}
-              <ArrowRight size={14} className={isAr ? "rotate-180" : ""} />
-            </span>
-          </Link>
-        </div>
-      </section>
-
       {/* Explore Knowledge */}
-      <section className="py-24 bg-[#F5F0E8] border-b border-border">
+      <section className="py-14 bg-[#F5F0E8] border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-10">
-            {isAr ? "استكشف المعرفة" : "Explore Knowledge"}
+            {isAr ? "استكشف إصدارات دار نظم" : "Explore DarNozom Publications"}
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {exploreLinks.map((c) => (

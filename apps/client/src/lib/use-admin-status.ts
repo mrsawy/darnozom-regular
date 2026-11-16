@@ -62,3 +62,33 @@ export function useAdminStatus() {
 
   return { status, loading: loading || isPending, refetch };
 }
+
+const adminCheckCache = new Map<string, Promise<boolean>>();
+
+/**
+ * Lightweight, shared "is the signed-in user an admin?" check for the many small
+ * edit buttons across the public site. One server-confirmed request per signed-in
+ * user is shared by every caller (instead of one per card).
+ */
+export function useIsAdmin(): boolean {
+  const { data: session, isPending } = useSession();
+  const userId = session?.user?.id;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (isPending || !userId) { setIsAdmin(false); return; }
+    let cancelled = false;
+    let p = adminCheckCache.get(userId);
+    if (!p) {
+      p = fetch("/api/admin/me", { credentials: "include", cache: "no-store" })
+        .then((r) => r.json())
+        .then((d: AdminMe) => !!d?.isAdmin)
+        .catch(() => { adminCheckCache.delete(userId); return false; });
+      adminCheckCache.set(userId, p);
+    }
+    void p.then((v) => { if (!cancelled) setIsAdmin(v); });
+    return () => { cancelled = true; };
+  }, [userId, isPending]);
+
+  return isAdmin;
+}

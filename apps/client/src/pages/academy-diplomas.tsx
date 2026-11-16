@@ -94,7 +94,7 @@ export default function AcademyDiplomasPage() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-12 pb-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute -bottom-20 left-0 text-[14rem] font-black text-secondary/5 leading-none select-none pointer-events-none">D</div>
         <div className="container mx-auto px-6 md:px-12 relative z-10">
@@ -296,7 +296,7 @@ export default function AcademyDiplomasPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 bg-primary text-primary-foreground">
+      <section className="py-12 bg-primary text-primary-foreground">
         <div className="container mx-auto px-6 md:px-12 max-w-4xl text-center">
           <h3 className="font-black text-white text-3xl mb-4">{t.ctaTitle}</h3>
           <p className="text-white/70 leading-relaxed mb-8 max-w-xl mx-auto">{t.ctaDesc}</p>

@@ -69,7 +69,7 @@ function Classic({ c, isArabic, t }: P) {
             <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#183650] via-[#183650]/85 to-[#183650]/55" />
           </>
         )}
-        <div className={`${wrap} pt-36 pb-28 lg:pt-44 lg:pb-36`}>
+        <div className={`${wrap} pt-14 pb-20 lg:pt-16 lg:pb-24`}>
           <div className="mb-6 flex items-center gap-3 text-sm text-gold">
             <span className="h-px w-10 bg-gold" aria-hidden />
             <span>{t("من نحن", "About us")}</span>
@@ -134,7 +134,7 @@ function Classic({ c, isArabic, t }: P) {
 function Split({ c, isArabic, t }: P) {
   return (
     <>
-      <section className="bg-[#F8F6F1] pt-28 pb-16 lg:pt-36 lg:pb-24">
+      <section className="bg-[#F8F6F1] pt-10 pb-16 lg:pt-14 lg:pb-20">
         <div className={`${wrap} grid items-center gap-12 lg:grid-cols-2`}>
           <div>
             <span className="text-sm font-semibold text-gold">{t("من نحن", "About us")}</span>
@@ -203,7 +203,7 @@ function Split({ c, isArabic, t }: P) {
 function Editorial({ c, isArabic, t }: P) {
   return (
     <>
-      <section className="bg-white pt-32 lg:pt-44">
+      <section className="bg-white pt-12 lg:pt-16">
         <div className={wrap}>
           <span className="text-sm font-semibold tracking-wide text-gold">{t("من نحن", "About us")}</span>
           <h1 className="mt-4 max-w-4xl text-5xl font-bold leading-[1.1] text-navy md:text-7xl">{t(c.titleAr, c.titleEn)}</h1>
@@ -274,7 +274,7 @@ function Immersive({ c, isArabic, t }: P) {
           </>
         )}
         <div aria-hidden className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-navy-deep to-transparent" />
-        <div className={`${wrap} flex min-h-[620px] flex-col items-center justify-center pt-32 pb-24 text-center`}>
+        <div className={`${wrap} flex min-h-[620px] flex-col items-center justify-center pt-14 pb-20 text-center`}>
           <span className="rounded-full border border-gold/60 px-4 py-1 text-sm text-gold-light">{t("من نحن", "About us")}</span>
           <h1 className="mt-6 max-w-4xl text-5xl font-bold leading-tight md:text-7xl">{t(c.titleAr, c.titleEn)}</h1>
           <p className="mt-8 max-w-3xl whitespace-pre-line leading-8 text-white/80 md:text-lg">{t(c.introAr, c.introEn)}</p>

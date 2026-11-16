@@ -5,9 +5,7 @@ import { useLanguage } from "@/lib/language-context";
 const KINDS = [
   { id: "books", labelAr: "كتب", labelEn: "Books", href: "/publications?tab=books" },
   { id: "articles", labelAr: "مقالات", labelEn: "Articles", href: "/articles" },
-  { id: "studies", labelAr: "دراسات", labelEn: "Studies", href: "/studies" },
-  { id: "research", labelAr: "أبحاث علمية", labelEn: "Research Papers", href: "/publications?tab=research" },
-  { id: "periodicals", labelAr: "دوريات", labelEn: "Periodicals", href: "/publications?tab=periodical" },
+  { id: "studies", labelAr: "الدراسات والأبحاث", labelEn: "Studies and Research", href: "/studies" },
   { id: "observatory", labelAr: "المرصد", labelEn: "Observatory", href: "/observatory" },
 ] as const;
 

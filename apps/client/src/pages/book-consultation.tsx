@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AdminFab } from "@/components/store/admin-fab";
 import { Link } from "wouter";
 import { useSession } from "@/lib/auth-client";
 import { Loader2, Calendar, Clock, CheckCircle2, Video, ArrowRight, AlertCircle } from "lucide-react";
@@ -122,6 +123,7 @@ export default function BookConsultationPage() {
               <ArrowRight className="w-3 h-3 rotate-180" />
               <span>حجز موعد</span>
             </div>
+            <AdminFab href="/admin/consultation-slots" label={{ ar: "تعديل المواعيد", en: "Edit slots" }} />
             <h1 className="text-3xl md:text-4xl font-black mb-2">احجز استشارة عبر Google Meet</h1>
             <p className="text-primary-foreground/70 max-w-2xl">
               اختر الموعد المناسب لك، ستصلك رسالة تأكيد ورابط Google Meet عبر البريد الإلكتروني.

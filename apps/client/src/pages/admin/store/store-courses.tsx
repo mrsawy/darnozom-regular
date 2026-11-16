@@ -141,7 +141,7 @@ function CourseForm({ value, onChange, onSave, onCancel, saving }: {
       </div>
       <div>
         <label className="text-xs font-bold text-muted-foreground mb-1 block">صورة الدورة</label>
-        <ImageUploadField value={value.thumbnailUrl || ""} onChange={url => set("thumbnailUrl", url)} folder="store-courses" />
+        <ImageUploadField value={value.thumbnailUrl || ""} onChange={url => set("thumbnailUrl", url)} folder="store-courses" aspect={16 / 9} maxWidth={1280} />
       </div>
       <div className="grid sm:grid-cols-4 gap-3">
         <select value={value.delivery || "online_self"} onChange={e => set("delivery", e.target.value)} className="bg-background border border-input px-3 py-2 text-sm rounded-none">

@@ -61,7 +61,7 @@ export const DETAILS_SCHEMAS = {
     pdfUrl: urlOrPath,
   }),
   publication: z.object({
-    kind: z.enum(["report", "periodical", "research"]),
+    kind: z.enum(["book", "report", "periodical", "research"]),
     issueNumber: optText(50),
     pdfUrl: urlOrPath,
   }),

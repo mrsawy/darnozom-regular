@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AdminFab } from "@/components/store/admin-fab";
 import { Link, useParams } from "wouter";
 import { ArrowLeft, ArrowRight, ExternalLink } from "lucide-react";
 import { PageShell } from "@/components/content/page-shell";
@@ -24,7 +25,8 @@ export default function ClientDetail() {
 
   return (
     <PageShell footerTone="light">
-      <section className="dark bg-[#183650] text-white pt-32 pb-12">
+      <AdminFab href="/admin/client-logos" label={{ ar: "تعديل", en: "Edit" }} />
+      <section className="dark bg-[#183650] text-white pt-12 pb-12">
         <div className={`mx-auto ${HOME_MAX_W} ${HOME_PX}`}>
           <Link href="/clients" className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white">
             <Back className="w-4 h-4" /> {ar ? "كل العملاء" : "All clients"}

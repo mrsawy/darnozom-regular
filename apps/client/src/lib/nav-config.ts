@@ -38,7 +38,7 @@ export const MAIN_NAV: NavEntry[] = [
       l("النشر والمعرفة", "Publishing and Knowledge", "/publishing"),
       l("التدريب وبناء القدرات", "Training and Capacity Building", "/academy"),
       l("الاستشارات", "Consulting", "/services/consulting"),
-      l("البرمجيات والتحول الرقمي", "Software and Digital Transformation", "/services/digital-transformation"),
+      l("تأسيس وتطوير المشروعات والمؤسسات", "Establishing and Developing Projects and Institutions", "/services/digital-transformation"),
     ] }],
   },
   {
@@ -62,9 +62,7 @@ export const MAIN_NAV: NavEntry[] = [
     columns: [{ links: [
       l("كتب", "Books", "/publications?tab=books"),
       l("مقالات", "Articles", "/articles"),
-      l("دراسات", "Studies", "/studies"),
-      l("أبحاث علمية", "Scientific research", "/publications?tab=research"),
-      l("دوريات", "Periodicals", "/publications?tab=periodical"),
+      l("الدراسات والأبحاث", "Studies and Research", "/studies"),
       l("المرصد", "Observatory", "/observatory"),
     ] }],
   },

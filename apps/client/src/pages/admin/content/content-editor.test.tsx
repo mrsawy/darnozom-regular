@@ -9,6 +9,10 @@ vi.mock("@/components/admin/rich-text-editor", () => ({
 vi.mock("@/pages/admin/_image-upload", () => ({ ImageUploadField: () => null }));
 vi.mock("@/components/admin/file-upload-field", () => ({ FileUploadField: () => null }));
 
+vi.mock("@/lib/book-catalog", () => ({
+  searchStoreBooks: vi.fn(async () => ({ products: [{ id: "prod_1", title: "كتاب تجريبي", thumbnail: "/c.jpg" }], total: 1, facets: {} })),
+}));
+
 import AdminContentEditor from "./content-editor";
 
 function setup(type: string, fetchImpl: (url: string, init?: RequestInit) => Promise<Response>) {
@@ -22,6 +26,14 @@ function setup(type: string, fetchImpl: (url: string, init?: RequestInit) => Pro
 afterEach(() => vi.unstubAllGlobals());
 
 describe("AdminContentEditor", () => {
+  it("prefills a new publication from a bookstore book", async () => {
+    setup("publication", async (url) => new Response(url.includes("book-usage") ? JSON.stringify({ counts: { prod_1: 2 } }) : "{}"));
+    expect(await screen.findByText("اختير مرتين")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: /كتاب تجريبي/ }));
+    expect((screen.getByLabelText("العنوان (عربي)") as HTMLInputElement).value).toBe("كتاب تجريبي");
+    expect((screen.getByLabelText("نوع الإصدار") as HTMLSelectElement).value).toBe("book");
+  });
+
   it("shows observatory-specific fields", () => {
     setup("observatory", async () => new Response("{}"));
     expect(screen.getByLabelText("نوع المادة")).toBeTruthy();

@@ -207,7 +207,7 @@ export default function BooksPage() {
                         <img
                           src={b.coverImageUrl}
                           alt=""
-                          className="w-10 h-14 object-cover border border-border shrink-0"
+                          className="w-10 aspect-[7/9] object-cover border border-border shrink-0"
                         />
                       ) : (
                         <div className="w-10 h-14 bg-muted flex items-center justify-center">

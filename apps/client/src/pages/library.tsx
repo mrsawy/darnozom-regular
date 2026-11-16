@@ -29,11 +29,6 @@ export default function Library() {
     },
     {
       href: "/studies",
-      ar: { title: "دوريات", desc: "الإنتاج المحدد لدار نظم في هذا القسم." },
-      en: { title: "Periodicals", desc: "DarNozom's dedicated output in this category." },
-    },
-    {
-      href: "/studies",
       ar: { title: "أبحاث علمية", desc: "الإنتاج المحدد لدار نظم في هذا القسم." },
       en: { title: "Academic Research", desc: "DarNozom's dedicated output in this category." },
     },
@@ -57,7 +52,7 @@ export default function Library() {
       />
 
       {/* Library */}
-      <section className="py-24 bg-white border-b border-border">
+      <section className="py-14 bg-white border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-primary">
@@ -91,7 +86,7 @@ export default function Library() {
       </section>
 
       {/* DarNozom Publications */}
-      <section className="py-24 bg-[#F5F0E8] border-b border-border">
+      <section className="py-14 bg-[#F5F0E8] border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <div className="flex items-center justify-between mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-primary">
@@ -120,7 +115,7 @@ export default function Library() {
       </section>
 
       {/* Explore Topics */}
-      <section className="py-24 bg-background border-b border-border">
+      <section className="py-14 bg-background border-b border-border">
         <div className="max-w-[1250px] mx-auto px-page">
           <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
             {isAr ? "استكشف الموضوعات" : "Explore Topics"}

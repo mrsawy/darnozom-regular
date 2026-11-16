@@ -38,7 +38,7 @@ export default function SuccessPartners() {
   const items = [...SUCCESS_PARTNERS, ...SUCCESS_PARTNERS];
 
   return (
-    <section id="success-partners" className="py-24 dark bg-[#183650] text-white scroll-mt-24 overflow-hidden">
+    <section id="success-partners" className="py-14 dark bg-[#183650] text-white scroll-mt-24 overflow-hidden">
       <div className="max-w-[1250px] mx-auto px-page">
         <div className="text-secondary text-xs font-bold tracking-[0.2em] uppercase mb-3">
           {isAr ? "شركاء النجاح" : "Success Partners"}

@@ -42,7 +42,7 @@ export const TYPE_CONFIG: Record<ContentType, { labelAr: string; pluralAr: strin
     labelAr: "إصدار", pluralAr: "الإصدارات",
     detailFields: [
       { kind: "select", key: "kind", labelAr: "نوع الإصدار", required: true, options: [
-        { value: "report", labelAr: "تقرير" }, { value: "periodical", labelAr: "دورية" }, { value: "research", labelAr: "بحث علمي" },
+        { value: "book", labelAr: "كتاب" }, { value: "report", labelAr: "تقرير" }, { value: "research", labelAr: "بحث علمي" },
       ] },
       { kind: "text", key: "issueNumber", labelAr: "رقم العدد" },
       { kind: "file", key: "pdfUrl", labelAr: "ملف الإصدار (PDF)" },

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { getMedusaAdminUrl } from "@/lib/medusa-client";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { Link, useRoute, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import Lightbox from "yet-another-react-lightbox";
@@ -258,7 +260,7 @@ export default function StoreBookDetailPage() {
 
       {/* Loading skeleton */}
       {loading && (
-        <div className="pt-32 pb-20 px-4">
+        <div className="pt-12 pb-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="grid lg:grid-cols-[400px_1fr] gap-12">
               <div className="aspect-square rounded-3xl bg-card animate-pulse" />
@@ -275,7 +277,7 @@ export default function StoreBookDetailPage() {
 
       {/* Load error */}
       {!loading && error && (
-        <div className="pt-32 pb-20 px-4">
+        <div className="pt-12 pb-20 px-4">
           <div className="container mx-auto max-w-md">
             <FetchError onRetry={() => setReloadKey((k) => k + 1)} />
           </div>
@@ -284,7 +286,7 @@ export default function StoreBookDetailPage() {
 
       {/* Not found */}
       {!loading && !error && !book && (
-        <div className="pt-32 pb-20 px-4">
+        <div className="pt-12 pb-20 px-4">
           <div className="container mx-auto max-w-md text-center">
             <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-card border border-border flex items-center justify-center">
               <BookOpen className="w-10 h-10 text-muted-foreground/40" />
@@ -310,7 +312,7 @@ export default function StoreBookDetailPage() {
             <div className="absolute -top-20 right-1/4 w-80 h-80 rounded-full bg-emerald-600/8 blur-3xl" />
           </div>
 
-          <section className="relative pt-28 pb-16 px-4 bg-[hsl(43_33%_97%)]">
+          <section className="relative pt-10 pb-16 px-4 bg-[hsl(43_33%_97%)]">
             <div className="container mx-auto max-w-6xl">
               {/* Breadcrumb */}
               <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-10">
@@ -342,7 +344,7 @@ export default function StoreBookDetailPage() {
                       type="button"
                       onClick={() => mainImage && setLightboxOpen(true)}
                       disabled={!mainImage}
-                      className="relative aspect-square w-full rounded-2xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/10 border border-white/5 shadow-2xl shadow-black/40 transition-transform duration-700 group-hover:scale-[1.02] text-start cursor-pointer disabled:cursor-default"
+                      className="relative aspect-[7/9] w-full rounded-2xl overflow-hidden bg-gradient-to-br from-muted/40 to-muted/10 border border-white/5 shadow-2xl shadow-black/40 transition-transform duration-700 group-hover:scale-[1.02] text-start cursor-pointer disabled:cursor-default"
                     >
                       {mainImage ? (
                         <img
@@ -412,6 +414,7 @@ export default function StoreBookDetailPage() {
                 <div className="min-w-0 grid lg:grid-cols-[1fr_320px] gap-10 lg:gap-14 items-start">
                   <div className="min-w-0">
                     {/* Title */}
+                    <AdminEditButton href={`${getMedusaAdminUrl()}/products/${id}`} external className="mb-3" />
                     <h1
                       className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 leading-tight tracking-tight"
                       {...textDir}

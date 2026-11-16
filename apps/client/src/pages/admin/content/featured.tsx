@@ -7,6 +7,7 @@ import { adminFetch, adminFetchJson, adminJsonHeaders } from "@/lib/admin-api";
 import { searchStoreBooks } from "@/lib/book-catalog";
 import type { ContentItem, ListResponse } from "@/lib/cms-types";
 import { TYPE_CONFIG } from "@/lib/content-types";
+import { CASE_STUDIES, type CaseStudy } from "@/lib/case-studies";
 import { contentPath } from "@/lib/cms-labels";
 import { PageHeader, Toast, useToast } from "@/pages/admin/layout";
 import { ImageUploadField } from "@/pages/admin/_image-upload";
@@ -211,7 +212,15 @@ function SlideDialog({ draft, onChange, onClose, onSave }: { draft: Draft; onCha
             </button>
           ))}
         </div>
-        {draft.sourceKind === "content" && <ContentPicker draft={draft} onPick={(item) => onChange({ ...draft, contentItemId: item.id, pickedLabel: item.titleAr, linked: linkedFromItem(item) })} />}
+        {draft.sourceKind === "content" && <ContentPicker draft={draft}
+          onPick={(item) => onChange({ ...draft, contentItemId: item.id, pickedLabel: item.titleAr, linked: linkedFromItem(item) })}
+          onPickBuiltIn={(cs) => onChange({
+            // Built-in case studies live in the site code, not the CMS, so they become an ordinary custom card pointing at the case page.
+            ...draft, sourceKind: "custom", contentItemId: null, medusaProductId: null, linked: null, pickedLabel: undefined,
+            titleAr: cs.title.ar, titleEn: cs.title.en, summaryAr: cs.tagline.ar, summaryEn: cs.tagline.en,
+            href: `/case-studies/${cs.id}`, badgeAr: draft.badgeAr || "نماذج الأعمال", badgeEn: draft.badgeEn || "Case Studies",
+            ctaLabelAr: draft.ctaLabelAr || "اقرأ الحالة", ctaLabelEn: draft.ctaLabelEn || "Read the case",
+          })} />}
         {draft.sourceKind === "book" && <BookPicker draft={draft} onPick={(id, label) => onChange({ ...draft, medusaProductId: id, pickedLabel: label })} />}
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -253,7 +262,7 @@ function SlideDialog({ draft, onChange, onClose, onSave }: { draft: Draft; onCha
   );
 }
 
-function ContentPicker({ draft, onPick }: { draft: Draft; onPick: (item: ContentItem) => void }) {
+function ContentPicker({ draft, onPick, onPickBuiltIn }: { draft: Draft; onPick: (item: ContentItem) => void; onPickBuiltIn: (cs: CaseStudy) => void }) {
   const [type, setType] = useState<keyof typeof TYPE_CONFIG>("study");
   const [q, setQ] = useState("");
   const [items, setItems] = useState<ContentItem[]>([]);
@@ -264,6 +273,11 @@ function ContentPicker({ draft, onPick }: { draft: Draft; onPick: (item: Content
     adminFetch(`/api/admin/cms/items?${qs}`, { signal: ctrl.signal }).then((r) => r.json()).then((d: ListResponse) => setItems(d.items ?? [])).catch(() => {});
     return () => ctrl.abort();
   }, [type, q]);
+  // Case studies prepared in code appear next to the ones added from the dashboard.
+  const needle = q.trim().toLowerCase();
+  const builtIn = type === "case_study"
+    ? CASE_STUDIES.filter((cs) => !needle || `${cs.title.ar} ${cs.title.en}`.toLowerCase().includes(needle))
+    : [];
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
@@ -277,7 +291,10 @@ function ContentPicker({ draft, onPick }: { draft: Draft; onPick: (item: Content
         {items.map((i) => (
           <li key={i.id}><button type="button" onClick={() => onPick(i)} className={`w-full text-start px-3 py-2 hover:bg-mist ${draft.contentItemId === i.id ? "bg-mist" : ""}`}>{i.titleAr}</button></li>
         ))}
-        {items.length === 0 && <li className="px-3 py-2 text-sm text-ink-muted">لا يوجد محتوى منشور مطابق.</li>}
+        {builtIn.map((cs) => (
+          <li key={cs.id}><button type="button" onClick={() => onPickBuiltIn(cs)} className="w-full text-start px-3 py-2 hover:bg-mist">{cs.title.ar} <span className="text-xs text-ink-muted">· مُعدّ مسبقًا</span></button></li>
+        ))}
+        {items.length === 0 && builtIn.length === 0 && <li className="px-3 py-2 text-sm text-ink-muted">لا يوجد محتوى منشور مطابق.</li>}
       </ul>
     </div>
   );

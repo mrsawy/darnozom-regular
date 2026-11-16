@@ -275,7 +275,7 @@ export default function ServiceRegistration() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-20 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-12 pb-20 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className={`absolute top-36 ${isArabic ? "right-0" : "left-0"} w-1 h-24 bg-secondary`} />
         <div className={`absolute top-36 ${isArabic ? "right-0" : "left-0"} h-1 w-16 bg-secondary`} />
@@ -327,7 +327,7 @@ export default function ServiceRegistration() {
       </section>
 
       {/* Form Section */}
-      <section className="py-20 bg-[#EAF0F6]">
+      <section className="py-12 bg-[#EAF0F6]">
         <div className="container mx-auto px-6 md:px-12">
           <div className="max-w-3xl mx-auto">
             <form onSubmit={handleSubmit} noValidate data-testid="service-registration-form">

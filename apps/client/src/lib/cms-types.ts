@@ -65,6 +65,7 @@ export interface ListParams {
   types: ContentType[];
   area?: string;
   kind?: string;
+  publicationKind?: string;
   region?: string;
   when?: "upcoming" | "past" | "";
   q?: string;

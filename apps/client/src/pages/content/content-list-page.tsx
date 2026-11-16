@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { FittedCover } from "@/components/content/fitted-cover";
+import { AdminEditButton } from "@/components/admin-edit-button";
+import { AdminFab } from "@/components/store/admin-fab";
 import { useLocation, useSearch } from "wouter";
 import { useLanguage } from "@/lib/language-context";
 import { useCmsList } from "@/lib/cms-api";
@@ -23,7 +26,7 @@ const KNOWLEDGE_ACTIVE_KIND: Record<string, (tabValue: string | undefined) => Pa
   articles: (tabValue) => tabValue === "books" ? "books" : "articles",
   studies: (tabValue) => tabValue === "books" ? "books" : "studies",
   publications: (tabValue) =>
-    tabValue === "books" ? "books" : tabValue === "periodical" ? "periodicals" : tabValue === "research" ? "research" : "all",
+    tabValue === "books" ? "books" : tabValue === "studies" ? "studies" : "all",
   observatory: (_tabValue) => "observatory",
 };
 
@@ -76,7 +79,7 @@ export default function ContentListPage({ section }: { section: SectionKey }) {
   });
 
   const list = useCmsList(
-    { types: tab?.types ?? cfg.types, area, region, when: cfg.filters.includes("when") ? when : "", kind, q, page, pageSize: PAGE_SIZE },
+    { types: tab?.types ?? cfg.types, publicationKind: tab?.publicationKind ?? (tab ? undefined : cfg.publicationKind), area, region, when: cfg.filters.includes("when") ? when : "", kind, q, page, pageSize: PAGE_SIZE },
     { enabled: !booksTab },
   );
   const totalPages = list.data ? Math.max(Math.ceil(list.data.total / PAGE_SIZE), 1) : 1;
@@ -86,7 +89,11 @@ export default function ContentListPage({ section }: { section: SectionKey }) {
 
   return (
     <PageShell footerTone="light">
+      <AdminFab href={`/admin/content/${(tab?.types ?? cfg.types)[0]}`} label={{ ar: "تعديل هذا القسم", en: "Edit this section" }} />
       <PageHero title={heroTitle} subtitle={t(cfg.introAr, cfg.introEn)} />
+      <div className="mx-auto px-5 lg:px-48 pt-6 flex justify-end">
+        <AdminEditButton icon="add" href={`/admin/content/${(tab?.types ?? cfg.types)[0]}/new`} label={t("إضافة جديد", "Add new")} />
+      </div>
       <div className="mx-auto px-5 lg:px-48 pb-10 lg:pb-14 bg-[#FFFFFF]">
         {isKnowledgeFamily ? (
           <section className="bg-white border-y border-line -mx-5 lg:-mx-6 px-5 lg:px-6 py-[70px]">
@@ -248,7 +255,7 @@ export default function ContentListPage({ section }: { section: SectionKey }) {
                     {merged.map((item) =>
                       item.slug.startsWith("__book__") ? (
                         <a key={item.slug} href={item.externalUrl} className="group bg-white border border-line rounded-[4px] overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-                          {item.coverImageUrl && <img src={item.coverImageUrl} alt="" loading="lazy" className="w-full aspect-[16/9] object-cover" />}
+                          {item.coverImageUrl && <FittedCover src={item.coverImageUrl} />}
                           <div className="flex-1 p-4 lg:p-5 flex flex-col gap-2">
                             <span className="text-[11px] font-semibold uppercase tracking-wide text-navy/60">{t("كتاب", "Book")}</span>
                             <h3 className="font-bold text-navy leading-snug text-lg">{isArabic ? item.titleAr : item.titleEn}</h3>

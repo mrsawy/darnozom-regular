@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { AdminEditButton } from "@/components/admin-edit-button";
+import { FittedCover } from "@/components/content/fitted-cover";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import {
@@ -35,6 +37,8 @@ export default function CaseStudies() {
   const [practice, setPractice] = useState<string>(ALL);
   const [geography, setGeography] = useState<string>(ALL);
 
+  const cms = useCmsList({ types: ["case_study"], pageSize: 100 });
+
   const t = {
     eyebrow: isArabic ? "نماذج الأعمال" : "Case Studies",
     breadcrumbHome: isArabic ? "الرئيسية" : "Home",
@@ -51,7 +55,7 @@ export default function CaseStudies() {
       : "Several engagements are bound by professional confidentiality, so client names remain withheld and the cases are written in a manner that preserves their identity.",
 
     stats: [
-      { value: "10", label: isArabic ? "مشاريع موثّقة" : "Documented engagements" },
+      { value: String(new Set([...CASE_STUDIES.map((c) => c.id), ...(cms.data?.items ?? []).map((i) => i.slug)]).size), label: isArabic ? "مشاريع موثّقة" : "Documented engagements" },
       { value: "5", label: isArabic ? "دول" : "Countries" },
       { value: "6", label: isArabic ? "قطاعات" : "Industries" },
       { value: "7", label: isArabic ? "خطوط خدمة" : "Practice areas" },
@@ -89,18 +93,30 @@ export default function CaseStudies() {
     copyright: isArabic ? "جميع الحقوق محفوظة" : "All rights reserved",
   };
 
+  const cmsSlugs = new Set((cms.data?.items ?? []).map((i) => i.slug));
   const filtered = useMemo(() => {
-    return CASE_STUDIES.filter((c) => {
+    // Built-in case studies that were imported into the dashboard are shown from the CMS instead.
+    return CASE_STUDIES.filter((c) => !cmsSlugs.has(c.id)).filter((c) => {
       if (industry !== ALL && c.tags.industry.slug !== industry) return false;
       if (practice !== ALL && c.tags.practice.slug !== practice) return false;
       if (geography !== ALL && c.tags.geography.slug !== geography) return false;
       return true;
     });
-  }, [industry, practice, geography]);
+  }, [industry, practice, geography, cms.data]);
 
-  const cms = useCmsList({ types: ["case_study"], pageSize: 100 });
-  const cmsItems = (industry !== ALL || practice !== ALL || geography !== ALL) ? [] : cms.data?.items ?? [];
+  // Admin-entered tags are free text, so match them to the preset tags by (Arabic or English) name.
+  const tagMatches = (d: Record<string, any>, key: string, list: TaxonomyTag[], slug: string) => {
+    if (slug === ALL) return true;
+    const tag = list.find((x) => x.slug === slug);
+    const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
+    return !!tag && [d[`${key}Ar`], d[`${key}En`]].some((v) => norm(v) !== "" && [tag.ar, tag.en].some((n) => norm(n) === norm(v)));
+  };
+  const cmsItems = (cms.data?.items ?? []).filter((item) => {
+    const d = item.details ?? {};
+    return tagMatches(d, "industry", INDUSTRIES, industry) && tagMatches(d, "practice", PRACTICES, practice) && tagMatches(d, "geography", GEOGRAPHIES, geography);
+  });
   const isFiltered = industry !== ALL || practice !== ALL || geography !== ALL;
+  const totalCount = CASE_STUDIES.length + (cms.data?.items?.length ?? 0);
 
   const renderSelect = (
     id: string,
@@ -141,7 +157,7 @@ export default function CaseStudies() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="relative pt-36 pb-24 overflow-hidden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]">
+      <section className="relative pt-12 pb-24 overflow-hidden bg-gradient-to-br from-[hsl(210_40%_96%)] via-[hsl(210_40%_94%)] to-[hsl(210_38%_88%)]">
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -240,7 +256,7 @@ export default function CaseStudies() {
       </section>
 
       {/* Filter bar + grid */}
-      <section className="py-20 bg-background">
+      <section className="py-12 bg-background">
         <div className="container mx-auto px-6 md:px-12">
           <div className="flex items-center gap-3 mb-3">
             <Filter size={16} className="text-secondary" />
@@ -272,7 +288,11 @@ export default function CaseStudies() {
               className="text-sm text-muted-foreground"
               data-testid="case-results-count"
             >
-              {t.resultsCount(filtered.length)}
+              {t.resultsCount(filtered.length + cmsItems.length)}
+            </div>
+            <div className="flex gap-2">
+              <AdminEditButton href="/admin/content/case_study" label={isArabic ? "تعديل القسم" : "Edit section"} />
+              <AdminEditButton href="/admin/content/case_study/new" icon="add" label={isArabic ? "إضافة نموذج جديد" : "Add case study"} />
             </div>
             {isFiltered && (
               <button
@@ -305,32 +325,39 @@ export default function CaseStudies() {
                 <CaseStudyCard key={cs.id} caseStudy={cs} index={i} />
               ))}
               {cmsItems.map((item) => (
+                <div key={item.id} className="relative">
+                <AdminEditButton href={`/admin/content/case_study/${item.id}`} overlay />
                 <Link
-                  key={item.id}
                   href={`/case-studies/${item.slug}`}
-                  className="group relative bg-background border border-border hover:border-secondary/60 transition-colors flex flex-col p-7 md:p-8"
+                  className="relative group h-full bg-background border border-border hover:border-secondary/60 transition-colors flex flex-col"
                   data-testid={`case-study-cms-${item.slug}`}
                 >
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-secondary/40 group-hover:bg-secondary transition-colors" />
-                  <div className="flex flex-wrap gap-2 mb-5">
-                    {(["industry", "practice", "geography"] as const).map((k) => {
-                      const v = pickLang(item.details, k, language);
-                      return v ? (
-                        <span key={k} className="text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 border bg-muted text-muted-foreground border-border">{v}</span>
-                      ) : null;
-                    })}
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-secondary/40 group-hover:bg-secondary transition-colors z-10" />
+                  {item.coverImageUrl && <FittedCover src={item.coverImageUrl} />}
+                  <div className="p-7 md:p-8 flex flex-col flex-1">
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {(["industry", "practice", "geography"] as const).map((k, idx) => {
+                        const v = pickLang(item.details, k, language);
+                        return v ? (
+                          <span key={k} className={`text-[10px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 border ${idx === 0 ? "bg-secondary/10 text-secondary border-secondary/40" : "bg-muted text-muted-foreground border-border"}`}>{v}</span>
+                        ) : null;
+                      })}
+                    </div>
+                    <h3 className="font-black leading-tight text-primary text-xl md:text-2xl group-hover:text-secondary transition-colors mb-3">
+                      {pickLang(item, "title", language)}
+                    </h3>
+                    <p className="text-sm md:text-base leading-relaxed text-muted-foreground mb-6 flex-1">
+                      {pickLang(item, "summary", language)}
+                    </p>
+                    <div className="pt-5 mt-auto border-t border-border">
+                      <span className="inline-flex items-center gap-2 font-bold text-sm text-secondary border-b border-secondary pb-0.5 group-hover:gap-3 transition-all">
+                        {isArabic ? "اقرأ الحالة كاملة" : "Read the full case"}
+                        <Arrow size={14} />
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="font-black leading-tight text-primary text-xl md:text-2xl group-hover:text-secondary transition-colors mb-3">
-                    {pickLang(item, "title", language)}
-                  </h3>
-                  <p className="text-sm md:text-base leading-relaxed text-muted-foreground mb-6 flex-1">
-                    {pickLang(item, "summary", language)}
-                  </p>
-                  <span className="inline-flex items-center gap-2 font-bold text-sm text-secondary border-b border-secondary pb-0.5 w-fit">
-                    {isArabic ? "اقرأ الحالة كاملة" : "Read the full case"}
-                    <Arrow size={14} />
-                  </span>
                 </Link>
+                </div>
               ))}
             </div>
           )}
@@ -338,7 +365,7 @@ export default function CaseStudies() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-[#EAF0F6] py-24 relative overflow-hidden">
+      <section className="bg-[#EAF0F6] py-14 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none overflow-hidden">
           <span className="text-primary/[0.04] font-black text-[18rem] leading-none">ن</span>

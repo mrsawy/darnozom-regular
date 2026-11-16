@@ -75,15 +75,15 @@ export default function AdminAbout() {
       />
 
       <Section title="الصورة">
-        <ImageUploadField value={c.imageUrl} onChange={(v) => set("imageUrl", v)} folder="about" />
-        <p className="text-xs text-muted-foreground">تظهر أسفل العنوان. اترك الحقل فارغًا لإخفاء الصورة.</p>
+        <ImageUploadField value={c.imageUrl} onChange={(v) => set("imageUrl", v)} folder="about" aspect={4 / 3} maxWidth={1600} />
+        <p className="text-xs text-muted-foreground">تظهر أسفل العنوان. ستُطلب منك قصّها بنسبة 4:3 لتطابق مقاس الصورة في الموقع. اترك الحقل فارغًا لإخفاء الصورة.</p>
         <p className="pt-2 text-sm font-bold">صور الأقسام (لتصميم «على طريقة روزويل»)</p>
         <div className="grid gap-4 md:grid-cols-2">
           {([
             ["visionImageUrl", "صورة الرؤية"], ["missionImageUrl", "صورة الرسالة"], ["approachImageUrl", "صورة المنهج"],
             ["valuesImageUrl", "صورة القيم"], ["structureImageUrl", "صورة هيكل المؤسسة"],
           ] as const).map(([k, label]) => (
-            <Field key={k} label={label}><ImageUploadField value={c[k]} onChange={(v) => set(k, v)} folder="about" /></Field>
+            <Field key={k} label={label}><ImageUploadField value={c[k]} onChange={(v) => set(k, v)} folder="about" aspect={4 / 3} maxWidth={1600} /></Field>
           ))}
         </div>
       </Section>

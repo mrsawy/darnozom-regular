@@ -77,7 +77,7 @@ export default function AccountConsultationsPage() {
   return (
     <div dir="rtl" className="min-h-screen bg-background islamic-pattern flex flex-col">
       <SiteNav />
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 pt-28 pb-16">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 pt-10 pb-16">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">

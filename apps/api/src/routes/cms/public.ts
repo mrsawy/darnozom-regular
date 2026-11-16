@@ -15,6 +15,7 @@ const listQuery = z.object({
     .pipe(z.array(z.enum(CONTENT_TYPES)).min(1)),
   area: z.string().max(64).optional(),
   kind: z.string().max(40).optional(),
+  publicationKind: z.string().max(40).optional(),
   region: z.string().max(40).optional(),
   when: z.enum(["upcoming", "past"]).optional(),
   q: z.string().trim().max(100).optional(),

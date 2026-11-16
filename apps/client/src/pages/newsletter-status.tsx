@@ -27,7 +27,7 @@ export default function NewsletterStatusPage({ state }: { state: string }) {
   return (
     <div className="min-h-screen bg-background text-foreground" dir={language === "ar" ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
-      <main className="pt-32 pb-20">
+      <main className="pt-12 pb-20">
         <div className="container mx-auto px-6 md:px-12 max-w-xl text-center">
           <h1 className="text-3xl font-bold mb-4">{title}</h1>
           <p className="text-muted-foreground mb-8">{body}</p>

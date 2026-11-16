@@ -33,7 +33,7 @@ export function LegalPage({
   return (
     <div className="min-h-screen bg-background text-foreground" dir={language === "ar" ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
-      <main className="pt-32 pb-20">
+      <main className="pt-12 pb-20">
         <div className="container mx-auto px-6 md:px-12 max-w-3xl">
           <p className="text-xs tracking-[0.2em] uppercase text-secondary font-bold mb-4">
             {isArabic ? "قانوني" : "Legal"}

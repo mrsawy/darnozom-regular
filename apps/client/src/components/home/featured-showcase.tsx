@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
@@ -60,6 +61,7 @@ function ClassicHero({ cards }: { cards: FeaturedCard[] }) {
       className="relative w-full bg-navy text-white overflow-hidden min-h-[460px] lg:min-h-[520px] flex flex-col"
     >
       <h1 className="sr-only">{t("مختارات دار نظم", "DarNozom Highlights")}</h1>
+      <div className="absolute top-20 end-4 z-20"><AdminEditButton href="/admin/featured" /></div>
       {/* Full-bleed background: the selected card's image, darkened so the headline stays legible. */}
       <motion.div key={cards[index].id} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }} className="absolute inset-0">
         <HeroBackground card={cards[index]} lang={lang} />

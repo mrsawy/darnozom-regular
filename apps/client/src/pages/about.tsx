@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AdminFab } from "@/components/store/admin-fab";
 import SiteNav from "@/components/site-nav";
 import { useLanguage } from "@/lib/language-context";
 import { SiteFooter } from "@/components/site-footer";
@@ -23,6 +24,7 @@ export default function About() {
   return (
     <div className="min-h-screen bg-background text-foreground" dir={isArabic ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
+      <AdminFab href="/admin/about" label={{ ar: "تعديل الصفحة", en: "Edit page" }} />
       <AboutDesignBody design={design} c={c} isArabic={isArabic} t={t} />
       <SiteFooter />
     </div>

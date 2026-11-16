@@ -181,7 +181,7 @@ export default function CartPage() {
                       className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-4 px-5 py-4 border-b border-border last:border-b-0 items-center"
                     >
                       <div className="flex items-center gap-4 min-w-0">
-                        <div className="w-16 h-16 shrink-0 bg-muted/40 border border-border overflow-hidden">
+                        <div className="w-14 aspect-[7/9] shrink-0 bg-muted/40 border border-border overflow-hidden">
                           {it.thumbnail ? (
                             <img
                               src={it.thumbnail}

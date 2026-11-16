@@ -19,7 +19,7 @@ async function getJson<T>(url: string): Promise<T> {
 export function buildListUrl(p: ListParams): string {
   const qs = new URLSearchParams();
   qs.set("type", p.types.join(","));
-  for (const key of ["area", "kind", "region", "when", "q"] as const) {
+  for (const key of ["area", "kind", "publicationKind", "region", "when", "q"] as const) {
     const v = p[key];
     if (v) qs.set(key, v);
   }

@@ -146,7 +146,7 @@ export default function StoreCoursesPage() {
   return (
     <div className="min-h-screen bg-background">
       <SiteNav />
-      <section className="pt-28 pb-8 px-4">
+      <section className="pt-10 pb-8 px-4">
         <div className="container mx-auto max-w-6xl">
           <Link href="/services/store" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-secondary mb-4">
             <ChevronLeft className={`w-4 h-4 ${isArabic ? "rotate-180" : ""}`} /> {t.back}

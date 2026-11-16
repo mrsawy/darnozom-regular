@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { useLanguage } from "@/lib/language-context";
 import { HOME_MAX_W, HOME_PX } from "@/lib/site-constants";
 import type { ClientLogo } from "@/lib/cms-types";
@@ -42,6 +43,7 @@ export function ClientsStrip({ logos }: { logos: ClientLogo[] }) {
     <section id="our-clients" className="overflow-hidden">
       <div className={`mx-auto ${HOME_MAX_W} ${HOME_PX} mb-8 text-center`}>
         <h2 className="text-2xl md:text-3xl font-bold text-[#183650]">{ar ? "عملاؤنا" : "Our Clients"}</h2>
+        <div className="mt-2 flex gap-2"><AdminEditButton href="/admin/client-logos" label={ar ? "تعديل القسم" : "Edit section"} /><AdminEditButton href="/admin/client-logos" icon="add" label={ar ? "إضافة عميل" : "Add client"} /></div>
         <p className="mt-2 text-sm md:text-base text-black/60">
           {ar ? "مؤسسات وشركات وثقت بدار نظم." : "Institutions and companies that trust DarNozom."}
         </p>

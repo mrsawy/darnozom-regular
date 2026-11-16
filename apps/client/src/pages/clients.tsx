@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { Link } from "wouter";
 import { PageShell } from "@/components/content/page-shell";
 import { useLanguage } from "@/lib/language-context";
@@ -15,9 +16,10 @@ export default function Clients() {
 
   return (
     <PageShell footerTone="light">
-      <section className="dark bg-[#183650] text-white pt-32 pb-16">
+      <section className="dark bg-[#183650] text-white pt-12 pb-16">
         <div className={`mx-auto ${HOME_MAX_W} ${HOME_PX}`}>
           <h1 className="text-4xl md:text-5xl font-bold">{ar ? "عملاؤنا" : "Our Clients"}</h1>
+          <AdminEditButton icon="add" href="/admin/client-logos" label={ar ? "إضافة عميل" : "Add client"} className="mt-4" />
           <p className="mt-4 max-w-2xl text-white/70 leading-relaxed">
             {ar ? "مؤسسات وشركات وثقت بدار نظم، نفخر بشراكتنا معها." : "Institutions and companies that trust DarNozom. We are proud to work with them."}
           </p>
@@ -36,7 +38,8 @@ export default function Clients() {
             {data.map((c) => {
               const name = ar ? c.nameAr : c.nameEn || c.nameAr;
               return (
-                <li key={c.id}>
+                <li key={c.id} className="relative">
+                  <AdminEditButton href="/admin/client-logos" overlay />
                   <Link href={`/clients/${c.id}`} className="group block border border-black/10 hover:border-[#244B70]/50 transition-colors">
                     <div className={`aspect-[5/3] flex items-center justify-center overflow-hidden ${c.darkBackground ? "bg-[#244B70]" : "bg-white"}`}>
                       {c.logoUrl ? (

@@ -6,6 +6,7 @@ import type { ContentItem } from "@/lib/cms-types";
 import { contentPath, ctaLabel, pickLang, typeBadge } from "@/lib/cms-labels";
 import { CategoryBadge } from "@/components/content/category-badge";
 import { ContentCard } from "@/components/content/content-card";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { SectionHeader } from "@/components/content/section-header";
 
 export function ObservatorySection({ lead, others }: { lead: ContentItem | null; others: ContentItem[] }) {
@@ -15,9 +16,10 @@ export function ObservatorySection({ lead, others }: { lead: ContentItem | null;
   const Arrow = isArabic ? ArrowLeft : ArrowRight;
   return (
     <section className={`mx-auto ${HOME_MAX_W} ${HOME_PX} ${HOME_MT}`}>
-      <SectionHeader title={t("المرصد", "Observatory")} subtitle={t("رصد وتحليل لقضايا الشأن العام والإنتاج الفكري والبحثي", "Monitoring and analysis of public affairs and new research")} href="/observatory" linkLabel={t("تابع المرصد", "Follow the Observatory")} />
+      <SectionHeader title={t("المرصد", "Observatory")} subtitle={t("رصد وتحليل لقضايا الشأن العام والإنتاج الفكري والبحثي", "Monitoring and analysis of public affairs and new research")} href="/observatory" linkLabel={t("تابع المرصد", "Follow the Observatory")} editHref="/admin/content/observatory" addHref="/admin/content/observatory/new" />
       <div className="grid gap-5 lg:grid-cols-[3fr_2fr]">
         <article className="relative rounded-[4px] overflow-hidden bg-navy text-white min-h-[300px]">
+          <AdminEditButton href={`/admin/content/${lead.type}/${lead.id}`} overlay />
           {lead.coverImageUrl && <img src={lead.coverImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60" />}
           <div className="relative p-6 lg:p-8 flex flex-col h-full justify-end bg-gradient-to-t from-navy-deep/90 via-navy/50 to-transparent">
             <CategoryBadge>{typeBadge(lead.type, lead.details, lang)}</CategoryBadge>

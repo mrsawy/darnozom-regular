@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { getMedusaAdminUrl } from "@/lib/medusa-client";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { ShoppingCart, ExternalLink, Star, Plus, Check, BookOpen, Download } from "lucide-react";
@@ -84,10 +86,12 @@ export default function ProductCard({ item }: Props) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.35 }}
-      className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/35 hover:shadow-lg hover:shadow-primary/5 transition-all flex flex-col"
+      className="group relative bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/35 hover:shadow-lg hover:shadow-primary/5 transition-all flex flex-col"
     >
+      {item.type === "book" && <AdminEditButton href={`${getMedusaAdminUrl()}/products/${item.id}`} external overlay />}
+      {item.type === "course" && <AdminEditButton href="/admin/store-courses" overlay />}
       <CoverWrap detailUrl={item.detailUrl}>
-        <div className="relative aspect-[4/3] bg-gradient-to-br from-muted/30 to-muted/10 overflow-hidden">
+        <div className={`relative ${item.type === "book" ? "aspect-[7/9]" : "aspect-[5/4]"} bg-gradient-to-br from-muted/30 to-muted/10 overflow-hidden`}>
           {item.imageUrl ? (
             <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
           ) : (
@@ -110,7 +114,7 @@ export default function ProductCard({ item }: Props) {
         </div>
       </CoverWrap>
 
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-3 flex flex-col flex-1">
         {item.badge && (
           <div className="text-xs text-primary mb-1">{item.badge}</div>
         )}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { Link, useSearch } from "wouter";
 import { motion } from "framer-motion";
 import type { HttpTypes } from "@medusajs/types";
@@ -251,7 +252,7 @@ export default function StoreBooksPage() {
       <SiteNav />
 
       {/* Hero + search */}
-      <section className="relative pt-28 pb-10 px-4 overflow-hidden border-b border-border/50 bg-[hsl(43_33%_97%)]">
+      <section className="relative pt-10 pb-10 px-4 overflow-hidden border-b border-border/50 bg-[hsl(43_33%_97%)]">
         <div
           className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_rgba(24,54,80,0.08),_transparent_55%)]"
           aria-hidden
@@ -297,6 +298,9 @@ export default function StoreBooksPage() {
 
       {/* Filters + results */}
       <section className="px-4 py-10 md:py-12 bg-muted/30">
+        <div className="container mx-auto max-w-6xl flex justify-end mb-4">
+          <AdminEditButton icon="add" href={`${getMedusaAdminUrl()}/products/create`} external label={isArabic ? "إضافة كتاب" : "Add book"} />
+        </div>
         <div className="container mx-auto max-w-6xl grid lg:grid-cols-[248px_1fr] gap-10">
           {/* Sidebar */}
           <aside className="flex flex-col gap-8">
@@ -398,7 +402,7 @@ export default function StoreBooksPage() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div
                     key={i}
@@ -430,7 +434,7 @@ export default function StoreBooksPage() {
               <>
                 <motion.div
                   layout
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
+                  className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5"
                 >
                   {items.map((item) => (
                     <ProductCard key={item.id} item={item} />

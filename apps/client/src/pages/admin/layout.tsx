@@ -37,7 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/content-areas", label: "المجالات", icon: Tags },
   { href: "/admin/content/observatory", label: "المرصد", icon: Radar },
   { href: "/admin/content/article", label: "المقالات", icon: Newspaper },
-  { href: "/admin/content/study", label: "الدراسات", icon: FileSearch },
+  { href: "/admin/content/study", label: "الدراسات والأبحاث", icon: FileSearch },
   { href: "/admin/content/publication", label: "الإصدارات", icon: Library },
   { href: "/admin/content/news", label: "الأخبار", icon: Megaphone },
   { href: "/admin/content/event", label: "الفعاليات", icon: CalendarDays },

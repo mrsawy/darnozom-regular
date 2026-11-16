@@ -111,6 +111,8 @@ export function searchCondition(q: string): SQL {
 
 export async function adminList(p: {
   type: ContentType;
+  /** Also include research-paper publications (the merged "Studies and Research" list). */
+  includeResearch?: boolean;
   status?: ContentStatus;
   q?: string;
   page?: number;
@@ -118,7 +120,11 @@ export async function adminList(p: {
 }) {
   const pageSize = Math.min(Math.max(p.pageSize ?? 25, 1), 100);
   const page = Math.max(p.page ?? 1, 1);
-  const conds: SQL[] = [eq(contentItems.type, p.type)];
+  const conds: SQL[] = [
+    p.includeResearch
+      ? sql`(${contentItems.type} = ${p.type} or (${contentItems.type} = 'publication' and ${contentItems.details}->>'kind' = 'research'))`
+      : eq(contentItems.type, p.type),
+  ];
   if (p.status) conds.push(eq(contentItems.status, p.status));
   if (p.q) conds.push(searchCondition(p.q));
   const where = and(...conds);
@@ -139,6 +145,8 @@ export type ListParams = {
   types: ContentType[];
   area?: ContentArea;
   kind?: string;
+  /** When set, publications in the result must have this kind; other types are unaffected (e.g. studies + research papers). */
+  publicationKind?: string;
   region?: string;
   when?: "upcoming" | "past";
   q?: string;
@@ -154,6 +162,7 @@ export async function listPublished(p: ListParams) {
   const conds: SQL[] = [eq(contentItems.status, "published"), inArray(contentItems.type, p.types)];
   if (p.area) conds.push(eq(contentItems.area, p.area));
   if (p.kind) conds.push(sql`${contentItems.details}->>'kind' = ${p.kind}`);
+  if (p.publicationKind) conds.push(sql`(${contentItems.type} <> 'publication' or ${contentItems.details}->>'kind' = ${p.publicationKind})`);
   if (p.region) conds.push(sql`${contentItems.details}->>'region' = ${p.region}`);
   if (p.when === "upcoming") conds.push(sql`(${startsAt} is null or ${startsAt} >= now())`);
   if (p.when === "past") conds.push(sql`${startsAt} < now()`);
@@ -201,7 +210,7 @@ export async function getHome() {
     resolveFeatured(),
     take(["observatory"], 4),
     take(["article"], 3),
-    take(["study"], 2),
+    listPublished({ types: ["study", "publication"], publicationKind: "research", pageSize: 2 }).then((x) => x.items),
     take(["publication"], 4),
     take(["news", "event"], 3),
   ]);
@@ -352,4 +361,16 @@ export async function reorderSlides(ids: number[]): Promise<void> {
       await tx.update(featuredSlides).set({ position, updatedAt: new Date() }).where(eq(featuredSlides.id, id));
     }
   });
+}
+
+export const BOOK_URL_PREFIX = "/services/store/books/";
+
+/** How many publications were created from each bookstore book (keyed by Medusa product id). */
+export async function bookPublicationCounts(): Promise<Record<string, number>> {
+  const rows = await db
+    .select({ url: contentItems.externalUrl, n: count() })
+    .from(contentItems)
+    .where(and(eq(contentItems.type, "publication"), like(contentItems.externalUrl, `${BOOK_URL_PREFIX}%`)))
+    .groupBy(contentItems.externalUrl);
+  return Object.fromEntries(rows.map((r) => [r.url.slice(BOOK_URL_PREFIX.length), Number(r.n)]));
 }

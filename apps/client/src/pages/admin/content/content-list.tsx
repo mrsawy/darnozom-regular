@@ -15,6 +15,7 @@ const PAGE_SIZE = 50;
 
 function ContentList({ type }: { type: ContentType }) {
   const cfg = TYPE_CONFIG[type];
+  const title = type === "study" ? "الدراسات والأبحاث" : cfg.pluralAr;
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -24,6 +25,7 @@ function ContentList({ type }: { type: ContentType }) {
 
   const load = async (targetPage = page) => {
     const qs = new URLSearchParams({ type, page: String(targetPage), pageSize: String(PAGE_SIZE) });
+    if (type === "study") qs.set("includeResearch", "1");
     if (status) qs.set("status", status);
     if (q.trim()) qs.set("q", q.trim());
     try {
@@ -46,9 +48,14 @@ function ContentList({ type }: { type: ContentType }) {
     <div>
       <Toast toast={toast} />
       <PageHeader
-        title={cfg.pluralAr}
-        description={`إدارة ${cfg.pluralAr}: إضافة وتعديل ونشر وأرشفة.`}
-        actions={<Button asChild className="rounded-none gap-2"><Link href={`/admin/content/${type}/new`}><Plus className="w-4 h-4" /> {`${cfg.labelAr} جديد`}</Link></Button>}
+        title={title}
+        description={`إدارة ${title}: إضافة وتعديل ونشر وأرشفة.`}
+        actions={
+          <>
+            <Button asChild className="rounded-none gap-2"><Link href={`/admin/content/${type}/new`}><Plus className="w-4 h-4" /> {`${cfg.labelAr} جديد`}</Link></Button>
+            {type === "study" && <Button asChild variant="outline" className="rounded-none gap-2"><Link href="/admin/content/publication/new"><Plus className="w-4 h-4" /> بحث علمي جديد</Link></Button>}
+          </>
+        }
       />
       <form className="flex flex-wrap gap-2 mb-4" onSubmit={(e) => { e.preventDefault(); if (page === 1) void load(1); else setPage(1); }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث في العناوين والملخصات" className="min-h-10 px-3 border border-line rounded flex-1 min-w-[220px]" />
@@ -67,11 +74,11 @@ function ContentList({ type }: { type: ContentType }) {
           <tbody>
             {data?.items.map((item) => (
               <tr key={item.id} className="border-t border-line">
-                <td className="p-3 font-semibold">{item.titleAr}{item.details?.legacyDateText && <span className="ms-2 text-xs text-amber-700">(راجع الموعد: {item.details.legacyDateText})</span>}</td>
+                <td className="p-3 font-semibold">{item.titleAr}{type === "study" && <span className="ms-2 text-xs font-normal text-ink-muted">({item.type === "publication" ? "بحث علمي" : "دراسة"})</span>}{item.details?.legacyDateText && <span className="ms-2 text-xs text-amber-700">(راجع الموعد: {item.details.legacyDateText})</span>}</td>
                 <td className="p-3">{STATUS_LABELS[item.status]}</td>
                 <td className="p-3">{formatDate(item.publishedAt, "ar")}</td>
                 <td className="p-3 flex gap-1">
-                  <Link href={`/admin/content/${type}/${item.id}`} aria-label="تعديل" className="p-2 hover:bg-mist rounded"><Pencil className="w-4 h-4" /></Link>
+                  <Link href={`/admin/content/${item.type}/${item.id}`} aria-label="تعديل" className="p-2 hover:bg-mist rounded"><Pencil className="w-4 h-4" /></Link>
                   <a href={`${contentPath(item.type, item.slug)}?preview=1`} target="_blank" rel="noreferrer" aria-label="معاينة" className="p-2 hover:bg-mist rounded"><Eye className="w-4 h-4" /></a>
                   <button type="button" onClick={() => remove(item)} aria-label="حذف" className="p-2 hover:bg-red-50 text-destructive rounded"><Trash2 className="w-4 h-4" /></button>
                 </td>

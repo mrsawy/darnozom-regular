@@ -1,4 +1,6 @@
 import { Link, useParams } from "wouter";
+import { FittedCover } from "@/components/content/fitted-cover";
+import { AdminEditButton } from "@/components/admin-edit-button";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -24,7 +26,9 @@ import { SiteFooter } from "@/components/site-footer";
 
 export default function CaseStudyDetail() {
   const { id } = useParams<{ id: string }>();
-  if (id && !getCaseStudyById(id)) return <CmsCaseStudyDetail slug={id} />;
+  // A copy edited in the dashboard wins; the version written in code is the fallback.
+  const cms = useCmsItem(id ?? "", false);
+  if (id && (!getCaseStudyById(id) || cms.isLoading || cms.data?.item)) return <CmsCaseStudyDetail slug={id} />;
   return <StaticCaseStudyDetail />;
 }
 
@@ -44,7 +48,7 @@ function CmsCaseStudyDetail({ slug }: { slug: string }) {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans" dir={isArabic ? "rtl" : "ltr"}>
       <SiteNav mode="page" />
-      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-20">
+      <section className="dark bg-[#183650] text-primary-foreground pt-12 pb-20">
         <div className="container mx-auto px-6 md:px-12">
           <div className="flex items-center gap-2 text-white/50 text-xs mb-8 uppercase tracking-widest">
             <Link href="/" className="hover:text-secondary">{isArabic ? "الرئيسية" : "Home"}</Link>
@@ -53,6 +57,7 @@ function CmsCaseStudyDetail({ slug }: { slug: string }) {
           </div>
           {item && (
             <>
+              <AdminEditButton href={`/admin/content/${item.type}/${item.id}`} className="mb-4" />
               <div className="flex flex-wrap gap-2 mb-6">
                 {(["industry", "practice", "geography"] as const).map((k) => {
                   const v = pickLang(item.details, k, language);
@@ -67,7 +72,7 @@ function CmsCaseStudyDetail({ slug }: { slug: string }) {
       </section>
       {item && (
         <div className="container mx-auto px-6 md:px-12 py-16 max-w-4xl">
-          {item.coverImageUrl && <img src={item.coverImageUrl} alt="" className="mb-10 w-full max-h-[460px] object-cover" />}
+          {item.coverImageUrl && <FittedCover src={item.coverImageUrl} className="mb-10" />}
           <RichHtml html={pickLang(item, "body", language)} className="mb-10" />
           {sections.map((s) => {
             const html = pickLang(item.details, s.key, language);
@@ -182,7 +187,7 @@ function StaticCaseStudyDetail() {
       <SiteNav mode="page" />
 
       {/* Hero */}
-      <section className="dark bg-[#183650] text-primary-foreground pt-36 pb-24 relative overflow-hidden">
+      <section className="dark bg-[#183650] text-primary-foreground pt-12 pb-24 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-secondary/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -281,7 +286,7 @@ function StaticCaseStudyDetail() {
       />
 
       {/* 04 — Impact */}
-      <section className="py-24 bg-primary text-primary-foreground border-y border-secondary/20">
+      <section className="py-14 bg-primary text-primary-foreground border-y border-secondary/20">
         <div className="container mx-auto px-6 md:px-12">
           <ChapterHeader
             number={t.impactNumber}
@@ -322,7 +327,7 @@ function StaticCaseStudyDetail() {
 
       {/* 05 — Client Voice (optional) */}
       {caseStudy.clientVoice && (
-        <section className="py-24 bg-background border-b border-border">
+        <section className="py-14 bg-background border-b border-border">
           <div className="container mx-auto px-6 md:px-12">
             <ChapterHeader
               number={t.voiceNumber}
@@ -346,7 +351,7 @@ function StaticCaseStudyDetail() {
 
       {/* Related cases (only when true matches exist) */}
       {related.length > 0 && (
-        <section className="py-24 bg-muted/30 border-y border-border">
+        <section className="py-14 bg-muted/30 border-y border-border">
           <div className="container mx-auto px-6 md:px-12">
             <div className="mb-10">
               <div className="text-secondary text-xs font-bold tracking-[0.25em] uppercase mb-3">
@@ -383,7 +388,7 @@ function StaticCaseStudyDetail() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-[#EAF0F6] py-24 relative overflow-hidden">
+      <section className="bg-[#EAF0F6] py-14 relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-1 bg-secondary" />
         <div className="container mx-auto px-6 md:px-12 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
@@ -490,7 +495,7 @@ function ChapterSection({
   background: string;
 }) {
   return (
-    <section className={`py-24 ${background} border-b border-border`}>
+    <section className={`py-14 ${background} border-b border-border`}>
       <div className="container mx-auto px-6 md:px-12">
         <ChapterHeader number={number} label={label} sub={sub} icon={icon} />
         <ul className="grid md:grid-cols-2 gap-x-10 gap-y-4 max-w-5xl">
